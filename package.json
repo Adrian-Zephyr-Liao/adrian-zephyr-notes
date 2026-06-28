@@ -1,0 +1,17 @@
+{
+  "name": "adrian-zephyr-notes",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter './apps/*' dev",
+    "dev:admin": "pnpm --filter @adrian-zephyr-notes/admin dev",
+    "dev:website": "pnpm --filter @adrian-zephyr-notes/website dev",
+    "dev:server": "pnpm --filter @adrian-zephyr-notes/server dev",
+    "build": "pnpm -r --filter './apps/*' build",
+    "lint": "pnpm -r --filter './apps/*' lint",
+    "test": "pnpm -r --filter './apps/*' test"
+  },
+  "packageManager": "pnpm@10.13.1",
+  "devDependencies": {
+    "typescript": "6.0.3"
+  }
+}
