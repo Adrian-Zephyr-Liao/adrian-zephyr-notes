@@ -7,11 +7,16 @@
     "dev:website": "pnpm --filter @adrian-zephyr-notes/website dev",
     "dev:server": "pnpm --filter @adrian-zephyr-notes/server dev",
     "build": "pnpm -r --filter './apps/*' build",
-    "lint": "pnpm -r --filter './apps/*' lint",
-    "test": "pnpm -r --filter './apps/*' test"
+    "check": "pnpm format:check && pnpm lint && pnpm typecheck",
+    "format": "vp fmt . --write --disable-nested-config",
+    "format:check": "vp fmt . --check --disable-nested-config",
+    "lint": "vp lint .",
+    "test": "pnpm -r --filter './apps/*' test",
+    "typecheck": "pnpm --filter @adrian-zephyr-notes/admin exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/website exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/server exec tsc --noEmit --pretty false"
   },
-  "packageManager": "pnpm@10.13.1",
   "devDependencies": {
-    "typescript": "6.0.3"
-  }
+    "typescript": "6.0.3",
+    "vite-plus": "0.2.1"
+  },
+  "packageManager": "pnpm@10.13.1"
 }

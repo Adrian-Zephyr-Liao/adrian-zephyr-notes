@@ -1,38 +1,52 @@
-import { defineConfig } from 'vite-plus';
+import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  fmt: {
+    ignorePatterns: ["apps/admin/src/routeTree.gen.ts"],
+    overrides: [
+      {
+        files: ["apps/admin/**/*.{js,jsx,mjs,ts,tsx,mts,cts,css}"],
+        options: {
+          sortTailwindcss: {
+            stylesheet: "apps/admin/src/styles.css",
+          },
+        },
+      },
+      {
+        files: ["apps/website/**/*.{js,jsx,mjs,ts,tsx,mts,cts,css}"],
+        options: {
+          sortTailwindcss: {
+            stylesheet: "apps/website/src/app/globals.css",
+          },
+        },
+      },
+    ],
+  },
   lint: {
-    "plugins": [
-      "oxc",
-      "typescript",
-      "unicorn",
-      "react",
-      "nextjs"
-    ],
-    "categories": {
-      "correctness": "warn"
+    plugins: ["oxc", "typescript", "unicorn", "react"],
+    categories: {
+      correctness: "warn",
     },
-    "env": {
-      "builtin": true
+    env: {
+      builtin: true,
+      browser: true,
+      node: true,
     },
-    "ignorePatterns": [
-      ".next/**",
-      "out/**",
-      "build/**",
-      "next-env.d.ts"
+    ignorePatterns: [
+      "node_modules/**",
+      "apps/*/node_modules/**",
+      "apps/*/dist/**",
+      "apps/*/.next/**",
+      "apps/*/.tanstack/**",
+      "apps/*/.vinxi/**",
+      "apps/*/.output/**",
+      "apps/*/next-env.d.ts",
+      "apps/admin/src/routeTree.gen.ts",
     ],
-    "rules": {
+    rules: {
       "no-array-constructor": "error",
       "no-unused-expressions": "error",
       "no-unused-vars": "error",
-      "nextjs/no-html-link-for-pages": "error",
-      "nextjs/no-sync-scripts": "error",
-      "nextjs/inline-script-id": "error",
-      "nextjs/no-assign-module-variable": "error",
-      "nextjs/no-document-import-in-page": "error",
-      "nextjs/no-duplicate-head": "error",
-      "nextjs/no-head-import-in-document": "error",
-      "nextjs/no-script-component-in-head": "error",
       "typescript/ban-ts-comment": "error",
       "typescript/no-duplicate-enum-values": "error",
       "typescript/no-empty-object-type": "error",
@@ -50,14 +64,37 @@ export default defineConfig({
       "typescript/prefer-as-const": "error",
       "typescript/prefer-namespace-keyword": "error",
       "typescript/triple-slash-reference": "error",
-      "vite-plus/prefer-vite-plus-imports": "error"
     },
-    "overrides": [
+    overrides: [
       {
-        "files": [
-          "**/*.{js,jsx,mjs,ts,tsx,mts,cts}"
-        ],
-        "rules": {
+        files: ["apps/server/**/*.ts"],
+        env: {
+          jest: true,
+          node: true,
+        },
+        plugins: ["jest", "node"],
+        rules: {
+          "typescript/no-explicit-any": "off",
+          "typescript/no-floating-promises": "warn",
+        },
+      },
+      {
+        files: ["apps/website/**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
+        plugins: ["import", "jsx-a11y", "nextjs"],
+        env: {
+          browser: true,
+          node: true,
+        },
+        globals: {
+          AudioWorkletGlobalScope: "readonly",
+          AudioWorkletProcessor: "readonly",
+          currentFrame: "readonly",
+          currentTime: "readonly",
+          registerProcessor: "readonly",
+          sampleRate: "readonly",
+          WorkletGlobalScope: "readonly",
+        },
+        rules: {
           "react/display-name": "error",
           "react/jsx-key": "error",
           "react/jsx-no-comment-textnodes": "error",
@@ -80,13 +117,9 @@ export default defineConfig({
           "jsx-a11y/alt-text": [
             "warn",
             {
-              "elements": [
-                "img"
-              ],
-              "img": [
-                "Image"
-              ]
-            }
+              elements: ["img"],
+              img: ["Image"],
+            },
           ],
           "jsx-a11y/aria-props": "warn",
           "jsx-a11y/aria-proptypes": "warn",
@@ -109,34 +142,12 @@ export default defineConfig({
           "nextjs/no-typos": "warn",
           "nextjs/no-unwanted-polyfillio": "warn",
           "react/rules-of-hooks": "error",
-          "react/exhaustive-deps": "warn"
+          "react/exhaustive-deps": "warn",
         },
-        "globals": {
-          "AudioWorkletGlobalScope": "readonly",
-          "AudioWorkletProcessor": "readonly",
-          "currentFrame": "readonly",
-          "currentTime": "readonly",
-          "registerProcessor": "readonly",
-          "sampleRate": "readonly",
-          "WorkletGlobalScope": "readonly"
-        },
-        "plugins": [
-          "import",
-          "jsx-a11y"
-        ],
-        "env": {
-          "browser": true,
-          "node": true
-        }
       },
       {
-        "files": [
-          "**/*.ts",
-          "**/*.tsx",
-          "**/*.mts",
-          "**/*.cts"
-        ],
-        "rules": {
+        files: ["**/*.{ts,tsx,mts,cts}"],
+        rules: {
           "constructor-super": "off",
           "getter-return": "off",
           "no-class-assign": "off",
@@ -154,23 +165,21 @@ export default defineConfig({
           "no-unreachable": "off",
           "no-unsafe-negation": "off",
           "no-var": "error",
-          "no-with": "off",
           "prefer-const": "error",
           "prefer-rest-params": "error",
-          "prefer-spread": "error"
-        }
-      }
+          "prefer-spread": "error",
+        },
+      },
     ],
-    "options": {
-      "typeAware": true,
-      "typeCheck": true
+    options: {
+      typeAware: true,
+      typeCheck: true,
     },
-    "jsPlugins": [
+    jsPlugins: [
       {
-        "name": "vite-plus",
-        "specifier": "vite-plus/oxlint-plugin"
-      }
-    ]
+        name: "vite-plus",
+        specifier: "vite-plus/oxlint-plugin",
+      },
+    ],
   },
-
 });

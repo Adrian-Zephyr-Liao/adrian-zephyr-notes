@@ -1,4 +1,5 @@
 node_modules/
+.codegraph/
 
 # App-local installs and build outputs
 apps/*/node_modules/
