@@ -1,3 +1,4 @@
+@import "@chinese-fonts/hcqyt/dist/ChillRoundFRegular/result.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
@@ -59,7 +60,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --font-sans: Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "寒蝉全圆体", Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
   --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 }
 
