@@ -1,0 +1,245 @@
+@reference "tailwindcss";
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-foreground: var(--foreground);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-primary: var(--primary);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+}
+
+@layer components {
+  .markdown-body {
+    @apply max-w-none text-[1rem] leading-8 wrap-anywhere text-foreground/88;
+  }
+
+  .markdown-body > *:first-child {
+    @apply mt-0;
+  }
+
+  .markdown-body > *:last-child {
+    @apply mb-0;
+  }
+
+  .markdown-body h1,
+  .markdown-body h2,
+  .markdown-body h3,
+  .markdown-body h4,
+  .markdown-body h5,
+  .markdown-body h6 {
+    @apply relative scroll-mt-28 text-foreground;
+  }
+
+  .markdown-body h1 {
+    @apply mt-10 mb-5 text-3xl leading-tight font-black;
+  }
+
+  .markdown-body h2 {
+    @apply mt-12 mb-5 border-b border-(--glass-border) pb-3 text-2xl leading-tight font-black;
+  }
+
+  .markdown-body h3 {
+    @apply mt-9 mb-4 text-xl leading-tight font-bold;
+  }
+
+  .markdown-body h4 {
+    @apply mt-8 mb-3 text-lg leading-tight font-bold;
+  }
+
+  .markdown-body h5 {
+    @apply mt-7 mb-3 text-base leading-tight font-bold text-foreground/88;
+  }
+
+  .markdown-body h6 {
+    @apply mt-6 mb-3 text-sm leading-tight font-bold tracking-normal text-muted-foreground uppercase;
+  }
+
+  .markdown-body h2::before {
+    @apply mr-2 inline-block size-3 rounded-full bg-primary/70 align-middle content-[""];
+    box-shadow: 0 0 0 6px color-mix(in oklch, var(--primary) 14%, transparent);
+  }
+
+  .markdown-heading-anchor {
+    @apply ml-2 opacity-0 transition group-hover:opacity-100;
+  }
+
+  .markdown-body h2:hover .markdown-heading-anchor,
+  .markdown-body h3:hover .markdown-heading-anchor {
+    @apply opacity-100;
+  }
+
+  .markdown-body p {
+    @apply my-5 text-pretty;
+  }
+
+  .markdown-body strong {
+    @apply font-black text-foreground;
+  }
+
+  .markdown-body em {
+    @apply text-foreground;
+  }
+
+  .markdown-body del {
+    @apply text-muted-foreground;
+  }
+
+  .markdown-link {
+    @apply font-semibold text-primary underline decoration-primary/35 decoration-2 underline-offset-4 transition hover:text-foreground hover:decoration-primary;
+  }
+
+  .markdown-body ul,
+  .markdown-body ol {
+    @apply my-5 grid gap-2 pl-6;
+  }
+
+  .markdown-body li {
+    @apply pl-1;
+  }
+
+  .markdown-body li::marker {
+    @apply text-primary;
+  }
+
+  .markdown-body input[type="checkbox"] {
+    @apply mr-2 size-4 rounded border-border align-[-0.15rem] accent-primary;
+  }
+
+  .markdown-body blockquote {
+    @apply my-6 rounded-2xl border border-(--glass-border) bg-(--glass-surface) px-5 py-4 text-foreground/82 shadow-(--shadow-glass) backdrop-blur-xl;
+  }
+
+  .markdown-body blockquote p {
+    @apply my-0;
+  }
+
+  .markdown-body blockquote blockquote {
+    @apply my-4 border-primary/20 bg-primary/8 shadow-none;
+  }
+
+  .markdown-body code:not(pre code) {
+    @apply rounded-lg border border-primary/15 bg-primary/10 px-1.5 py-0.5 font-mono text-[0.9em] text-primary;
+  }
+
+  .markdown-body img {
+    @apply my-7 max-h-[28rem] w-full rounded-2xl border border-(--glass-border) bg-white/60 object-contain p-5 shadow-(--shadow-glass) dark:bg-white/5;
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure] {
+    @apply my-7 overflow-hidden rounded-2xl border border-slate-200/85 bg-slate-50 shadow-(--shadow-glass) dark:border-white/10 dark:bg-[oklch(0.17_0.02_248)];
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure]:has(figcaption) {
+    @apply grid grid-cols-[minmax(0,1fr)_auto];
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure] figcaption {
+    @apply flex min-h-12 min-w-0 items-center truncate border-b border-slate-200/85 bg-white/70 px-4 py-2 font-mono text-xs font-medium text-slate-600 dark:border-white/10 dark:bg-white/5 dark:text-white/70;
+  }
+
+  .markdown-code-shell {
+    @apply min-w-0;
+  }
+
+  .markdown-body > .markdown-code-shell {
+    @apply my-7 overflow-hidden rounded-2xl border border-slate-200/85 bg-slate-50 shadow-(--shadow-glass) dark:border-white/10 dark:bg-[oklch(0.17_0.02_248)];
+  }
+
+  .markdown-code-toolbar {
+    @apply flex min-h-10 items-center justify-between gap-3 border-b border-slate-200/85 bg-white/45 px-3 py-1.5 dark:border-white/10 dark:bg-white/[0.035];
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure] .markdown-code-toolbar {
+    @apply bg-white/70 dark:bg-white/5;
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure]:has(figcaption) .markdown-code-shell {
+    display: contents;
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure]:has(figcaption) .markdown-code-toolbar {
+    @apply col-start-2 row-start-1 min-h-12 justify-end px-4 py-2;
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure]:has(figcaption) pre {
+    @apply col-span-full;
+  }
+
+  .markdown-code-language {
+    @apply inline-flex h-6 items-center rounded-md border border-primary/15 bg-primary/10 px-2 font-mono text-xs font-semibold text-primary;
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure] pre {
+    @apply m-0 overflow-x-auto p-4 text-sm leading-7 text-slate-900 dark:text-slate-100;
+  }
+
+  .markdown-body > .markdown-code-shell pre {
+    @apply m-0 overflow-x-auto p-4 font-mono text-sm leading-7 text-slate-900 dark:text-slate-100;
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure] code {
+    @apply grid min-w-full font-mono;
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure] span {
+    color: var(--shiki-light, currentColor);
+  }
+
+  .dark .markdown-body figure[data-rehype-pretty-code-figure] span {
+    color: var(--shiki-dark, currentColor);
+  }
+
+  .markdown-body figure[data-rehype-pretty-code-figure] [data-line] {
+    @apply min-h-6 px-0;
+  }
+
+  .markdown-body .contains-task-list {
+    @apply pl-0;
+    list-style: none;
+  }
+
+  .markdown-table-wrap {
+    @apply my-7 overflow-x-auto rounded-2xl border border-(--glass-border) bg-(--glass-surface) shadow-(--shadow-glass);
+  }
+
+  .markdown-body table {
+    @apply w-full min-w-[42rem] border-collapse text-sm;
+  }
+
+  .markdown-body th {
+    @apply bg-primary/10 px-4 py-3 text-left font-bold text-foreground;
+  }
+
+  .markdown-body td {
+    @apply border-t border-(--glass-border) px-4 py-3 text-muted-foreground;
+  }
+
+  .markdown-body tr:hover td {
+    @apply bg-white/35 text-foreground dark:bg-white/5;
+  }
+
+  .markdown-body hr {
+    @apply my-10 border-(--glass-border);
+  }
+
+  .markdown-body .footnotes {
+    @apply mt-12 border-t border-(--glass-border) pt-5 text-sm text-muted-foreground;
+  }
+
+  .markdown-body .footnotes h2 {
+    @apply mt-0 text-lg;
+  }
+
+  .markdown-body .footnotes h2::before {
+    @apply hidden;
+  }
+
+  .markdown-body .footnotes p {
+    @apply my-2;
+  }
+
+  .markdown-body .data-footnote-backref {
+    @apply ml-1 no-underline;
+  }
+}

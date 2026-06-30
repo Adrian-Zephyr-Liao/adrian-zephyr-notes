@@ -1,5 +1,12 @@
 packages:
   - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  esbuild: true
+  lightningcss: true
+  sharp: false
+  unrs-resolver: false
 
 ignoredBuiltDependencies:
   - sharp
