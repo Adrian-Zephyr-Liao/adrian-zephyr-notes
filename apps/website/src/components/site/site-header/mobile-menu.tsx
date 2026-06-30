@@ -16,7 +16,7 @@ function MobileMenu() {
       </summary>
       <div
         className={cn(
-          "absolute top-12 right-0 w-[min(21rem,calc(100vw_-_1.5rem))] shadow-(--shadow-glass-strong)",
+          "absolute top-12 right-0 w-[min(21rem,calc(100vw-1.5rem))] shadow-(--shadow-glass-strong)",
           glassMenuSurfaceClassName,
         )}
       >

@@ -1,6 +1,9 @@
 import { defineConfig } from "vite-plus";
 
 export default defineConfig({
+  test: {
+    globals: true,
+  },
   fmt: {
     ignorePatterns: ["apps/admin/src/routeTree.gen.ts"],
     overrides: [
@@ -17,6 +20,14 @@ export default defineConfig({
         options: {
           sortTailwindcss: {
             stylesheet: "apps/website/src/app/globals.css",
+          },
+        },
+      },
+      {
+        files: ["packages/markdown/**/*.{js,jsx,mjs,ts,tsx,mts,cts,css}"],
+        options: {
+          sortTailwindcss: {
+            stylesheet: "packages/markdown/src/styles.css",
           },
         },
       },
@@ -41,6 +52,7 @@ export default defineConfig({
       "apps/*/.vinxi/**",
       "apps/*/.output/**",
       "apps/*/next-env.d.ts",
+      "packages/*/node_modules/**",
       "apps/admin/src/routeTree.gen.ts",
     ],
     rules: {
@@ -95,6 +107,14 @@ export default defineConfig({
           WorkletGlobalScope: "readonly",
         },
         rules: {
+          "better-tailwindcss/enforce-canonical-classes": [
+            "error",
+            {
+              entryPoint: "src/app/globals.css",
+              cwd: "apps/website",
+              rootFontSize: 16,
+            },
+          ],
           "react/display-name": "error",
           "react/jsx-key": "error",
           "react/jsx-no-comment-textnodes": "error",
@@ -146,6 +166,56 @@ export default defineConfig({
         },
       },
       {
+        files: ["packages/markdown/**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
+        env: {
+          browser: true,
+          node: true,
+        },
+        rules: {
+          "better-tailwindcss/enforce-canonical-classes": [
+            "error",
+            {
+              entryPoint: "src/styles.css",
+              cwd: "packages/markdown",
+              rootFontSize: 16,
+            },
+          ],
+          "react/display-name": "error",
+          "react/jsx-key": "error",
+          "react/jsx-no-comment-textnodes": "error",
+          "react/jsx-no-duplicate-props": "error",
+          "react/jsx-no-target-blank": "off",
+          "react/jsx-no-undef": "error",
+          "react/no-children-prop": "error",
+          "react/no-danger-with-children": "error",
+          "react/no-direct-mutation-state": "error",
+          "react/no-find-dom-node": "error",
+          "react/no-is-mounted": "error",
+          "react/no-render-return-value": "error",
+          "react/no-string-refs": "error",
+          "react/no-unescaped-entities": "error",
+          "react/no-unknown-property": "off",
+          "react/no-unsafe": "off",
+          "react/react-in-jsx-scope": "off",
+          "react/require-render-return": "error",
+          "react/rules-of-hooks": "error",
+          "react/exhaustive-deps": "warn",
+        },
+      },
+      {
+        files: ["apps/admin/**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
+        rules: {
+          "better-tailwindcss/enforce-canonical-classes": [
+            "error",
+            {
+              entryPoint: "src/styles.css",
+              cwd: "apps/admin",
+              rootFontSize: 16,
+            },
+          ],
+        },
+      },
+      {
         files: ["**/*.{ts,tsx,mts,cts}"],
         rules: {
           "constructor-super": "off",
@@ -179,6 +249,10 @@ export default defineConfig({
       {
         name: "vite-plus",
         specifier: "vite-plus/oxlint-plugin",
+      },
+      {
+        name: "better-tailwindcss",
+        specifier: "eslint-plugin-better-tailwindcss",
       },
     ],
   },

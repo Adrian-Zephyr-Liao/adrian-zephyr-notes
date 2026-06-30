@@ -3,6 +3,7 @@ node_modules/
 
 # App-local installs and build outputs
 apps/*/node_modules/
+packages/*/node_modules/
 apps/*/.next/
 apps/*/.output/
 apps/*/.vinxi/

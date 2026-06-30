@@ -13,11 +13,12 @@
     "lint": "vp lint .",
     "prepare": "husky",
     "test": "pnpm -r --filter './apps/*' test",
-    "typecheck": "pnpm --filter @adrian-zephyr-notes/admin exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/website exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/server exec tsc --noEmit --pretty false"
+    "typecheck": "pnpm --filter @adrian-zephyr-notes/markdown typecheck && pnpm --filter @adrian-zephyr-notes/admin exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/website exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/server exec tsc --noEmit --pretty false"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.1.0",
     "@commitlint/config-conventional": "^21.1.0",
+    "eslint-plugin-better-tailwindcss": "^4.6.0",
     "husky": "^9.1.7",
     "typescript": "6.0.3",
     "vite-plus": "0.2.1"

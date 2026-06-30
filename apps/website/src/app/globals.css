@@ -1,6 +1,7 @@
 @import "@chinese-fonts/hcqyt/dist/ChillRoundFRegular/result.css";
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "@adrian-zephyr-notes/markdown/styles.css";
 @plugin "@tailwindcss/typography";
 @custom-variant dark (&:is(.dark *));
 
@@ -105,6 +106,7 @@
 
   body {
     min-height: 100%;
+    overflow-x: hidden;
     background: var(--gradient-soft), var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);

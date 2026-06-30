@@ -6,7 +6,7 @@ import { SiteBrand } from "./site-brand";
 
 function SiteHeader() {
   return (
-    <header className="sticky top-3 z-50 mx-auto w-[min(1180px,calc(100%_-_1rem))]">
+    <header className="sticky top-3 z-50 mx-auto w-[min(1180px,calc(100%-1rem))]">
       <nav
         className="relative flex min-h-14 items-center gap-2 rounded-2xl border border-(--glass-border) bg-(--glass-surface) px-2.5 shadow-(--shadow-glass) backdrop-blur-xl md:px-3"
         aria-label="主导航"

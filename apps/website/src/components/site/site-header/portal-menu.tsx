@@ -12,12 +12,12 @@ function PortalCard({ item }: { item: PortalLink }) {
 
   return (
     <Link
-      className="group/card grid grid-cols-[2.5rem_1fr] items-center gap-3 rounded-xl px-2.5 py-2.5 transition duration-200 hover:bg-white/60 dark:hover:bg-white/10 [&_svg]:pointer-events-none"
+      className="group/card grid grid-cols-[2.5rem_1fr] items-center gap-3 rounded-xl p-2.5 transition duration-200 hover:bg-white/60 dark:hover:bg-white/10 [&_svg]:pointer-events-none"
       href={item.href}
     >
       <span
         className={cn(
-          "flex size-10 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-sm transition duration-200 group-hover/card:scale-105",
+          "flex size-10 items-center justify-center rounded-xl bg-linear-to-br text-white shadow-sm transition duration-200 group-hover/card:scale-105",
           item.tone,
         )}
       >

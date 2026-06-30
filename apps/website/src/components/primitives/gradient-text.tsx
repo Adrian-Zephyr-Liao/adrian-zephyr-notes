@@ -6,7 +6,7 @@ function GradientText({ className, ...props }: React.ComponentProps<"span">) {
   return (
     <span
       data-slot="gradient-text"
-      className={cn("bg-[image:var(--gradient-brand)] bg-clip-text text-transparent", className)}
+      className={cn("bg-(image:--gradient-brand) bg-clip-text text-transparent", className)}
       {...props}
     />
   );
