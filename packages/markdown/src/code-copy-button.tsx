@@ -31,7 +31,8 @@ function CodeCopyButton() {
   return (
     <button
       aria-label={copied ? "代码已复制" : "复制代码"}
-      className="inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-slate-200/80 bg-white/70 px-2 text-xs font-medium whitespace-nowrap text-slate-600 transition outline-none select-none hover:bg-white hover:text-slate-950 focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 dark:border-white/10 dark:bg-white/8 dark:text-white/70 dark:hover:bg-white/14 dark:hover:text-white"
+      className="markdown-code-copy-button"
+      data-status={status}
       type="button"
       onClick={copyCode}
     >

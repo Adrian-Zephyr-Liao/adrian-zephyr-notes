@@ -26,6 +26,21 @@ const markdownComponents = {
       </a>
     );
   },
+  li({ className, children, node: _node, ...props }) {
+    if (typeof className === "string" && className.includes("task-list-item")) {
+      return (
+        <li className={className} {...props}>
+          <label className="markdown-task-list-label">{children}</label>
+        </li>
+      );
+    }
+
+    return (
+      <li className={className} {...props}>
+        {children}
+      </li>
+    );
+  },
   pre({ className, children, node: _node, ...props }) {
     const language = getCodeLanguage(props);
 
@@ -35,7 +50,7 @@ const markdownComponents = {
           <span className="markdown-code-language">{language}</span>
           <CodeCopyButton />
         </div>
-        <pre className={className} {...props}>
+        <pre className={className} {...props} aria-label={`${language} 代码块`}>
           {children}
         </pre>
       </div>
@@ -78,6 +93,7 @@ async function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
               properties: {
                 className: ["markdown-heading-anchor"],
                 ariaLabel: "链接到这个小节",
+                tabIndex: -1,
               },
               content: {
                 type: "element",
