@@ -81,10 +81,9 @@ export default defineConfig({
       {
         files: ["apps/server/**/*.ts"],
         env: {
-          jest: true,
           node: true,
         },
-        plugins: ["jest", "node"],
+        plugins: ["node"],
         rules: {
           "typescript/no-explicit-any": "off",
           "typescript/no-floating-promises": "warn",

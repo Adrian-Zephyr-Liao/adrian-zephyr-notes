@@ -1,0 +1,14 @@
+.git
+.codegraph
+node_modules
+apps/*/node_modules
+packages/*/node_modules
+apps/*/dist
+apps/*/.next
+apps/*/coverage
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+!*.env.example
+.DS_Store

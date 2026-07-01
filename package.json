@@ -6,6 +6,10 @@
     "dev:admin": "pnpm --filter @adrian-zephyr-notes/admin dev",
     "dev:website": "pnpm --filter @adrian-zephyr-notes/website dev",
     "dev:server": "pnpm --filter @adrian-zephyr-notes/server dev",
+    "db:generate": "pnpm --filter @adrian-zephyr-notes/server prisma:generate",
+    "db:migrate": "pnpm --filter @adrian-zephyr-notes/server prisma:migrate",
+    "db:deploy": "pnpm --filter @adrian-zephyr-notes/server prisma:deploy",
+    "db:seed": "pnpm --filter @adrian-zephyr-notes/server db:seed",
     "build": "pnpm -r --filter './apps/*' build",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck",
     "format": "vp fmt . --write --disable-nested-config",
@@ -13,7 +17,7 @@
     "lint": "vp lint .",
     "prepare": "husky",
     "test": "pnpm -r --filter './apps/*' test",
-    "typecheck": "pnpm --filter @adrian-zephyr-notes/markdown typecheck && pnpm --filter @adrian-zephyr-notes/admin exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/website exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/server exec tsc --noEmit --pretty false"
+    "typecheck": "pnpm --filter @adrian-zephyr-notes/contracts typecheck && pnpm --filter @adrian-zephyr-notes/markdown typecheck && pnpm --filter @adrian-zephyr-notes/admin exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/website typecheck && pnpm --filter @adrian-zephyr-notes/server typecheck"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.1.0",

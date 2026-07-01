@@ -1,6 +1,12 @@
 node_modules/
 .codegraph/
 
+# Local environment files. Keep committed examples as *.env.example.
+.env
+.env.*
+!.env.example
+!*.env.example
+
 # App-local installs and build outputs
 apps/*/node_modules/
 packages/*/node_modules/
