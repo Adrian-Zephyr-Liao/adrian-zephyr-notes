@@ -16,22 +16,21 @@ import {
 } from "lucide-react";
 
 import { ArticleSidebarProfile } from "@/components/markdown/article-sidebar-profile";
+import { ArticleComments } from "@/components/markdown/article-comments";
 import { ArticleMotionShell } from "@/components/markdown/article-motion-shell";
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Badge } from "@/components/ui/badge";
-import { getAllPosts, getPostBySlug } from "@/content/posts";
+import { getArticleBySlug } from "@/lib/articles-api";
 
 type PostPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
-  return getAllPosts().map((post) => ({ slug: post.slug }));
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getArticleBySlug(slug);
 
   if (!post) {
     return {};
@@ -45,7 +44,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 
 async function PostPage({ params }: PostPageProps) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getArticleBySlug(slug);
 
   if (!post) {
     notFound();
@@ -74,16 +73,16 @@ async function PostPage({ params }: PostPageProps) {
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary" className="gap-1.5">
                   <FolderOpen className="size-3" />
-                  {post.category}
+                  {post.category?.name ?? "未分类"}
                 </Badge>
                 {post.tags.map((tag) => (
                   <Badge
-                    key={tag}
+                    key={tag.slug}
                     variant="outline"
                     className="gap-1.5 bg-white/40 dark:bg-white/5"
                   >
                     <Tag className="size-3" />
-                    {tag}
+                    {tag.name}
                   </Badge>
                 ))}
               </div>
@@ -102,11 +101,11 @@ async function PostPage({ params }: PostPageProps) {
               <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
                   <CalendarDays className="size-4 text-primary" />
-                  发表于 {post.createdAt}
+                  发表于 {formatArticleDate(post.publishedAt)}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
                   <History className="size-4 text-primary" />
-                  更新于 {post.updatedAt}
+                  更新于 {formatArticleDate(post.updatedAt)}
                 </span>
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
                   <FileText className="size-4 text-primary" />
@@ -123,6 +122,7 @@ async function PostPage({ params }: PostPageProps) {
           <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
             <GlassPanel tone="strong" className="rounded-3xl px-5 py-7 sm:px-8 lg:px-10">
               <MarkdownRenderer content={post.markdown} />
+              <ArticleComments slug={post.slug} />
 
               <div className="mt-10 grid gap-4">
                 <GlassPanel className="rounded-2xl p-4 sm:p-5">
@@ -148,12 +148,12 @@ async function PostPage({ params }: PostPageProps) {
                 <div className="flex flex-wrap gap-2">
                   {post.tags.map((tag) => (
                     <Badge
-                      key={tag}
+                      key={tag.slug}
                       variant="outline"
                       className="gap-1.5 bg-white/45 dark:bg-white/5"
                     >
                       <Hash className="size-3" />
-                      {tag}
+                      {tag.name}
                     </Badge>
                   ))}
                 </div>
@@ -174,3 +174,9 @@ async function PostPage({ params }: PostPageProps) {
 }
 
 export default PostPage;
+
+function formatArticleDate(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    dateStyle: "medium",
+  }).format(new Date(value));
+}

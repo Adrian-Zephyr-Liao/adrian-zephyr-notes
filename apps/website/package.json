@@ -6,9 +6,11 @@
     "dev": "next dev --port 3002",
     "build": "next build",
     "start": "next start --port 3002",
-    "lint": "vp lint"
+    "lint": "vp lint",
+    "typecheck": "tsc --noEmit --pretty false"
   },
   "dependencies": {
+    "@adrian-zephyr-notes/contracts": "workspace:*",
     "@adrian-zephyr-notes/markdown": "workspace:*",
     "@chinese-fonts/hcqyt": "^2.0.0",
     "@iconify-json/mingcute": "^1.2.7",
