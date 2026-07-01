@@ -15,15 +15,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" className="h-full antialiased" suppressHydrationWarning>
-      <body className="flex min-h-full flex-col">
+      <body className="min-h-full">
+        <div
+          aria-hidden="true"
+          className="site-viewport-background pointer-events-none fixed inset-0 z-0"
+        />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
           disableTransitionOnChange
         >
-          <SiteHeader />
-          {children}
+          <div className="relative z-10 flex min-h-screen flex-col">
+            <SiteHeader />
+            {children}
+          </div>
         </ThemeProvider>
       </body>
     </html>

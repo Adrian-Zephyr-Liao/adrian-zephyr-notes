@@ -9,14 +9,14 @@ import { glassMenuSurfaceClassName } from "./styles";
 function MobileMenu() {
   return (
     <details className="group/mobile relative xl:hidden" name="site-header-disclosure">
-      <summary className="flex size-9 cursor-pointer list-none items-center justify-center rounded-xl bg-white/45 text-foreground/75 transition hover:bg-white/70 dark:bg-white/10 dark:hover:bg-white/15 [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden">
+      <summary className="flex size-9 cursor-pointer list-none items-center justify-center rounded-xl bg-white/45 text-foreground/75 transition hover:bg-white/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:bg-white/10 dark:hover:bg-white/15 [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden">
         <Menu className="size-4 group-open/mobile:hidden" />
         <X className="hidden size-4 group-open/mobile:block" />
         <span className="sr-only">打开移动端菜单</span>
       </summary>
       <div
         className={cn(
-          "absolute top-12 right-0 w-[min(21rem,calc(100vw-1.5rem))] shadow-(--shadow-glass-strong)",
+          "absolute top-12 right-0 hidden w-[min(21rem,calc(100vw-1.5rem))] shadow-(--shadow-glass-strong) group-open/mobile:block",
           glassMenuSurfaceClassName,
         )}
       >
@@ -31,11 +31,11 @@ function MobileMenu() {
               className="group/mobile-section rounded-xl bg-white/35 dark:bg-white/5"
               name="mobile-nav-section"
             >
-              <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-sm font-semibold [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-sm font-semibold focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden">
                 <span>{group.label}</span>
                 <ChevronDown className="size-4 transition group-open/mobile-section:rotate-180" />
               </summary>
-              <div className="grid gap-1 px-1.5 pb-1.5">
+              <div className="hidden gap-1 px-1.5 pb-1.5 group-open/mobile-section:grid">
                 {group.items.map((item) => (
                   <HeaderLink key={item.href} compact item={item} />
                 ))}
