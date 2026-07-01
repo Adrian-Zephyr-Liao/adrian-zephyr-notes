@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ArticleCommentStatus {
+  VISIBLE
+  HIDDEN
+}
+
+model Article {
+  id             String            @id @default(uuid()) @db.Uuid
+  slug           String            @unique
+  title          String
+  description    String
+  markdown       String
+  status         ArticleStatus
+  categoryId     String?           @map("category_id") @db.Uuid
+  coverImageUrl  String?           @map("cover_image_url")
+  wordCount      Int               @map("word_count")
+  readingMinutes Int               @map("reading_minutes")
+  publishedAt    DateTime?         @map("published_at") @db.Timestamptz(6)
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+  category       ArticleCategory?  @relation(fields: [categoryId], references: [id])
+  tags           ArticleTagLink[]
+  revisions      ArticleRevision[]
+  comments       ArticleComment[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@map("articles")
+}
+
+model User {
+  id             String           @id @default(uuid()) @db.Uuid
+  githubId       String           @unique @map("github_id")
+  login          String
+  name           String?
+  email          String?
+  avatarUrl      String?          @map("avatar_url")
+  profileUrl     String           @map("profile_url")
+  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions       UserSession[]
+  articleComments ArticleComment[]
+
+  @@map("users")
+}
+
+model UserSession {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  tokenHash    String   @unique @map("token_hash")
+  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt   DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("user_sessions")
+}
+
+model ArticleComment {
+  id              String           @id @default(uuid()) @db.Uuid
+  articleId       String           @map("article_id") @db.Uuid
+  authorId        String           @map("author_id") @db.Uuid
+  parentCommentId String?          @map("parent_comment_id") @db.Uuid
+  body            String
+  status          ArticleCommentStatus @default(VISIBLE)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  article         Article          @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author          User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment   ArticleComment?  @relation("ArticleCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         ArticleComment[] @relation("ArticleCommentReplies")
+
+  @@index([articleId, parentCommentId, status, createdAt])
+  @@index([authorId])
+  @@index([parentCommentId])
+  @@map("article_comments")
+}
+
+model ArticleCategory {
+  id          String    @id @default(uuid()) @db.Uuid
+  slug        String    @unique
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  articles    Article[]
+
+  @@map("article_categories")
+}
+
+model ArticleTag {
+  id        String           @id @default(uuid()) @db.Uuid
+  slug      String           @unique
+  name      String           @unique
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
+  articles  ArticleTagLink[]
+
+  @@map("article_tags")
+}
+
+model ArticleTagLink {
+  articleId String     @map("article_id") @db.Uuid
+  tagId     String     @map("tag_id") @db.Uuid
+  article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  tag       ArticleTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([articleId, tagId])
+  @@map("article_tag_links")
+}
+
+model ArticleRevision {
+  id          String   @id @default(uuid()) @db.Uuid
+  articleId   String   @map("article_id") @db.Uuid
+  title       String
+  description String
+  markdown    String
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  article     Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@map("article_revisions")
+}
