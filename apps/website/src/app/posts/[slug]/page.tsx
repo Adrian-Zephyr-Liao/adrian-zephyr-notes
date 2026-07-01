@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getMarkdownHeadings, MarkdownRenderer, PostToc } from "@adrian-zephyr-notes/markdown";
 import {
-  BookOpenText,
   CalendarDays,
   ChevronLeft,
   Clock3,
@@ -16,6 +15,7 @@ import {
   Tag,
 } from "lucide-react";
 
+import { ArticleSidebarProfile } from "@/components/markdown/article-sidebar-profile";
 import { ArticleMotionShell } from "@/components/markdown/article-motion-shell";
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Badge } from "@/components/ui/badge";
@@ -54,7 +54,7 @@ async function PostPage({ params }: PostPageProps) {
   const headings = getMarkdownHeadings(post.markdown);
 
   return (
-    <main className="flex-1 overflow-hidden px-3 pb-14 sm:px-4">
+    <main className="flex-1 overflow-x-clip px-3 pb-14 sm:px-4">
       <ArticleMotionShell>
         <div className="mx-auto grid w-[min(1180px,calc(100vw-1.5rem))] gap-5 pt-8 sm:w-[min(1180px,calc(100vw-2rem))]">
           <GlassPanel
@@ -160,29 +160,10 @@ async function PostPage({ params }: PostPageProps) {
               </div>
             </GlassPanel>
 
-            <aside className="hidden lg:sticky lg:top-24 lg:grid lg:gap-4">
-              <GlassPanel className="rounded-3xl p-4">
+            <aside className="hidden lg:grid lg:content-start lg:gap-4 lg:self-stretch">
+              <ArticleSidebarProfile />
+              <GlassPanel className="rounded-3xl p-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
                 <PostToc headings={headings} />
-              </GlassPanel>
-              <GlassPanel className="rounded-3xl p-4">
-                <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <BookOpenText className="size-4 text-primary" />
-                  <span>文章信息</span>
-                </div>
-                <dl className="mt-3 grid gap-2 text-sm text-muted-foreground">
-                  <div className="flex justify-between gap-3">
-                    <dt>作者</dt>
-                    <dd className="text-foreground">{post.author.name}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt>分类</dt>
-                    <dd className="text-foreground">{post.category}</dd>
-                  </div>
-                  <div className="flex justify-between gap-3">
-                    <dt>阅读</dt>
-                    <dd className="text-foreground">{post.readingMinutes} min</dd>
-                  </div>
-                </dl>
               </GlassPanel>
             </aside>
           </div>
