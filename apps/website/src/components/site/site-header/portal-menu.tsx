@@ -4,6 +4,7 @@ import { GripVertical } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 import { portalLinks } from "./data";
+import { SiteHeaderDisclosure } from "./site-header-disclosure";
 import { glassMenuSurfaceClassName } from "./styles";
 import type { PortalLink } from "./types";
 
@@ -33,7 +34,7 @@ function PortalCard({ item }: { item: PortalLink }) {
 
 function PortalMenu() {
   return (
-    <details className="group/portal relative" name="site-header-disclosure">
+    <SiteHeaderDisclosure className="group/portal relative" name="site-header-disclosure">
       <summary
         className="flex size-9 cursor-pointer list-none items-center justify-center rounded-xl border border-white/35 bg-white/45 text-foreground/70 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/70 hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15 [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden"
         aria-label="打开站点入口"
@@ -55,7 +56,7 @@ function PortalMenu() {
           </div>
         </div>
       </div>
-    </details>
+    </SiteHeaderDisclosure>
   );
 }
 

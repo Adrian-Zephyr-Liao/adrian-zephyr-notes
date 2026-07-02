@@ -4,11 +4,12 @@ import { cn } from "@/lib/utils";
 
 import { navGroups } from "./data";
 import { HeaderLink } from "./header-link";
+import { SiteHeaderDisclosure } from "./site-header-disclosure";
 import { glassMenuSurfaceClassName } from "./styles";
 
 function MobileMenu() {
   return (
-    <details className="group/mobile relative xl:hidden" name="site-header-disclosure">
+    <SiteHeaderDisclosure className="group/mobile relative xl:hidden" name="site-header-disclosure">
       <summary className="flex size-9 cursor-pointer list-none items-center justify-center rounded-xl bg-white/45 text-foreground/75 transition hover:bg-white/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:bg-white/10 dark:hover:bg-white/15 [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden">
         <Menu className="size-4 group-open/mobile:hidden" />
         <X className="hidden size-4 group-open/mobile:block" />
@@ -44,7 +45,7 @@ function MobileMenu() {
           ))}
         </div>
       </div>
-    </details>
+    </SiteHeaderDisclosure>
   );
 }
 
