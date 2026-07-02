@@ -129,7 +129,7 @@ async function loadMarkdownSyntaxShowcasePost() {
   const post = context.globalThis.__markdownSyntaxShowcasePost;
 
   if (!isMarkdownPost(post)) {
-    throw new Error("Unable to load the frontend markdown showcase post.");
+    throw new Error("Unable to load the frontend markdown reference post.");
   }
 
   return post;

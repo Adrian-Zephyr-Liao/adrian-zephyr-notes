@@ -3,12 +3,16 @@ import type { ArticleListItemResponse } from "@adrian-zephyr-notes/contracts";
 import { ArrowRight, CalendarDays, Clock3, FileText, FolderOpen, Tag } from "lucide-react";
 
 import { GlassPanel } from "@/components/primitives/glass-panel";
+import { StatusIllustration } from "@/components/status/status-illustration";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
 function ArticleListSection({ articles }: { articles: ArticleListItemResponse[] }) {
   return (
-    <section className="mx-auto grid w-[min(1180px,calc(100vw-1.5rem))] gap-5 py-10 sm:w-[min(1180px,calc(100vw-2rem))]">
+    <section
+      id="articles"
+      className="mx-auto grid w-[min(1180px,calc(100vw-1.5rem))] scroll-mt-24 gap-5 py-10 sm:w-[min(1180px,calc(100vw-2rem))]"
+    >
       <div className="grid gap-2">
         <h2 className="text-2xl/tight font-black tracking-normal text-foreground sm:text-3xl">
           最新文章
@@ -19,8 +23,12 @@ function ArticleListSection({ articles }: { articles: ArticleListItemResponse[] 
       </div>
 
       {articles.length === 0 ? (
-        <GlassPanel className="rounded-3xl p-6">
-          <p className="text-sm text-muted-foreground">暂无已发布文章。</p>
+        <GlassPanel className="grid justify-items-center gap-4 rounded-3xl p-6 text-center">
+          <StatusIllustration className="max-w-[13rem]" variant="empty-articles" />
+          <div className="grid gap-1">
+            <h3 className="text-base font-black text-foreground">还没有已发布文章</h3>
+            <p className="text-sm text-muted-foreground">发布后的文章会自动出现在这里。</p>
+          </div>
         </GlassPanel>
       ) : (
         <div className="grid gap-4 md:grid-cols-2">

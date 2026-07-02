@@ -33,7 +33,7 @@ const noticeSlides = [
     process: "post.watch",
     status: "updated",
     command: "vp post:watch --include context",
-    output: "旧文章可能随示例、结论和实践方式一起重新校准。",
+    output: "旧文章可能随资料、结论和实践方式一起重新校准。",
     title: "context watcher",
   },
   {

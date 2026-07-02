@@ -2,7 +2,7 @@ const markdownSyntaxShowcasePost = {
   slug: "5f7448b7",
   title: "Markdown 语法全量展示",
   description:
-    "用一篇完整示例验证博客 Markdown 渲染能力：标题、段落、强调、列表、表格、代码、图片、引用、脚注和 GFM 扩展。",
+    "系统整理博客 Markdown 写作规范：标题、段落、强调、列表、表格、代码、图片、引用、脚注和 GFM 扩展。",
   category: "笔记",
   tags: ["Markdown", "GFM", "Syntax"],
   createdAt: "2024-05-25",
@@ -14,7 +14,7 @@ const markdownSyntaxShowcasePost = {
     description: "Notes, essays, and experiments.",
   },
   markdown: `
-> 注：这一页用于打磨 2C 博客的 Markdown 阅读体验。内容结构参考常见主题文章页，渲染链路使用 React Markdown、remark-gfm、rehype-slug 和 rehype-pretty-code。
+> 注：这篇文章用于整理本站 Markdown 阅读规范。内容结构参考常见主题文章页，渲染链路使用 React Markdown、remark-gfm、rehype-slug 和 rehype-pretty-code。
 
 ## Markdown 基础块级语法
 
@@ -61,7 +61,7 @@ ___
 
 图片语法应该有稳定边界、标题和圆角：
 
-![站点图片示例：globe.svg](/globe.svg "Markdown 图片标题")
+![站点图片：globe.svg](/globe.svg "Markdown 图片标题")
 
 引用式图片也应该能正常渲染：
 
@@ -150,7 +150,7 @@ export async function MarkdownRenderer({ content }: { content: string }) {
     pnpm --filter @adrian-zephyr-notes/website build
     open http://localhost:3002/posts/5f7448b7
 
-JSON 示例：
+JSON 结构：
 
 \`\`\`json title="post-meta.json"
 {
@@ -168,7 +168,7 @@ JSON 示例：
 这段内容位于代码块里。
 \`\`\`
 
-## Front-matter 示例
+## Front-matter 结构
 
 \`Front-matter\` 不是 Markdown 标准语法本身，但博客系统常用它保存页面元数据。这里把它作为 fenced code 展示，避免被当成文章分隔线。
 
@@ -272,7 +272,7 @@ highlight_shrink: false
 | \`copyright_info\` | 【可选】版权声明文字 |
 | \`highlight_shrink\` | 【可选】配置代码框是否展开 |
 
-## 博客扩展字段示例
+## 博客扩展字段
 
 从很多 Hexo 主题开始，文章置顶可以直接在 \`Front-matter\` 区域里添加 \`sticky\` 属性。数值越大，置顶优先级越高：
 

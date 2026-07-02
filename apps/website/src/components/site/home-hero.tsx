@@ -93,8 +93,8 @@ function HomeHero() {
             </div>
 
             <Button asChild size="lg" className="w-fit">
-              <Link href="/posts/5f7448b7">
-                查看示例文章
+              <Link href="#articles">
+                浏览文章
                 <ArrowRight className="size-4" />
               </Link>
             </Button>
