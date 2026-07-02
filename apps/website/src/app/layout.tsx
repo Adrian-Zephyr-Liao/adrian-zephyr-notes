@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { RouteTransitionProgress } from "@/components/site/route-transition-progress";
 import { SiteHeader } from "@/components/site/site-header";
 import { ThemeProvider } from "@/components/site/theme-provider";
 import "./globals.css";
@@ -27,6 +28,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <div className="relative z-10 flex min-h-screen flex-col">
+            <RouteTransitionProgress />
             <SiteHeader />
             {children}
           </div>
