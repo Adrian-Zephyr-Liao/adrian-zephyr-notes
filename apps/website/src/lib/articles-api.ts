@@ -3,23 +3,30 @@ import type {
   ArticleListQuery,
   ArticleListResponse,
 } from "@adrian-zephyr-notes/contracts";
-
-const DEFAULT_API_BASE_URL = "http://localhost:3001";
+import { getBackendApiBaseUrl } from "./backend-api";
+import { isApiRequestError, requestJson } from "./api-client";
 
 async function getArticleBySlug(slug: string): Promise<ArticleDetailResponse | null> {
-  const response = await fetch(`${getApiBaseUrl()}/api/articles/${encodeURIComponent(slug)}`, {
-    cache: "no-store",
-  });
+  try {
+    return await requestJson<ArticleDetailResponse>(
+      `${getBackendApiBaseUrl()}/api/articles/${encodeURIComponent(slug)}`,
+      {
+        cache: "no-store",
+      },
+    );
+  } catch (error) {
+    if (isApiRequestError(error) && error.status === 404) {
+      return null;
+    }
 
-  if (response.status === 404) {
-    return null;
+    if (isApiRequestError(error)) {
+      throw new Error(`Failed to fetch article ${slug}: ${error.status}`, {
+        cause: error,
+      });
+    }
+
+    throw error;
   }
-
-  if (!response.ok) {
-    throw new Error(`Failed to fetch article ${slug}: ${response.status}`);
-  }
-
-  return (await response.json()) as ArticleDetailResponse;
 }
 
 async function getArticles(query: ArticleListQuery = {}): Promise<ArticleListResponse> {
@@ -39,23 +46,22 @@ async function getArticles(query: ArticleListQuery = {}): Promise<ArticleListRes
     searchParams.set("q", query.q);
   }
 
-  const response = await fetch(`${getApiBaseUrl()}/api/articles?${searchParams.toString()}`, {
-    cache: "no-store",
-  });
+  try {
+    return await requestJson<ArticleListResponse>(
+      `${getBackendApiBaseUrl()}/api/articles?${searchParams.toString()}`,
+      {
+        cache: "no-store",
+      },
+    );
+  } catch (error) {
+    if (isApiRequestError(error)) {
+      throw new Error(`Failed to fetch articles: ${error.status}`, {
+        cause: error,
+      });
+    }
 
-  if (!response.ok) {
-    throw new Error(`Failed to fetch articles: ${response.status}`);
+    throw error;
   }
-
-  return (await response.json()) as ArticleListResponse;
-}
-
-function getApiBaseUrl() {
-  return (
-    process.env.BACKEND_API_BASE_URL ??
-    process.env.ARTICLE_API_BASE_URL ??
-    DEFAULT_API_BASE_URL
-  ).replace(/\/$/, "");
 }
 
 export { getArticleBySlug, getArticles };

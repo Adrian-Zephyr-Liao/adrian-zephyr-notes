@@ -22,6 +22,7 @@ import {
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { StatusIllustration } from "@/components/status/status-illustration";
 import { Button } from "@/components/ui/button";
+import { isApiRequestError, requestJson } from "@/lib/api-client";
 import {
   applyCommentLikeState,
   createArticleCommentThreads,
@@ -82,27 +83,16 @@ function ArticleComments({ slug }: { slug: string }) {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/articles/${encodeURIComponent(slug)}/comments`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
+      const comment = await requestJson<ArticleCommentResponse>(
+        `/api/articles/${encodeURIComponent(slug)}/comments`,
+        {
+          method: "POST",
+          json: {
+            body: trimmedBody,
+            parentCommentId: replyTarget?.id ?? null,
+          },
         },
-        body: JSON.stringify({
-          body: trimmedBody,
-          parentCommentId: replyTarget?.id ?? null,
-        }),
-      });
-
-      if (response.status === 401) {
-        window.location.href = loginUrl;
-        return;
-      }
-
-      if (!response.ok) {
-        throw new Error(`Failed to publish comment: ${response.status}`);
-      }
-
-      const comment = (await response.json()) as ArticleCommentResponse;
+      );
       const expansionTargetId = comment.parentCommentId
         ? findReplyExpansionTargetId(comments, comment.parentCommentId)
         : null;
@@ -124,7 +114,12 @@ function ArticleComments({ slug }: { slug: string }) {
       );
       setBody("");
       setReplyTarget(null);
-    } catch {
+    } catch (error) {
+      if (isApiRequestError(error) && error.status === 401) {
+        window.location.href = loginUrl;
+        return;
+      }
+
       setErrorMessage(replyTarget ? "回复发布失败，请稍后重试。" : "评论发布失败，请稍后重试。");
     } finally {
       setIsSubmitting(false);
@@ -132,7 +127,7 @@ function ArticleComments({ slug }: { slug: string }) {
   }
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", {
+    await requestJson("/api/auth/logout", {
       method: "POST",
     });
     setUser(null);
@@ -174,22 +169,19 @@ function ArticleComments({ slug }: { slug: string }) {
     setErrorMessage(null);
 
     try {
-      const response = await fetch(`/api/comments/${encodeURIComponent(target.id)}/like`, {
-        method: target.likedByMe ? "DELETE" : "PUT",
-      });
-
-      if (response.status === 401) {
+      const likeState = await requestJson<ArticleCommentLikeResponse>(
+        `/api/comments/${encodeURIComponent(target.id)}/like`,
+        {
+          method: target.likedByMe ? "DELETE" : "PUT",
+        },
+      );
+      setComments((current) => applyCommentLikeState(current, likeState));
+    } catch (error) {
+      if (isApiRequestError(error) && error.status === 401) {
         window.location.href = loginUrl;
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(`Failed to toggle comment like: ${response.status}`);
-      }
-
-      const likeState = (await response.json()) as ArticleCommentLikeResponse;
-      setComments((current) => applyCommentLikeState(current, likeState));
-    } catch {
       setComments((current) => applyCommentLikeState(current, previousLikeState));
       setErrorMessage("点赞操作失败，请稍后重试。");
     } finally {
@@ -572,14 +564,15 @@ async function loadComments(
     page: String(page),
     pageSize: String(pageSize),
   });
-  const response = await fetch(
-    `/api/articles/${encodeURIComponent(slug)}/comments?${searchParams.toString()}`,
-    {
-      cache: "no-store",
-    },
-  );
 
-  if (!response.ok) {
+  try {
+    return await requestJson<ArticleCommentsResponse>(
+      `/api/articles/${encodeURIComponent(slug)}/comments?${searchParams.toString()}`,
+      {
+        cache: "no-store",
+      },
+    );
+  } catch {
     return {
       data: [],
       pagination: {
@@ -590,21 +583,17 @@ async function loadComments(
       },
     };
   }
-
-  return (await response.json()) as ArticleCommentsResponse;
 }
 
 async function loadCurrentUser() {
-  const response = await fetch("/api/auth/me", {
-    cache: "no-store",
-  });
-
-  if (!response.ok) {
+  try {
+    const payload = await requestJson<AuthMeResponse>("/api/auth/me", {
+      cache: "no-store",
+    });
+    return payload.user;
+  } catch {
     return null;
   }
-
-  const payload = (await response.json()) as AuthMeResponse;
-  return payload.user;
 }
 
 function formatCommentDate(value: string) {
