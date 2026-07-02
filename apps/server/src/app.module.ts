@@ -3,6 +3,7 @@ import { ConfigModule } from "@nestjs/config";
 import { AuthModule } from "./auth/auth.module";
 import { ArticlesModule } from "./articles/articles.module";
 import { CommentsModule } from "./comments/comments.module";
+import { GuestbookModule } from "./guestbook/guestbook.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 
@@ -15,6 +16,7 @@ import { AppService } from "./app.service";
     AuthModule,
     ArticlesModule,
     CommentsModule,
+    GuestbookModule,
   ],
   controllers: [AppController],
   providers: [AppService],

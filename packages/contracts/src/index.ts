@@ -11,7 +11,16 @@ export type {
   ArticleCommentAuthor,
   ArticleCommentLikeResponse,
   ArticleCommentResponse,
+  ArticleCommentsQuery,
   ArticleCommentsResponse,
   CreateArticleCommentRequest,
 } from "./public/comments.js";
+export type {
+  CreateGuestbookMessageRequest,
+  GuestbookMessageAuthor,
+  GuestbookMessageLikeResponse,
+  GuestbookMessageResponse,
+  GuestbookMessagesQuery,
+  GuestbookMessagesResponse,
+} from "./public/guestbook.js";
 export type { PaginatedResponse, PaginationMeta } from "./public/pagination.js";

@@ -17,6 +17,11 @@ enum ArticleCommentStatus {
   HIDDEN
 }
 
+enum GuestbookMessageStatus {
+  VISIBLE
+  HIDDEN
+}
+
 model Article {
   id             String            @id @default(uuid()) @db.Uuid
   slug           String            @unique
@@ -53,6 +58,8 @@ model User {
   sessions       UserSession[]
   articleComments ArticleComment[]
   articleCommentLikes ArticleCommentLike[]
+  guestbookMessages GuestbookMessage[]
+  guestbookMessageLikes GuestbookMessageLike[]
 
   @@map("users")
 }
@@ -103,6 +110,37 @@ model ArticleCommentLike {
   @@id([commentId, userId])
   @@index([userId])
   @@map("article_comment_likes")
+}
+
+model GuestbookMessage {
+  id               String                 @id @default(uuid()) @db.Uuid
+  authorUserId     String?                @map("author_user_id") @db.Uuid
+  guestNickname    String?                @map("guest_nickname")
+  guestFingerprint String?                @map("guest_fingerprint")
+  body             String
+  likeCount        Int                    @default(0) @map("like_count")
+  status           GuestbookMessageStatus @default(VISIBLE)
+  createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  author           User?                  @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
+  likes            GuestbookMessageLike[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([authorUserId])
+  @@index([guestFingerprint, createdAt])
+  @@map("guestbook_messages")
+}
+
+model GuestbookMessageLike {
+  messageId String           @map("message_id") @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  message   GuestbookMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([messageId, userId])
+  @@index([userId])
+  @@map("guestbook_message_likes")
 }
 
 model ArticleCategory {
