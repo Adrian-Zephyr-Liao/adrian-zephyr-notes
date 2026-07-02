@@ -102,6 +102,63 @@ async function main() {
     })),
     skipDuplicates: true,
   });
+
+  await seedSiteAnnouncements(now);
+}
+
+async function seedSiteAnnouncements(now) {
+  const announcements = [
+    {
+      key: "writing-queue",
+      title: "writing queue",
+      icon: "sparkles-2-line",
+      iconClassName: "text-[oklch(0.64_0.18_36)]",
+      process: "notes.sync",
+      status: "running",
+      command: "pnpm notes:sync --scope writing",
+      output: "长期有效的思考正在整理成更耐读的笔记。",
+      sortOrder: 10,
+    },
+    {
+      key: "context-watcher",
+      title: "context watcher",
+      icon: "book-6-ai-line",
+      iconClassName: "text-primary",
+      process: "post.watch",
+      status: "updated",
+      command: "vp post:watch --include context",
+      output: "旧文章可能随资料、结论和实践方式一起重新校准。",
+      sortOrder: 20,
+    },
+    {
+      key: "feedback-pipe",
+      title: "feedback pipe",
+      icon: "question-line",
+      iconClassName: "text-[oklch(0.58_0.21_28)]",
+      process: "comment.pipe",
+      status: "listening",
+      command: "open mailbox --mode discussion",
+      output: "欢迎留下场景、约束和取舍清楚的不同经验。",
+      sortOrder: 30,
+    },
+  ];
+
+  for (const announcement of announcements) {
+    await prisma.siteAnnouncement.upsert({
+      where: { key: announcement.key },
+      update: {
+        ...announcement,
+        isEnabled: true,
+        updatedAt: now,
+      },
+      create: {
+        ...announcement,
+        isEnabled: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+  }
 }
 
 async function loadMarkdownSyntaxShowcasePost() {

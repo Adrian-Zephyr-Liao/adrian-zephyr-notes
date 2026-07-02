@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { SiteAnnouncementResponse } from "@adrian-zephyr-notes/contracts";
 
 import { ArticleNoticeCarousel } from "@/components/markdown/article-notice-carousel";
 import { CuteIcon, type CuteIconName } from "@/components/primitives/cute-icon";
@@ -24,11 +25,15 @@ const socialLinks = [
   },
 ] satisfies readonly SocialLink[];
 
-function ArticleSidebarProfile() {
+type ArticleSidebarProfileProps = {
+  announcements: SiteAnnouncementResponse[];
+};
+
+function ArticleSidebarProfile({ announcements }: ArticleSidebarProfileProps) {
   return (
     <div className="grid gap-4">
       <AuthorCard />
-      <ArticleNoticeCarousel />
+      <ArticleNoticeCarousel announcements={announcements} />
     </div>
   );
 }

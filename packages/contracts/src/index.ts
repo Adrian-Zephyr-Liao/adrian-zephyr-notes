@@ -24,3 +24,4 @@ export type {
   GuestbookMessagesResponse,
 } from "./public/guestbook.js";
 export type { PaginatedResponse, PaginationMeta } from "./public/pagination.js";
+export type { SiteAnnouncementResponse, SiteConfigResponse } from "./public/site-config.js";

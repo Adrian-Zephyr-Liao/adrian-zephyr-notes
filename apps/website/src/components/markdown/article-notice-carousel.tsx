@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import type { SiteAnnouncementResponse } from "@adrian-zephyr-notes/contracts";
 import type { CSSProperties } from "react";
 import { useEffect, useState } from "react";
 
@@ -17,35 +18,19 @@ type NoticeSlide = {
   title: string;
 };
 
-const noticeSlides = [
-  {
-    icon: "sparkles-2-line",
-    iconClassName: "text-[oklch(0.64_0.18_36)]",
-    process: "notes.sync",
-    status: "running",
-    command: "pnpm notes:sync --scope writing",
-    output: "长期有效的思考正在整理成更耐读的笔记。",
-    title: "writing queue",
-  },
-  {
-    icon: "book-6-ai-line",
-    iconClassName: "text-primary",
-    process: "post.watch",
-    status: "updated",
-    command: "vp post:watch --include context",
-    output: "旧文章可能随资料、结论和实践方式一起重新校准。",
-    title: "context watcher",
-  },
-  {
-    icon: "question-line",
-    iconClassName: "text-[oklch(0.58_0.21_28)]",
-    process: "comment.pipe",
-    status: "listening",
-    command: "open mailbox --mode discussion",
-    output: "欢迎留下场景、约束和取舍清楚的不同经验。",
-    title: "feedback pipe",
-  },
-] satisfies readonly NoticeSlide[];
+type ArticleNoticeCarouselProps = {
+  announcements: SiteAnnouncementResponse[];
+};
+
+const fallbackNoticeSlide = {
+  command: "load site-config",
+  icon: "terminal-box-line",
+  iconClassName: "text-primary",
+  output: "公告配置暂时为空。",
+  process: "notice.config",
+  status: "empty",
+  title: "notice config",
+} satisfies NoticeSlide;
 
 const rotationDelay = 5200;
 const noticeStatusColor = "color-mix(in oklab, var(--primary) 70%, transparent)";
@@ -67,13 +52,15 @@ const noticeStatusBadgeStyle = {
   color: noticeStatusColor,
 } as CSSProperties;
 
-function ArticleNoticeCarousel() {
+function ArticleNoticeCarousel({ announcements }: ArticleNoticeCarouselProps) {
+  const noticeSlides =
+    announcements.length > 0 ? announcements.map(toNoticeSlide) : [fallbackNoticeSlide];
   const [activeIndex, setActiveIndex] = useState(0);
   const shouldReduceMotion = useReducedMotion();
-  const activeSlide = noticeSlides[activeIndex];
+  const activeSlide = noticeSlides[activeIndex] ?? noticeSlides[0];
 
   useEffect(() => {
-    if (shouldReduceMotion) {
+    if (shouldReduceMotion || noticeSlides.length < 2) {
       return;
     }
 
@@ -82,7 +69,11 @@ function ArticleNoticeCarousel() {
     }, rotationDelay);
 
     return () => window.clearInterval(timer);
-  }, [shouldReduceMotion]);
+  }, [noticeSlides.length, shouldReduceMotion]);
+
+  useEffect(() => {
+    setActiveIndex(0);
+  }, [noticeSlides.length]);
 
   return (
     <section
@@ -190,6 +181,40 @@ function ArticleNoticeCarousel() {
         </motion.div>
       </div>
     </section>
+  );
+}
+
+function toNoticeSlide(announcement: SiteAnnouncementResponse): NoticeSlide {
+  return {
+    command: announcement.command,
+    icon: toCuteIconName(announcement.icon),
+    iconClassName: announcement.iconClassName,
+    output: announcement.output,
+    process: announcement.process,
+    status: announcement.status,
+    title: announcement.title,
+  };
+}
+
+function toCuteIconName(icon: string): CuteIconName {
+  return isCuteIconName(icon) ? icon : "terminal-box-line";
+}
+
+function isCuteIconName(icon: string): icon is CuteIconName {
+  return (
+    icon === "book-6-ai-line" ||
+    icon === "bilibili-line" ||
+    icon === "code-line" ||
+    icon === "github-line" ||
+    icon === "horn-line" ||
+    icon === "magic-2-line" ||
+    icon === "notebook-line" ||
+    icon === "palette-2-line" ||
+    icon === "question-line" ||
+    icon === "refresh-2-line" ||
+    icon === "sleep-line" ||
+    icon === "sparkles-2-line" ||
+    icon === "terminal-box-line"
   );
 }
 

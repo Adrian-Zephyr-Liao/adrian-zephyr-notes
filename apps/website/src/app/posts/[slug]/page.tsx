@@ -21,6 +21,7 @@ import { ArticleMotionShell } from "@/components/markdown/article-motion-shell";
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Badge } from "@/components/ui/badge";
 import { getArticleBySlug } from "@/lib/articles-api";
+import { getSiteConfig } from "@/lib/site-config-api";
 
 type PostPageProps = {
   params: Promise<{ slug: string }>;
@@ -44,7 +45,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
 
 async function PostPage({ params }: PostPageProps) {
   const { slug } = await params;
-  const post = await getArticleBySlug(slug);
+  const [post, siteConfig] = await Promise.all([getArticleBySlug(slug), getSiteConfig()]);
 
   if (!post) {
     notFound();
@@ -164,7 +165,7 @@ async function PostPage({ params }: PostPageProps) {
             </GlassPanel>
 
             <aside className="hidden lg:grid lg:content-start lg:gap-4 lg:self-stretch">
-              <ArticleSidebarProfile />
+              <ArticleSidebarProfile announcements={siteConfig.announcements} />
               <GlassPanel className="rounded-3xl p-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
                 <PostToc headings={headings} />
               </GlassPanel>

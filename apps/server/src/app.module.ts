@@ -4,6 +4,7 @@ import { AuthModule } from "./auth/auth.module";
 import { ArticlesModule } from "./articles/articles.module";
 import { CommentsModule } from "./comments/comments.module";
 import { GuestbookModule } from "./guestbook/guestbook.module";
+import { SiteConfigModule } from "./site-config/site-config.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 
@@ -17,6 +18,7 @@ import { AppService } from "./app.service";
     ArticlesModule,
     CommentsModule,
     GuestbookModule,
+    SiteConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService],

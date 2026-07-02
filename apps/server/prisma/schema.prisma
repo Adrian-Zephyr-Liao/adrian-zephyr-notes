@@ -187,3 +187,22 @@ model ArticleRevision {
 
   @@map("article_revisions")
 }
+
+model SiteAnnouncement {
+  id            String   @id @default(uuid()) @db.Uuid
+  key           String   @unique
+  title         String
+  icon          String
+  iconClassName String   @map("icon_class_name")
+  process       String
+  status        String
+  command       String
+  output        String
+  isEnabled     Boolean  @default(true) @map("is_enabled")
+  sortOrder     Int      @default(0) @map("sort_order")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([isEnabled, sortOrder])
+  @@map("site_announcements")
+}
