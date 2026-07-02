@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start --port 3002",
     "lint": "vp lint",
+    "test": "vp test src",
     "typecheck": "tsc --noEmit --pretty false"
   },
   "dependencies": {
@@ -36,6 +37,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "tailwindcss": "^4",
     "typescript": "^6.0.3",
-    "vite-plus": "0.1.24"
+    "vite-plus": "0.1.24",
+    "vitest": "^4.1.9"
   }
 }

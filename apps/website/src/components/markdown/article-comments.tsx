@@ -10,6 +10,10 @@ import { Github, LogOut, MessageCircle, Reply, Send, X } from "lucide-react";
 
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Button } from "@/components/ui/button";
+import {
+  createArticleCommentThreads,
+  type ArticleCommentThreadItem,
+} from "./article-comment-thread";
 
 type AuthMeResponse = {
   user: AuthUserResponse | null;
@@ -138,6 +142,7 @@ function ArticleComments({ slug }: { slug: string }) {
   }
 
   const canLoadMore = pagination ? pagination.page < pagination.totalPages : false;
+  const commentThreads = useMemo(() => createArticleCommentThreads(comments), [comments]);
 
   return (
     <GlassPanel className="mt-8 rounded-3xl p-5 sm:p-6">
@@ -229,7 +234,7 @@ function ArticleComments({ slug }: { slug: string }) {
             还没有评论。
           </p>
         ) : (
-          comments.map((comment) => (
+          commentThreads.map((comment) => (
             <CommentItem key={comment.id} comment={comment} depth={0} onReply={handleReply} />
           ))
         )}
@@ -256,7 +261,7 @@ function CommentItem({
   depth,
   onReply,
 }: {
-  comment: ArticleCommentResponse;
+  comment: ArticleCommentThreadItem;
   depth: number;
   onReply: (comment: ArticleCommentResponse) => void;
 }) {
@@ -290,6 +295,11 @@ function CommentItem({
           <p className="mt-2 text-sm leading-7 wrap-anywhere whitespace-pre-wrap text-muted-foreground">
             {comment.body}
           </p>
+          {comment.replyContext ? (
+            <p className="mt-2 text-xs font-semibold text-muted-foreground">
+              回复 @{comment.replyContext.login}
+            </p>
+          ) : null}
           <div className="mt-2">
             <Button type="button" variant="ghost" size="sm" onClick={() => onReply(comment)}>
               <Reply className="size-4" />
