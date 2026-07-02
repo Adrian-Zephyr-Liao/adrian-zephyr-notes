@@ -1,9 +1,9 @@
 "use client";
 
 import { GuestbookForm } from "./guestbook-form";
+import { GuestbookAtmosphere } from "./guestbook-atmosphere";
 import { GuestbookHero } from "./guestbook-hero";
 import { GuestbookMessageList } from "./guestbook-message-list";
-import { GuestbookMeteorShower } from "./guestbook-meteor-shower";
 import { GuestbookPostOffice } from "./guestbook-post-office";
 import { useGuestbookBoard } from "./use-guestbook-board";
 
@@ -12,7 +12,7 @@ function GuestbookBoard() {
 
   return (
     <main className="relative flex-1 overflow-hidden px-3 pb-14 sm:px-4">
-      <GuestbookMeteorShower />
+      <GuestbookAtmosphere />
       <div
         aria-hidden="true"
         className="pointer-events-none absolute top-36 bottom-12 left-1/2 z-10 hidden w-px -translate-x-1/2 bg-[repeating-linear-gradient(to_bottom,color-mix(in_oklch,var(--primary),transparent_40%)_0_0.75rem,transparent_0.75rem_1.5rem)] opacity-35 lg:block"
