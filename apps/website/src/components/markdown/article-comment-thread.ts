@@ -1,6 +1,7 @@
 import type { ArticleCommentAuthor, ArticleCommentResponse } from "@adrian-zephyr-notes/contracts";
 
 const MAX_RENDERED_REPLY_DEPTH = 2;
+const DEFAULT_VISIBLE_REPLY_COUNT = 2;
 
 type ArticleCommentThreadItem = Omit<ArticleCommentResponse, "replies"> & {
   replies: ArticleCommentThreadItem[];
@@ -20,6 +21,20 @@ function createArticleCommentThreads(
       isFlattened: false,
     }),
   );
+}
+
+function getVisibleCommentReplies(
+  comment: ArticleCommentThreadItem,
+  isExpanded: boolean,
+  visibleReplyCount = DEFAULT_VISIBLE_REPLY_COUNT,
+) {
+  const visibleReplies = isExpanded ? comment.replies : comment.replies.slice(0, visibleReplyCount);
+
+  return {
+    visibleReplies,
+    hiddenReplyCount: Math.max(comment.replies.length - visibleReplies.length, 0),
+    canToggleReplies: comment.replies.length > visibleReplyCount,
+  };
 }
 
 function createThreadItems({
@@ -70,5 +85,10 @@ function createThreadItems({
   ];
 }
 
-export { MAX_RENDERED_REPLY_DEPTH, createArticleCommentThreads };
+export {
+  DEFAULT_VISIBLE_REPLY_COUNT,
+  MAX_RENDERED_REPLY_DEPTH,
+  createArticleCommentThreads,
+  getVisibleCommentReplies,
+};
 export type { ArticleCommentThreadItem };

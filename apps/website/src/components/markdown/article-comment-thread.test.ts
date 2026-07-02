@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ArticleCommentResponse } from "@adrian-zephyr-notes/contracts";
-import { createArticleCommentThreads } from "./article-comment-thread";
+import { createArticleCommentThreads, getVisibleCommentReplies } from "./article-comment-thread";
 
 describe("createArticleCommentThreads", () => {
   it("keeps replies at the maximum rendered depth instead of nesting forever", () => {
@@ -33,6 +33,44 @@ describe("createArticleCommentThreads", () => {
 
     expect(thread.replyContext).toBeNull();
     expect(thread.replies[0]?.replyContext).toBeNull();
+  });
+});
+
+describe("getVisibleCommentReplies", () => {
+  it("shows a compact reply preview before the thread is expanded", () => {
+    const [thread] = createArticleCommentThreads([
+      createComment("root", "adrian", [
+        createComment("reply-1", "mira"),
+        createComment("reply-2", "noah"),
+        createComment("reply-3", "iris"),
+      ]),
+    ]);
+
+    const result = getVisibleCommentReplies(thread, false);
+
+    expect(result.visibleReplies.map((comment) => comment.id)).toEqual(["reply-1", "reply-2"]);
+    expect(result.hiddenReplyCount).toBe(1);
+    expect(result.canToggleReplies).toBe(true);
+  });
+
+  it("shows every reply after the thread is expanded", () => {
+    const [thread] = createArticleCommentThreads([
+      createComment("root", "adrian", [
+        createComment("reply-1", "mira"),
+        createComment("reply-2", "noah"),
+        createComment("reply-3", "iris"),
+      ]),
+    ]);
+
+    const result = getVisibleCommentReplies(thread, true);
+
+    expect(result.visibleReplies.map((comment) => comment.id)).toEqual([
+      "reply-1",
+      "reply-2",
+      "reply-3",
+    ]);
+    expect(result.hiddenReplyCount).toBe(0);
+    expect(result.canToggleReplies).toBe(true);
   });
 });
 

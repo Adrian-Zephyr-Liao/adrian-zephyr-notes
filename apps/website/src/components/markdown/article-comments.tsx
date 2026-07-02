@@ -6,12 +6,22 @@ import type {
   ArticleCommentsResponse,
   AuthUserResponse,
 } from "@adrian-zephyr-notes/contracts";
-import { Github, LogOut, MessageCircle, Reply, Send, X } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  Github,
+  LogOut,
+  MessageCircle,
+  Reply,
+  Send,
+  X,
+} from "lucide-react";
 
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Button } from "@/components/ui/button";
 import {
   createArticleCommentThreads,
+  getVisibleCommentReplies,
   type ArticleCommentThreadItem,
 } from "./article-comment-thread";
 
@@ -26,6 +36,9 @@ function ArticleComments({ slug }: { slug: string }) {
   const [pagination, setPagination] = useState<ArticleCommentsResponse["pagination"] | null>(null);
   const [body, setBody] = useState("");
   const [replyTarget, setReplyTarget] = useState<ArticleCommentResponse | null>(null);
+  const [expandedCommentIds, setExpandedCommentIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -35,6 +48,7 @@ function ArticleComments({ slug }: { slug: string }) {
   );
 
   useEffect(() => {
+    setExpandedCommentIds(new Set());
     void Promise.all([loadComments(slug), loadCurrentUser()]).then(
       ([commentsResult, userResult]) => {
         setComments(commentsResult.data);
@@ -141,33 +155,51 @@ function ArticleComments({ slug }: { slug: string }) {
     }
   }
 
+  function toggleReplyExpansion(commentId: string) {
+    setExpandedCommentIds((current) => {
+      const next = new Set(current);
+
+      if (next.has(commentId)) {
+        next.delete(commentId);
+      } else {
+        next.add(commentId);
+      }
+
+      return next;
+    });
+  }
+
   const canLoadMore = pagination ? pagination.page < pagination.totalPages : false;
   const commentThreads = useMemo(() => createArticleCommentThreads(comments), [comments]);
 
   return (
-    <GlassPanel className="mt-8 rounded-3xl p-5 sm:p-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="grid gap-1">
-          <h2 className="flex items-center gap-2 text-xl font-black tracking-normal text-foreground">
+    <GlassPanel className="mt-8 overflow-hidden rounded-3xl p-0">
+      <div className="flex flex-col gap-3 border-b border-(--glass-border) px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <h2 className="flex items-center gap-2 text-lg font-black tracking-normal text-foreground">
             <MessageCircle className="size-5 text-primary" />
             评论
           </h2>
-          <p className="text-sm text-muted-foreground">使用 GitHub 登录后参与讨论。</p>
+          {pagination ? (
+            <span className="text-xs font-semibold text-muted-foreground">
+              {pagination.totalItems} 条主评论
+            </span>
+          ) : null}
         </div>
 
         {user ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <AuthorAvatar user={user} size="sm" />
             <span className="max-w-40 truncate text-sm font-semibold text-muted-foreground">
               @{user.login}
             </span>
-            <Button type="button" variant="outline" onClick={handleLogout}>
+            <Button type="button" variant="ghost" size="sm" onClick={handleLogout}>
               <LogOut className="size-4" />
               退出
             </Button>
           </div>
         ) : (
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" size="sm">
             <a href={loginUrl}>
               <Github className="size-4" />
               GitHub 登录
@@ -176,12 +208,47 @@ function ArticleComments({ slug }: { slug: string }) {
         )}
       </div>
 
-      <form className="mt-5 grid gap-3" onSubmit={handleSubmit}>
+      <div className="max-h-[70vh] overflow-y-auto">
+        {comments.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-muted-foreground">还没有评论。</p>
+        ) : (
+          <div className="divide-y divide-(--glass-border)">
+            {commentThreads.map((comment) => (
+              <CommentItem
+                key={comment.id}
+                comment={comment}
+                depth={0}
+                expandedCommentIds={expandedCommentIds}
+                onReply={handleReply}
+                onToggleReplies={toggleReplyExpansion}
+              />
+            ))}
+          </div>
+        )}
+
+        {canLoadMore ? (
+          <div className="flex justify-center px-5 py-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleLoadMore}
+              disabled={isLoadingMore}
+            >
+              {isLoadingMore ? "加载中" : "加载更多"}
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
+      <form
+        className="sticky bottom-0 z-10 grid gap-3 border-t border-(--glass-border) bg-background/85 px-4 py-3 backdrop-blur-xl"
+        onSubmit={handleSubmit}
+      >
         <label className="sr-only" htmlFor="article-comment">
           评论内容
         </label>
         {replyTarget ? (
-          <div className="grid gap-2 rounded-2xl border border-(--glass-border) bg-white/45 px-4 py-3 text-sm text-muted-foreground sm:flex sm:items-center sm:justify-between dark:bg-white/6">
+          <div className="grid gap-2 rounded-2xl bg-muted/45 px-4 py-3 text-sm text-muted-foreground sm:flex sm:items-center sm:justify-between dark:bg-white/6">
             <div className="min-w-0">
               <p className="truncate font-semibold text-foreground">
                 回复 @{replyTarget.author.login}
@@ -199,59 +266,37 @@ function ArticleComments({ slug }: { slug: string }) {
             </Button>
           </div>
         ) : null}
-        <textarea
-          ref={textareaRef}
-          id="article-comment"
-          value={body}
-          onChange={(event) => setBody(event.target.value)}
-          minLength={1}
-          maxLength={1000}
-          placeholder={
-            user ? (replyTarget ? "写下回复..." : "写下你的想法...") : "登录后可以发表评论"
-          }
-          disabled={!user || isSubmitting}
-          className="min-h-28 resize-y rounded-2xl border border-(--glass-border) bg-white/55 px-4 py-3 text-sm leading-7 text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/8"
-        />
+        <div className="flex items-end gap-3">
+          {user ? <AuthorAvatar user={user} size="sm" /> : null}
+          <textarea
+            ref={textareaRef}
+            id="article-comment"
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            minLength={1}
+            maxLength={1000}
+            placeholder={
+              user ? (replyTarget ? "回复一下..." : "说点什么...") : "登录后可以发表评论"
+            }
+            disabled={!user || isSubmitting}
+            className="min-h-11 flex-1 resize-none rounded-3xl border border-(--glass-border) bg-white/60 px-4 py-2.5 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/8"
+          />
+          <Button
+            type="submit"
+            size="icon"
+            disabled={!user || body.trim().length === 0 || isSubmitting}
+            aria-label={replyTarget ? "发布回复" : "发布评论"}
+          >
+            <Send className="size-4" />
+          </Button>
+        </div>
         {errorMessage ? (
           <output className="text-sm font-semibold text-destructive">{errorMessage}</output>
         ) : null}
-        <div className="flex flex-wrap justify-end gap-2">
-          {replyTarget ? (
-            <Button type="button" variant="outline" onClick={() => setReplyTarget(null)}>
-              取消回复
-            </Button>
-          ) : null}
-          <Button type="submit" disabled={!user || body.trim().length === 0 || isSubmitting}>
-            <Send className="size-4" />
-            {isSubmitting ? "发布中" : replyTarget ? "发布回复" : "发布评论"}
-          </Button>
-        </div>
-      </form>
-
-      <div className="mt-6 grid gap-3">
-        {comments.length === 0 ? (
-          <p className="rounded-2xl bg-white/40 px-4 py-3 text-sm text-muted-foreground dark:bg-white/5">
-            还没有评论。
-          </p>
-        ) : (
-          commentThreads.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} depth={0} onReply={handleReply} />
-          ))
-        )}
-
-        {canLoadMore ? (
-          <div className="flex justify-center pt-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleLoadMore}
-              disabled={isLoadingMore}
-            >
-              {isLoadingMore ? "加载中" : "加载更多"}
-            </Button>
-          </div>
+        {isSubmitting ? (
+          <span className="px-1 text-xs font-semibold text-muted-foreground">发布中</span>
         ) : null}
-      </div>
+      </form>
     </GlassPanel>
   );
 }
@@ -259,48 +304,52 @@ function ArticleComments({ slug }: { slug: string }) {
 function CommentItem({
   comment,
   depth,
+  expandedCommentIds,
   onReply,
+  onToggleReplies,
 }: {
   comment: ArticleCommentThreadItem;
   depth: number;
+  expandedCommentIds: ReadonlySet<string>;
   onReply: (comment: ArticleCommentResponse) => void;
+  onToggleReplies: (commentId: string) => void;
 }) {
+  const isExpanded = expandedCommentIds.has(comment.id);
+  const { canToggleReplies, hiddenReplyCount, visibleReplies } = getVisibleCommentReplies(
+    comment,
+    isExpanded,
+  );
+
   return (
-    <article
-      className={
-        depth === 0
-          ? "grid gap-3 rounded-2xl border border-(--glass-border) bg-white/42 p-4 dark:bg-white/5"
-          : "grid gap-3 border-l border-(--glass-border) pl-4"
-      }
-    >
-      <div className="flex gap-3">
-        <AuthorAvatar user={comment.author} />
+    <article className={depth === 0 ? "px-5 py-4" : "py-2"}>
+      <div className={depth === 0 ? "flex gap-3" : "flex gap-2"}>
+        <AuthorAvatar user={comment.author} size={depth === 0 ? "md" : "sm"} />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <a
               href={comment.author.profileUrl}
               target="_blank"
               rel="noreferrer"
-              className="font-semibold text-foreground hover:text-primary"
+              className="max-w-44 truncate text-sm font-semibold text-foreground hover:text-primary"
             >
               {comment.author.name ?? comment.author.login}
             </a>
             <time
-              className="text-xs font-semibold text-muted-foreground"
+              className="text-xs font-medium text-muted-foreground"
               dateTime={comment.createdAt}
             >
               {formatCommentDate(comment.createdAt)}
             </time>
           </div>
-          <p className="mt-2 text-sm leading-7 wrap-anywhere whitespace-pre-wrap text-muted-foreground">
+          <p className="mt-1 text-sm leading-7 wrap-anywhere whitespace-pre-wrap text-foreground/86">
+            {comment.replyContext ? (
+              <span className="mr-1 font-semibold text-muted-foreground">
+                回复 @{comment.replyContext.login}:
+              </span>
+            ) : null}
             {comment.body}
           </p>
-          {comment.replyContext ? (
-            <p className="mt-2 text-xs font-semibold text-muted-foreground">
-              回复 @{comment.replyContext.login}
-            </p>
-          ) : null}
-          <div className="mt-2">
+          <div className="mt-1.5 flex items-center gap-3">
             <Button type="button" variant="ghost" size="sm" onClick={() => onReply(comment)}>
               <Reply className="size-4" />
               回复
@@ -310,10 +359,43 @@ function CommentItem({
       </div>
 
       {comment.replies.length > 0 ? (
-        <div className="ml-4 grid gap-3 sm:ml-11">
-          {comment.replies.map((reply) => (
-            <CommentItem key={reply.id} comment={reply} depth={depth + 1} onReply={onReply} />
+        <div
+          className={
+            depth === 0
+              ? "mt-3 ml-12 rounded-2xl bg-muted/38 px-3 py-2 dark:bg-white/5"
+              : "mt-2 ml-10 border-l border-(--glass-border) pl-3"
+          }
+        >
+          {visibleReplies.map((reply) => (
+            <CommentItem
+              key={reply.id}
+              comment={reply}
+              depth={depth + 1}
+              expandedCommentIds={expandedCommentIds}
+              onReply={onReply}
+              onToggleReplies={onToggleReplies}
+            />
           ))}
+          {canToggleReplies ? (
+            <button
+              type="button"
+              aria-expanded={isExpanded}
+              className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80"
+              onClick={() => onToggleReplies(comment.id)}
+            >
+              {isExpanded ? (
+                <>
+                  收起回复
+                  <ChevronUp className="size-3.5" />
+                </>
+              ) : (
+                <>
+                  展开 {hiddenReplyCount} 条回复
+                  <ChevronDown className="size-3.5" />
+                </>
+              )}
+            </button>
+          ) : null}
         </div>
       ) : null}
     </article>
