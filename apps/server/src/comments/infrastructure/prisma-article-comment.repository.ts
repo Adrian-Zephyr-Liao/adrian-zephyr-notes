@@ -55,7 +55,7 @@ class PrismaArticleCommentRepository implements ArticleCommentRepository<
       parentCommentId: null,
       status: "VISIBLE" as const,
     };
-    const [rootComments, descendantComments, totalItems] = await this.prisma.$transaction([
+    const [rootComments, totalItems] = await this.prisma.$transaction([
       this.prisma.articleComment.findMany({
         where,
         include: articleCommentInclude,
@@ -65,21 +65,12 @@ class PrismaArticleCommentRepository implements ArticleCommentRepository<
         skip: (input.page - 1) * input.pageSize,
         take: input.pageSize,
       }),
-      this.prisma.articleComment.findMany({
-        where: {
-          articleId,
-          parentCommentId: {
-            not: null,
-          },
-          status: "VISIBLE",
-        },
-        include: articleCommentInclude,
-        orderBy: {
-          createdAt: "asc",
-        },
-      }),
       this.prisma.articleComment.count({ where }),
     ]);
+    const descendantComments = await this.listVisibleDescendantsByParentIds(
+      articleId,
+      rootComments.map((comment) => comment.id),
+    );
 
     return {
       data: buildCommentTree(rootComments, descendantComments),
@@ -97,6 +88,40 @@ class PrismaArticleCommentRepository implements ArticleCommentRepository<
       data: input,
       include: articleCommentInclude,
     });
+  }
+
+  private async listVisibleDescendantsByParentIds(articleId: string, parentCommentIds: string[]) {
+    const descendants: ArticleCommentRecord[] = [];
+    const visitedCommentIds = new Set(parentCommentIds);
+    let nextParentCommentIds = parentCommentIds;
+
+    while (nextParentCommentIds.length > 0) {
+      const childComments = await this.prisma.articleComment.findMany({
+        where: {
+          articleId,
+          parentCommentId: {
+            in: nextParentCommentIds,
+          },
+          status: "VISIBLE",
+        },
+        include: articleCommentInclude,
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+      const unvisitedChildComments = childComments.filter(
+        (comment) => !visitedCommentIds.has(comment.id),
+      );
+
+      for (const comment of unvisitedChildComments) {
+        visitedCommentIds.add(comment.id);
+      }
+
+      descendants.push(...unvisitedChildComments);
+      nextParentCommentIds = unvisitedChildComments.map((comment) => comment.id);
+    }
+
+    return descendants;
   }
 }
 

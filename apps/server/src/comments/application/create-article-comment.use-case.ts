@@ -29,6 +29,7 @@ class CreateArticleCommentUseCase<TComment = unknown> {
       throw new ArticleCommentAuthenticationRequiredError();
     }
 
+    const body = ArticleCommentBody.create(input.body);
     const articleId = await this.articleCommentRepository.findPublicArticleIdBySlug(
       input.slug,
       input.now ?? new Date(),
@@ -38,7 +39,6 @@ class CreateArticleCommentUseCase<TComment = unknown> {
       throw new ArticleCommentArticleNotFoundError();
     }
 
-    const body = ArticleCommentBody.create(input.body);
     const parentCommentId = input.parentCommentId ?? null;
 
     if (parentCommentId) {

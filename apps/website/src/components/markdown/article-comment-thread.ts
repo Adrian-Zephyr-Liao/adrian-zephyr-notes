@@ -37,6 +37,20 @@ function getVisibleCommentReplies(
   };
 }
 
+function findReplyExpansionTargetId(
+  comments: ArticleCommentResponse[],
+  parentCommentId: string,
+  maxRenderedReplyDepth = MAX_RENDERED_REPLY_DEPTH,
+) {
+  return findReplyExpansionTarget({
+    comments,
+    depth: 0,
+    maxRenderedReplyDepth,
+    parentCommentId,
+    ancestors: [],
+  });
+}
+
 function createThreadItems({
   comment,
   depth,
@@ -85,10 +99,48 @@ function createThreadItems({
   ];
 }
 
+function findReplyExpansionTarget({
+  comments,
+  depth,
+  maxRenderedReplyDepth,
+  parentCommentId,
+  ancestors,
+}: {
+  comments: ArticleCommentResponse[];
+  depth: number;
+  maxRenderedReplyDepth: number;
+  parentCommentId: string;
+  ancestors: ArticleCommentResponse[];
+}): string | null {
+  for (const comment of comments) {
+    const nextAncestors = [...ancestors, comment];
+
+    if (comment.id === parentCommentId) {
+      const expansionTargetDepth = Math.min(depth, Math.max(maxRenderedReplyDepth - 1, 0));
+      return nextAncestors[expansionTargetDepth]?.id ?? comment.id;
+    }
+
+    const childTargetId = findReplyExpansionTarget({
+      comments: comment.replies,
+      depth: depth + 1,
+      maxRenderedReplyDepth,
+      parentCommentId,
+      ancestors: nextAncestors,
+    });
+
+    if (childTargetId) {
+      return childTargetId;
+    }
+  }
+
+  return null;
+}
+
 export {
   DEFAULT_VISIBLE_REPLY_COUNT,
   MAX_RENDERED_REPLY_DEPTH,
   createArticleCommentThreads,
+  findReplyExpansionTargetId,
   getVisibleCommentReplies,
 };
 export type { ArticleCommentThreadItem };

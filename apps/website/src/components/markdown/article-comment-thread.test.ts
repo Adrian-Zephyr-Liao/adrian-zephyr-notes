@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import type { ArticleCommentResponse } from "@adrian-zephyr-notes/contracts";
-import { createArticleCommentThreads, getVisibleCommentReplies } from "./article-comment-thread";
+import {
+  createArticleCommentThreads,
+  findReplyExpansionTargetId,
+  getVisibleCommentReplies,
+} from "./article-comment-thread";
 
 describe("createArticleCommentThreads", () => {
   it("keeps replies at the maximum rendered depth instead of nesting forever", () => {
@@ -71,6 +75,32 @@ describe("getVisibleCommentReplies", () => {
     ]);
     expect(result.hiddenReplyCount).toBe(0);
     expect(result.canToggleReplies).toBe(true);
+  });
+});
+
+describe("findReplyExpansionTargetId", () => {
+  it("expands the direct parent when replying within the rendered reply depth", () => {
+    const comments = [
+      createComment("root", "adrian", [
+        createComment("level-1", "mira", [createComment("level-2", "noah")]),
+      ]),
+    ];
+
+    expect(findReplyExpansionTargetId(comments, "root")).toBe("root");
+    expect(findReplyExpansionTargetId(comments, "level-1")).toBe("level-1");
+  });
+
+  it("expands the visible reply group when replying beyond the rendered depth", () => {
+    const comments = [
+      createComment("root", "adrian", [
+        createComment("level-1", "mira", [
+          createComment("level-2", "noah", [createComment("level-3", "iris")]),
+        ]),
+      ]),
+    ];
+
+    expect(findReplyExpansionTargetId(comments, "level-2")).toBe("level-1");
+    expect(findReplyExpansionTargetId(comments, "level-3")).toBe("level-1");
   });
 });
 

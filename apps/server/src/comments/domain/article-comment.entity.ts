@@ -1,3 +1,5 @@
+const ARTICLE_COMMENT_BODY_MAX_LENGTH = 1000;
+
 class ArticleCommentBody {
   private constructor(private readonly value: string) {}
 
@@ -6,6 +8,10 @@ class ArticleCommentBody {
 
     if (!normalizedValue) {
       throw new ArticleCommentBodyEmptyError();
+    }
+
+    if (normalizedValue.length > ARTICLE_COMMENT_BODY_MAX_LENGTH) {
+      throw new ArticleCommentBodyTooLongError();
     }
 
     return new ArticleCommentBody(normalizedValue);
@@ -22,4 +28,15 @@ class ArticleCommentBodyEmptyError extends Error {
   }
 }
 
-export { ArticleCommentBody, ArticleCommentBodyEmptyError };
+class ArticleCommentBodyTooLongError extends Error {
+  constructor() {
+    super(`Comment body must be at most ${ARTICLE_COMMENT_BODY_MAX_LENGTH} characters.`);
+  }
+}
+
+export {
+  ARTICLE_COMMENT_BODY_MAX_LENGTH,
+  ArticleCommentBody,
+  ArticleCommentBodyEmptyError,
+  ArticleCommentBodyTooLongError,
+};

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { ArticleCommentRepository } from "../domain/article-comment.repository";
-import { ArticleCommentBody, ArticleCommentBodyEmptyError } from "../domain/article-comment.entity";
+import {
+  ARTICLE_COMMENT_BODY_MAX_LENGTH,
+  ArticleCommentBody,
+  ArticleCommentBodyEmptyError,
+  ArticleCommentBodyTooLongError,
+} from "../domain/article-comment.entity";
 import {
   ArticleCommentAuthenticationRequiredError,
   ArticleCommentParentNotFoundError,
@@ -20,6 +25,22 @@ describe("CreateArticleCommentUseCase", () => {
       }),
     ).rejects.toBeInstanceOf(ArticleCommentBodyEmptyError);
     expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.findPublicArticleIdBySlug).not.toHaveBeenCalled();
+  });
+
+  it("rejects comments that exceed the domain body length limit", async () => {
+    const repository = createRepositoryDouble();
+    const useCase = new CreateArticleCommentUseCase(repository);
+
+    await expect(
+      useCase.execute({
+        slug: "5f7448b7",
+        body: "a".repeat(ARTICLE_COMMENT_BODY_MAX_LENGTH + 1),
+        user: { id: "7d569d22-8f0d-4283-b56c-786cc4770d0e" },
+      }),
+    ).rejects.toBeInstanceOf(ArticleCommentBodyTooLongError);
+    expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.findPublicArticleIdBySlug).not.toHaveBeenCalled();
   });
 
   it("requires an authenticated user before creating comments", async () => {

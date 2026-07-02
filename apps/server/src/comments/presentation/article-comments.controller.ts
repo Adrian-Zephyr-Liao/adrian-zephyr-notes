@@ -17,7 +17,10 @@ import type {
 import type { Request } from "express";
 import { SESSION_COOKIE_NAME, parseCookies } from "../../auth/presentation/cookie";
 import { GetCurrentUserUseCase } from "../../auth/application/get-current-user.use-case";
-import { ArticleCommentBodyEmptyError } from "../domain/article-comment.entity";
+import {
+  ArticleCommentBodyEmptyError,
+  ArticleCommentBodyTooLongError,
+} from "../domain/article-comment.entity";
 import {
   ArticleCommentArticleNotFoundError,
   ArticleCommentAuthenticationRequiredError,
@@ -104,6 +107,15 @@ function mapArticleCommentError(error: unknown) {
       error: {
         code: "COMMENT_BODY_EMPTY",
         message: "Comment body is required",
+      },
+    });
+  }
+
+  if (error instanceof ArticleCommentBodyTooLongError) {
+    return new BadRequestException({
+      error: {
+        code: "COMMENT_BODY_TOO_LONG",
+        message: "Comment body is too long",
       },
     });
   }

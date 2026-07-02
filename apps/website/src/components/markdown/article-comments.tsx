@@ -21,6 +21,7 @@ import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Button } from "@/components/ui/button";
 import {
   createArticleCommentThreads,
+  findReplyExpansionTargetId,
   getVisibleCommentReplies,
   type ArticleCommentThreadItem,
 } from "./article-comment-thread";
@@ -97,7 +98,13 @@ function ArticleComments({ slug }: { slug: string }) {
       }
 
       const comment = (await response.json()) as ArticleCommentResponse;
+      const expansionTargetId = comment.parentCommentId
+        ? findReplyExpansionTargetId(comments, comment.parentCommentId)
+        : null;
       setComments((current) => appendComment(current, comment));
+      if (expansionTargetId) {
+        setExpandedCommentIds((current) => new Set(current).add(expansionTargetId));
+      }
       setPagination((current) =>
         current && !comment.parentCommentId
           ? {
