@@ -7,6 +7,7 @@ import { LogoutUseCase } from "../application/logout.use-case";
 import { GITHUB_OAUTH_CLIENT, type GithubOAuthClient } from "../domain/github-oauth-client";
 import { toAuthUserResponse } from "../infrastructure/auth-user.mapper";
 import { SESSION_COOKIE_NAME, parseCookies, serializeCookie } from "./cookie";
+import { getCurrentUserFromRequest, getSessionTokenFromRequest } from "./request-session";
 
 const OAUTH_STATE_COOKIE_NAME = "azn_oauth_state";
 const OAUTH_VERIFIER_COOKIE_NAME = "azn_oauth_verifier";
@@ -76,8 +77,7 @@ class AuthController {
 
   @Get("me")
   async me(@Req() request: Request) {
-    const cookies = parseCookies(request.headers.cookie);
-    const user = await this.getCurrentUser.execute(cookies[SESSION_COOKIE_NAME]);
+    const user = await getCurrentUserFromRequest(request, this.getCurrentUser);
 
     return {
       user: user ? toAuthUserResponse(user) : null,
@@ -86,8 +86,7 @@ class AuthController {
 
   @Post("logout")
   async logout(@Req() request: Request, @Res() response: Response) {
-    const cookies = parseCookies(request.headers.cookie);
-    await this.logoutUseCase.execute(cookies[SESSION_COOKIE_NAME]);
+    await this.logoutUseCase.execute(getSessionTokenFromRequest(request));
     response.setHeader("Set-Cookie", clearCookie(SESSION_COOKIE_NAME));
     response.status(204).send();
   }

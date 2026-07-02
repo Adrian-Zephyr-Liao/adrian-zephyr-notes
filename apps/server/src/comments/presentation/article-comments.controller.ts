@@ -15,8 +15,8 @@ import type {
   ArticleCommentsResponse,
 } from "@adrian-zephyr-notes/contracts";
 import type { Request } from "express";
-import { SESSION_COOKIE_NAME, parseCookies } from "../../auth/presentation/cookie";
 import { GetCurrentUserUseCase } from "../../auth/application/get-current-user.use-case";
+import { getCurrentUserFromRequest } from "../../auth/presentation/request-session";
 import {
   ArticleCommentBodyEmptyError,
   ArticleCommentBodyTooLongError,
@@ -53,8 +53,7 @@ class ArticleCommentsController {
     @Req() request: Request,
   ): Promise<ArticleCommentsResponse> {
     try {
-      const cookies = parseCookies(request.headers.cookie);
-      const user = await this.getCurrentUser.execute(cookies[SESSION_COOKIE_NAME]);
+      const user = await getCurrentUserFromRequest(request, this.getCurrentUser);
       const comments = await this.listVisibleArticleComments.execute(slug, {
         page: query.page,
         pageSize: query.pageSize,
@@ -73,8 +72,7 @@ class ArticleCommentsController {
     @Req() request: Request,
   ): Promise<ArticleCommentResponse> {
     try {
-      const cookies = parseCookies(request.headers.cookie);
-      const user = await this.getCurrentUser.execute(cookies[SESSION_COOKIE_NAME]);
+      const user = await getCurrentUserFromRequest(request, this.getCurrentUser);
       const comment = await this.createArticleComment.execute({
         slug,
         body: body.body,

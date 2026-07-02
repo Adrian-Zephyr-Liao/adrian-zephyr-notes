@@ -16,7 +16,7 @@ import type {
 import { createHash } from "node:crypto";
 import type { Request } from "express";
 import { GetCurrentUserUseCase } from "../../auth/application/get-current-user.use-case";
-import { SESSION_COOKIE_NAME, parseCookies } from "../../auth/presentation/cookie";
+import { getCurrentUserFromRequest } from "../../auth/presentation/request-session";
 import {
   GuestbookMessageBodyEmptyError,
   GuestbookMessageBodyTooLongError,
@@ -83,8 +83,7 @@ class GuestbookMessagesController {
   }
 
   private getRequestUser(request: Request) {
-    const cookies = parseCookies(request.headers.cookie);
-    return this.getCurrentUser.execute(cookies[SESSION_COOKIE_NAME]);
+    return getCurrentUserFromRequest(request, this.getCurrentUser);
   }
 }
 
