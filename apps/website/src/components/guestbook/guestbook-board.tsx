@@ -3,16 +3,31 @@
 import { GuestbookForm } from "./guestbook-form";
 import { GuestbookHero } from "./guestbook-hero";
 import { GuestbookMessageList } from "./guestbook-message-list";
+import { GuestbookMeteorShower } from "./guestbook-meteor-shower";
+import { GuestbookPostOffice } from "./guestbook-post-office";
 import { useGuestbookBoard } from "./use-guestbook-board";
 
 function GuestbookBoard() {
   const guestbook = useGuestbookBoard();
 
   return (
-    <main className="flex-1 overflow-hidden px-3 pb-14 sm:px-4">
-      <section className="mx-auto grid w-full max-w-5xl gap-8 pt-8 sm:pt-12">
+    <main className="relative flex-1 overflow-hidden px-3 pb-14 sm:px-4">
+      <GuestbookMeteorShower />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute top-36 bottom-12 left-1/2 z-10 hidden w-px -translate-x-1/2 bg-[repeating-linear-gradient(to_bottom,color-mix(in_oklch,var(--primary),transparent_40%)_0_0.75rem,transparent_0.75rem_1.5rem)] opacity-35 lg:block"
+      />
+      <section className="relative z-20 mx-auto grid w-full max-w-5xl gap-6 pt-8 sm:gap-8 sm:pt-12">
         <GuestbookHero
           latestMessage={guestbook.latestMessage}
+          totalMessages={guestbook.totalMessages}
+          user={guestbook.user}
+        />
+
+        <GuestbookPostOffice
+          bodyLength={guestbook.body.trim().length}
+          guestNickname={guestbook.guestNickname}
+          isSubmitting={guestbook.isSubmitting}
           totalMessages={guestbook.totalMessages}
           user={guestbook.user}
         />

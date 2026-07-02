@@ -1,10 +1,12 @@
 import type { GuestbookMessageResponse } from "@adrian-zephyr-notes/contracts";
-import { Heart, MessageCircle, Star } from "lucide-react";
+import { Heart, MailOpen, SendHorizontal } from "lucide-react";
 
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Button } from "@/components/ui/button";
 import { AuthorAvatar, AuthorName, getAuthorName } from "./guestbook-avatar";
 import { formatFullDate, formatShortDate } from "./guestbook-date";
+import { GuestbookMailbox } from "./guestbook-mailbox";
+import { GuestbookStampSheet } from "./guestbook-stamp-sheet";
 
 function GuestbookMessageList({
   canLoadMore,
@@ -27,14 +29,15 @@ function GuestbookMessageList({
     <section className="grid gap-3" aria-label="留言列表">
       <div className="flex items-center justify-between gap-3 px-1">
         <div className="flex min-w-0 items-center gap-2">
-          <MessageCircle className="size-5 shrink-0 text-primary" />
-          <h2 className="truncate text-lg font-black tracking-normal text-foreground">最新留言</h2>
+          <MailOpen className="size-5 shrink-0 text-primary" />
+          <h2 className="truncate text-lg font-black tracking-normal text-foreground">收件箱</h2>
         </div>
-        {totalItems === null ? null : (
-          <span className="shrink-0 text-xs font-semibold text-muted-foreground">
-            {totalItems} 条
-          </span>
-        )}
+        <div className="flex shrink-0 items-center gap-2">
+          {totalItems === null ? null : (
+            <span className="text-xs font-semibold text-muted-foreground">{totalItems} 封</span>
+          )}
+          <GuestbookMailbox className="-my-3 hidden sm:block" />
+        </div>
       </div>
 
       {messages.length === 0 ? (
@@ -71,9 +74,7 @@ function EmptyGuestbookState() {
           aria-hidden="true"
           className="absolute inset-x-[-3rem] top-4 h-px bg-linear-to-r from-transparent via-primary/45 to-transparent"
         />
-        <span className="grid size-14 place-items-center rounded-full border border-(--glass-border) bg-primary/10 text-primary">
-          <Star className="size-7" />
-        </span>
+        <GuestbookMailbox className="size-24" />
         <div className="grid gap-1">
           <p className="text-base font-black text-foreground">还没有留言</p>
           <p className="max-w-xs text-sm leading-6 text-muted-foreground">
@@ -97,40 +98,53 @@ function GuestbookMessageItem({
   const authorName = getAuthorName(message.author);
 
   return (
-    <article className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-3 border-b border-(--glass-border) px-1 pb-3 last:border-b-0">
-      <AuthorAvatar author={message.author} />
-      <div className="min-w-0">
-        <div className="flex min-w-0 items-center gap-2">
-          <AuthorName author={message.author} />
-          <time
-            dateTime={message.createdAt}
-            title={formatFullDate(message.createdAt)}
-            className="shrink-0 text-xs font-medium text-muted-foreground"
-          >
-            {formatShortDate(message.createdAt)}
-          </time>
+    <article className="group relative overflow-hidden rounded-2xl border border-(--glass-border) bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background),white_36%),color-mix(in_oklch,var(--background),var(--primary)_5%))] p-3 shadow-(--shadow-glass) transition duration-200 hover:-translate-y-0.5 hover:border-primary/35">
+      <GuestbookStampSheet className="absolute -right-9 -bottom-7 opacity-0 transition duration-200 group-hover:opacity-75 sm:opacity-35" />
+      <span
+        aria-hidden="true"
+        className="absolute inset-x-4 top-0 h-px bg-[repeating-linear-gradient(to_right,color-mix(in_oklch,var(--primary),transparent_45%)_0_0.35rem,transparent_0.35rem_0.7rem)]"
+      />
+      <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_2.25rem] gap-3">
+        <AuthorAvatar author={message.author} />
+        <div className="min-w-0">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+            <AuthorName author={message.author} />
+            <time
+              dateTime={message.createdAt}
+              title={formatFullDate(message.createdAt)}
+              className="shrink-0 text-xs font-medium text-muted-foreground"
+            >
+              {formatShortDate(message.createdAt)}
+            </time>
+          </div>
+          <p className="mt-1.5 text-sm leading-6 wrap-anywhere whitespace-pre-wrap text-foreground/90">
+            {message.body}
+          </p>
+          <div className="mt-2 flex items-center gap-3 text-xs font-semibold text-muted-foreground">
+            <span className="inline-flex h-6 items-center gap-1">
+              <SendHorizontal className="size-3.5 text-primary/75" />
+              已投递
+            </span>
+            <button
+              type="button"
+              className="inline-flex h-6 items-center gap-1 rounded-md px-1 transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+              onClick={() => onToggleLike(message)}
+              disabled={isLiking}
+              aria-label={`给 ${authorName} 的留言点赞`}
+              aria-pressed={message.likedByMe}
+            >
+              <Heart
+                className={message.likedByMe ? "size-3.5 fill-primary text-primary" : "size-3.5"}
+              />
+              {message.likeCount}
+            </button>
+          </div>
         </div>
-        <p className="mt-1 text-sm leading-6 wrap-anywhere whitespace-pre-wrap text-foreground/90">
-          {message.body}
-        </p>
-        <div className="mt-1.5 flex items-center gap-3 text-xs font-semibold text-muted-foreground">
-          <span className="inline-flex h-6 items-center gap-1">
-            <MessageCircle className="size-3.5" />
-            留言
-          </span>
-          <button
-            type="button"
-            className="inline-flex h-6 items-center gap-1 rounded-md px-1 transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
-            onClick={() => onToggleLike(message)}
-            disabled={isLiking}
-            aria-label={`给 ${authorName} 的留言点赞`}
-            aria-pressed={message.likedByMe}
-          >
-            <Heart
-              className={message.likedByMe ? "size-3.5 fill-primary text-primary" : "size-3.5"}
-            />
-            {message.likeCount}
-          </button>
+        <div
+          aria-hidden="true"
+          className="grid size-9 place-items-center rounded-xl border border-dashed border-primary/35 bg-primary/8 text-[0.55rem] font-black text-primary transition group-hover:rotate-3"
+        >
+          AZ
         </div>
       </div>
     </article>

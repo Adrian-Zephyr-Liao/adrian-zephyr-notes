@@ -3,7 +3,10 @@ import { Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getAuthorName } from "./guestbook-avatar";
 import { formatShortDate } from "./guestbook-date";
+import styles from "./guestbook-effects.module.css";
+import { GuestbookMascot } from "./guestbook-mascot";
 
 const guestStars = [
   "left-[8%] top-[20%] size-1.5 delay-0",
@@ -41,29 +44,43 @@ function GuestbookHero({
         />
       ))}
 
-      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_17rem] lg:items-end">
+      <GuestbookMascot className="absolute right-3 bottom-3 z-10 hidden opacity-95 lg:block" />
+
+      <div
+        aria-hidden="true"
+        className={cn(
+          styles.mailRoute,
+          "absolute top-10 right-24 hidden h-28 w-52 rounded-[999px] border-t border-dashed border-primary/45 lg:block",
+        )}
+      />
+
+      <div className="relative z-20 grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-end lg:pr-36">
         <div className="grid max-w-2xl gap-4">
           <Badge variant="outline" className="h-6 w-fit bg-background/55 backdrop-blur">
             <Sparkles className="size-3.5 text-primary" />
-            访客星图
+            星邮局营业中
           </Badge>
           <div className="grid gap-3">
             <h1 className="text-3xl font-black tracking-normal text-foreground sm:text-5xl">
               留言板
             </h1>
             <p className="max-w-xl text-sm leading-7 text-muted-foreground sm:text-base">
-              路过的人可以留下一个短句。GitHub 登录后能保留身份和头像，匿名也可以直接写下想说的话。
+              这里收集路过的人递来的短笺，chibi 信使会把每句话送进 AZ Notes 的访客星图。
             </p>
           </div>
+          <GuestbookMascot className="justify-self-end sm:hidden" compact />
         </div>
 
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-1">
-          <HeroStat label="留言" value={String(totalMessages)} />
-          <HeroStat label="入口" value={user ? "已登录" : "匿名可写"} />
-          <HeroStat
-            label="最近"
-            value={latestMessage ? formatShortDate(latestMessage.createdAt) : "等待中"}
-          />
+        <div className="grid gap-2">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-1">
+            <HeroStat label="投递" value={`${totalMessages} 封`} />
+            <HeroStat label="身份" value={user ? "已署名" : "匿名可写"} />
+            <HeroStat
+              label="最近"
+              value={latestMessage ? formatShortDate(latestMessage.createdAt) : "等待中"}
+            />
+          </div>
+          {latestMessage ? <LatestNotePreview message={latestMessage} /> : null}
         </div>
       </div>
     </div>
@@ -75,6 +92,25 @@ function HeroStat({ label, value }: { label: string; value: string }) {
     <div className="rounded-2xl border border-(--glass-border) bg-background/55 px-3 py-2.5 backdrop-blur">
       <p className="text-xs font-bold text-muted-foreground">{label}</p>
       <p className="mt-1 truncate text-base font-black text-foreground">{value}</p>
+    </div>
+  );
+}
+
+function LatestNotePreview({ message }: { message: GuestbookMessageResponse }) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-dashed border-primary/35 bg-background/60 px-3 py-2.5 backdrop-blur">
+      <span
+        aria-hidden="true"
+        className="absolute top-2 right-2 grid size-8 place-items-center rounded-[0.65rem] border border-primary/35 bg-primary/10 text-[0.58rem] font-black text-primary"
+      >
+        AZ
+      </span>
+      <p className="max-w-[13rem] truncate pr-8 text-xs font-black text-foreground">
+        {getAuthorName(message.author)}
+      </p>
+      <p className="mt-1 line-clamp-2 max-w-[13rem] text-xs leading-5 text-muted-foreground">
+        {message.body}
+      </p>
     </div>
   );
 }

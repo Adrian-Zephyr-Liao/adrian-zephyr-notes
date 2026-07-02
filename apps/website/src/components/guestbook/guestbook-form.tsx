@@ -1,10 +1,12 @@
 import type { FormEvent } from "react";
 import type { AuthUserResponse } from "@adrian-zephyr-notes/contracts";
-import { Github, LogOut, Send } from "lucide-react";
+import { Github, LogOut, PenLine, Send } from "lucide-react";
 
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Button } from "@/components/ui/button";
 import { GuestAvatar, UserAvatar } from "./guestbook-avatar";
+import { GuestbookMascot } from "./guestbook-mascot";
+import { GuestbookStampSheet } from "./guestbook-stamp-sheet";
 
 function GuestbookForm({
   body,
@@ -41,6 +43,18 @@ function GuestbookForm({
   return (
     <aside className="lg:sticky lg:top-24">
       <GlassPanel className="overflow-hidden p-0">
+        <div className="relative hidden border-b border-(--glass-border) px-4 pt-4 lg:block">
+          <div className="relative overflow-hidden rounded-2xl bg-[linear-gradient(135deg,color-mix(in_oklch,var(--primary),transparent_88%),color-mix(in_oklch,var(--secondary),transparent_65%))] p-3 text-xs leading-5 font-semibold text-muted-foreground">
+            <GuestbookStampSheet className="absolute -top-4 -right-8 opacity-55" />
+            <span className="mb-1 flex items-center gap-1.5 text-foreground">
+              <PenLine className="size-3.5 text-primary" />
+              写信台
+            </span>
+            chibi 信使会把你的短笺送到下方星图。
+          </div>
+          <GuestbookMascot className="mx-auto -mt-1" compact />
+        </div>
+
         <div className="flex items-center justify-between gap-3 border-b border-(--glass-border) px-4 py-3">
           <div className="flex min-w-0 items-center gap-2">
             {user ? <UserAvatar user={user} /> : <GuestAvatar seed={guestNickname || "guest"} />}
@@ -89,14 +103,14 @@ function GuestbookForm({
           ) : null}
 
           <label className="grid gap-1.5">
-            <span className="text-xs font-bold text-muted-foreground">想说什么</span>
+            <span className="text-xs font-bold text-muted-foreground">短笺内容</span>
             <textarea
               value={body}
               onChange={(event) => onBodyChange(event.target.value)}
               minLength={1}
               maxLength={1000}
-              placeholder="说点什么..."
-              className="min-h-28 w-full min-w-0 resize-none rounded-2xl border border-(--glass-border) bg-white/60 px-3.5 py-3 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 dark:bg-white/8"
+              placeholder="写给这里的一句话..."
+              className="min-h-28 w-full min-w-0 resize-none rounded-2xl border border-(--glass-border) bg-[linear-gradient(180deg,color-mix(in_oklch,white_76%,transparent),color-mix(in_oklch,white_55%,transparent)),repeating-linear-gradient(to_bottom,transparent_0_1.65rem,color-mix(in_oklch,var(--primary),transparent_84%)_1.65rem_calc(1.65rem+1px))] px-3.5 py-3 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 dark:bg-[linear-gradient(180deg,color-mix(in_oklch,var(--card)_80%,transparent),color-mix(in_oklch,var(--card)_62%,transparent)),repeating-linear-gradient(to_bottom,transparent_0_1.65rem,color-mix(in_oklch,var(--primary),transparent_84%)_1.65rem_calc(1.65rem+1px))]"
             />
           </label>
 
@@ -117,6 +131,7 @@ function GuestbookForm({
             </span>
             <Button
               type="submit"
+              className="shadow-[0_8px_20px_color-mix(in_oklch,var(--primary),transparent_78%)]"
               disabled={
                 isSubmitting || body.trim().length === 0 || (!user && !guestNickname.trim())
               }

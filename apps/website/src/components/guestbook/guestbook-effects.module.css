@@ -1,0 +1,227 @@
+@keyframes mascot-float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-1deg);
+  }
+
+  50% {
+    transform: translate3d(0, -0.55rem, 0) rotate(1.2deg);
+  }
+}
+
+@keyframes paper-plane {
+  0%,
+  100% {
+    opacity: 0.62;
+    transform: translate3d(0, 0, 0) rotate(-14deg);
+  }
+
+  50% {
+    opacity: 1;
+    transform: translate3d(0.45rem, -0.35rem, 0) rotate(-8deg);
+  }
+}
+
+@keyframes mail-route {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: translate3d(0, 0, 0) rotate(-6deg);
+  }
+
+  50% {
+    opacity: 0.75;
+    transform: translate3d(-0.35rem, 0.2rem, 0) rotate(-4deg);
+  }
+}
+
+@keyframes mailbox-pop {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  50% {
+    transform: translate3d(0, -0.25rem, 0) scale(1.025);
+  }
+}
+
+@keyframes sorter-bob {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+
+  42% {
+    transform: translate3d(0, -0.2rem, 0) rotate(-0.8deg);
+  }
+
+  62% {
+    transform: translate3d(0, 0.05rem, 0) rotate(0.6deg);
+  }
+}
+
+@keyframes stamps-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(-2deg);
+  }
+
+  50% {
+    transform: translate3d(0.15rem, -0.2rem, 0) rotate(2deg);
+  }
+}
+
+@keyframes twinkle-star {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: scale(0.82);
+  }
+
+  45% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+@keyframes meteor {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) rotate(var(--meteor-angle, -28deg));
+  }
+
+  7% {
+    opacity: var(--meteor-peak-opacity, 1);
+  }
+
+  42% {
+    opacity: 0;
+    transform: translate3d(calc(var(--meteor-distance, 34rem) * -1), var(--meteor-fall, 12rem), 0)
+      rotate(var(--meteor-angle, -28deg));
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate3d(calc(var(--meteor-distance, 34rem) * -1), var(--meteor-fall, 12rem), 0)
+      rotate(var(--meteor-angle, -28deg));
+  }
+}
+
+.meteorSky {
+  --meteor-peak-opacity: 1;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--background) 50%, #071828 50%) 0%,
+      color-mix(in oklch, var(--background) 48%, #0b2238 52%) 42%,
+      color-mix(in oklch, var(--background) 58%, #103c42 42%) 100%
+    ),
+    var(--background);
+}
+
+.starField {
+  background:
+    radial-gradient(circle at 14% 24%, rgba(255, 255, 255, 0.76) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 62% 18%, rgba(255, 255, 255, 0.56) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 82% 66%, rgba(255, 255, 255, 0.44) 0 1px, transparent 1.6px),
+    linear-gradient(115deg, rgba(255, 255, 255, 0.08), transparent 32%, rgba(255, 255, 255, 0.04));
+  background-size:
+    4.4rem 4.4rem,
+    6.2rem 6.2rem,
+    8rem 8rem,
+    100% 100%;
+  opacity: 0.9;
+}
+
+.skyVignette {
+  background:
+    linear-gradient(180deg, rgba(4, 14, 24, 0.14), transparent 34%, rgba(2, 9, 16, 0.22)),
+    linear-gradient(
+      90deg,
+      rgba(3, 12, 20, 0.22),
+      transparent 22%,
+      transparent 76%,
+      rgba(3, 12, 20, 0.22)
+    );
+}
+
+.twinkleStar {
+  opacity: 0.84;
+}
+
+.meteor {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.98),
+    color-mix(in oklch, var(--primary), white 38%)
+  );
+  box-shadow:
+    0 0 12px rgba(255, 255, 255, 0.72),
+    0 0 22px color-mix(in oklch, var(--primary), transparent 34%);
+}
+
+:global(.dark) .meteorSky {
+  --meteor-peak-opacity: 0.88;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--background) 70%, #06111f 30%) 0%,
+      color-mix(in oklch, var(--background) 72%, #092238 28%) 46%,
+      color-mix(in oklch, var(--background) 76%, #0b363d 24%) 100%
+    ),
+    var(--background);
+}
+
+:global(.dark) .starField {
+  opacity: 0.68;
+}
+
+:global(.dark) .skyVignette {
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.16), transparent 38%, rgba(0, 0, 0, 0.22)),
+    linear-gradient(
+      90deg,
+      rgba(0, 0, 0, 0.18),
+      transparent 24%,
+      transparent 78%,
+      rgba(0, 0, 0, 0.2)
+    );
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mascotFloat {
+    animation: mascot-float 5.8s ease-in-out infinite;
+    transform-origin: 52% 82%;
+  }
+
+  .paperPlane {
+    animation: paper-plane 3.6s ease-in-out infinite;
+  }
+
+  .mailRoute {
+    animation: mail-route 4.8s ease-in-out infinite;
+  }
+
+  .mailboxPop {
+    animation: mailbox-pop 5.2s ease-in-out infinite;
+  }
+
+  .sorterBob {
+    animation: sorter-bob 4.9s ease-in-out infinite;
+    transform-origin: 50% 80%;
+  }
+
+  .stampsDrift {
+    animation: stamps-drift 6.4s ease-in-out infinite;
+  }
+
+  .twinkleStar {
+    animation: twinkle-star 3.8s ease-in-out infinite;
+  }
+
+  .meteor {
+    animation: meteor var(--meteor-duration, 7s) ease-out infinite;
+  }
+}
