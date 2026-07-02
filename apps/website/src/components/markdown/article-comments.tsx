@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 
 import { GlassPanel } from "@/components/primitives/glass-panel";
+import { StatusIllustration } from "@/components/status/status-illustration";
 import { Button } from "@/components/ui/button";
 import {
   applyCommentLikeState,
@@ -237,24 +238,24 @@ function ArticleComments({ slug }: { slug: string }) {
   const commentThreads = useMemo(() => createArticleCommentThreads(comments), [comments]);
 
   return (
-    <GlassPanel className="mt-8 overflow-hidden rounded-3xl p-0">
-      <div className="flex flex-col gap-3 border-b border-(--glass-border) px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <h2 className="flex items-center gap-2 text-lg font-black tracking-normal text-foreground">
-            <MessageCircle className="size-5 text-primary" />
+    <GlassPanel className="mt-8 overflow-hidden rounded-2xl p-0 sm:rounded-3xl">
+      <div className="flex flex-col gap-2 border-b border-(--glass-border) px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div className="flex items-center gap-2">
+          <h2 className="flex items-center gap-1.5 text-base font-black tracking-normal text-foreground">
+            <MessageCircle className="size-4.5 text-primary" />
             评论
           </h2>
           {pagination ? (
             <span className="text-xs font-semibold text-muted-foreground">
-              {pagination.totalItems} 条主评论
+              {pagination.totalItems} 条
             </span>
           ) : null}
         </div>
 
         {user ? (
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <AuthorAvatar user={user} size="sm" />
-            <span className="max-w-40 truncate text-sm font-semibold text-muted-foreground">
+            <span className="max-w-40 min-w-0 truncate text-xs font-semibold text-muted-foreground">
               @{user.login}
             </span>
             <Button type="button" variant="ghost" size="sm" onClick={handleLogout}>
@@ -274,9 +275,15 @@ function ArticleComments({ slug }: { slug: string }) {
 
       <div className="max-h-[70vh] overflow-y-auto">
         {comments.length === 0 ? (
-          <p className="px-5 py-8 text-center text-sm text-muted-foreground">还没有评论。</p>
+          <div className="grid justify-items-center gap-3 px-4 py-7 text-center">
+            <StatusIllustration className="max-w-[11rem]" variant="empty-comments" />
+            <div className="grid gap-1">
+              <p className="text-sm font-black text-foreground">还没有评论</p>
+              <p className="text-xs leading-5 text-muted-foreground">登录后可以留下第一条回复。</p>
+            </div>
+          </div>
         ) : (
-          <div className="divide-y divide-(--glass-border)">
+          <div className="grid">
             {commentThreads.map((comment) => (
               <CommentItem
                 key={comment.id}
@@ -293,7 +300,7 @@ function ArticleComments({ slug }: { slug: string }) {
         )}
 
         {canLoadMore ? (
-          <div className="flex justify-center px-5 py-4">
+          <div className="flex justify-center px-4 py-3">
             <Button
               type="button"
               variant="outline"
@@ -307,19 +314,19 @@ function ArticleComments({ slug }: { slug: string }) {
       </div>
 
       <form
-        className="sticky bottom-0 z-10 grid gap-3 border-t border-(--glass-border) bg-background/85 px-4 py-3 backdrop-blur-xl"
+        className="sticky bottom-0 z-10 grid gap-2 border-t border-(--glass-border) bg-background/88 px-3 py-2.5 backdrop-blur-xl sm:px-4 sm:py-3"
         onSubmit={handleSubmit}
       >
         <label className="sr-only" htmlFor="article-comment">
           评论内容
         </label>
         {replyTarget ? (
-          <div className="grid gap-2 rounded-2xl bg-muted/45 px-4 py-3 text-sm text-muted-foreground sm:flex sm:items-center sm:justify-between dark:bg-white/6">
+          <div className="grid gap-2 rounded-xl bg-muted/45 px-3 py-2 text-xs text-muted-foreground sm:flex sm:items-center sm:justify-between dark:bg-white/6">
             <div className="min-w-0">
               <p className="truncate font-semibold text-foreground">
                 回复 @{replyTarget.author.login}
               </p>
-              <p className="mt-1 line-clamp-2 leading-6 wrap-anywhere">{replyTarget.body}</p>
+              <p className="mt-0.5 line-clamp-1 leading-5 wrap-anywhere">{replyTarget.body}</p>
             </div>
             <Button
               type="button"
@@ -332,8 +339,14 @@ function ArticleComments({ slug }: { slug: string }) {
             </Button>
           </div>
         ) : null}
-        <div className="flex items-end gap-3">
-          {user ? <AuthorAvatar user={user} size="sm" /> : null}
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_2rem] items-end gap-2 sm:grid-cols-[1.75rem_minmax(0,1fr)_2rem]">
+          {user ? (
+            <span className="hidden sm:block">
+              <AuthorAvatar user={user} size="sm" />
+            </span>
+          ) : (
+            <span className="hidden sm:block" aria-hidden="true" />
+          )}
           <textarea
             ref={textareaRef}
             id="article-comment"
@@ -345,11 +358,12 @@ function ArticleComments({ slug }: { slug: string }) {
               user ? (replyTarget ? "回复一下..." : "说点什么...") : "登录后可以发表评论"
             }
             disabled={!user || isSubmitting}
-            className="min-h-11 flex-1 resize-none rounded-3xl border border-(--glass-border) bg-white/60 px-4 py-2.5 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/8"
+            className="min-h-9 w-full min-w-0 resize-none rounded-3xl border border-(--glass-border) bg-white/60 px-3.5 py-2 text-sm leading-5 text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/8"
           />
           <Button
             type="submit"
-            size="icon"
+            size="icon-sm"
+            className="self-end"
             disabled={!user || body.trim().length === 0 || isSubmitting}
             aria-label={replyTarget ? "发布回复" : "发布评论"}
           >
@@ -391,27 +405,31 @@ function CommentItem({
   );
 
   return (
-    <article className={depth === 0 ? "px-5 py-4" : "py-2"}>
-      <div className={depth === 0 ? "flex gap-3" : "flex gap-2"}>
+    <article
+      className={
+        depth === 0 ? "border-b border-(--glass-border) px-4 py-3 last:border-b-0 sm:px-5" : "py-2"
+      }
+    >
+      <div
+        className={
+          depth === 0
+            ? "grid grid-cols-[2.25rem_minmax(0,1fr)] gap-2.5"
+            : "grid grid-cols-[1.75rem_minmax(0,1fr)] gap-2"
+        }
+      >
         <AuthorAvatar user={comment.author} size={depth === 0 ? "md" : "sm"} />
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex min-w-0 items-center gap-1.5">
             <a
               href={comment.author.profileUrl}
               target="_blank"
               rel="noreferrer"
-              className="max-w-44 truncate text-sm font-semibold text-foreground hover:text-primary"
+              className="max-w-52 min-w-0 truncate text-sm font-semibold text-foreground hover:text-primary"
             >
               {comment.author.name ?? comment.author.login}
             </a>
-            <time
-              className="text-xs font-medium text-muted-foreground"
-              dateTime={comment.createdAt}
-            >
-              {formatCommentDate(comment.createdAt)}
-            </time>
           </div>
-          <p className="mt-1 text-sm leading-7 wrap-anywhere whitespace-pre-wrap text-foreground/86">
+          <p className="mt-0.5 text-sm leading-6 wrap-anywhere whitespace-pre-wrap text-foreground/88">
             {comment.replyContext ? (
               <span className="mr-1 font-semibold text-muted-foreground">
                 回复 @{comment.replyContext.login}:
@@ -419,24 +437,31 @@ function CommentItem({
             ) : null}
             {comment.body}
           </p>
-          <div className="mt-1.5 flex items-center gap-3">
-            <Button type="button" variant="ghost" size="sm" onClick={() => onReply(comment)}>
-              <Reply className="size-4" />
-              回复
-            </Button>
-            <Button
+          <div className="mt-1 flex min-w-0 items-center gap-2 text-xs font-medium text-muted-foreground">
+            <time dateTime={comment.createdAt} title={formatFullCommentDate(comment.createdAt)}>
+              {formatCommentDate(comment.createdAt)}
+            </time>
+            <button
               type="button"
-              variant="ghost"
-              size="sm"
+              className="inline-flex h-5 items-center gap-0.5 rounded-md px-1 transition hover:bg-muted hover:text-foreground"
+              onClick={() => onReply(comment)}
+            >
+              <Reply className="size-3.5" />
+              回复
+            </button>
+            <button
+              type="button"
+              className="inline-flex h-5 items-center gap-0.5 rounded-md px-1 transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
               onClick={() => onToggleLike(comment)}
               disabled={likingCommentIds.has(comment.id)}
+              aria-label={comment.likedByMe ? "取消点赞" : "点赞"}
               aria-pressed={comment.likedByMe}
             >
               <Heart
-                className={comment.likedByMe ? "size-4 fill-primary text-primary" : "size-4"}
+                className={comment.likedByMe ? "size-3.5 fill-primary text-primary" : "size-3.5"}
               />
               {comment.likeCount}
-            </Button>
+            </button>
           </div>
         </div>
       </div>
@@ -445,8 +470,8 @@ function CommentItem({
         <div
           className={
             depth === 0
-              ? "mt-3 ml-12 rounded-2xl bg-muted/38 px-3 py-2 dark:bg-white/5"
-              : "mt-2 ml-10 border-l border-(--glass-border) pl-3"
+              ? "mt-2 ml-9 border-l border-(--glass-border) pl-3 sm:ml-11"
+              : "mt-1.5 ml-7 border-l border-(--glass-border) pl-3"
           }
         >
           {visibleReplies.map((reply) => (
@@ -465,7 +490,7 @@ function CommentItem({
             <button
               type="button"
               aria-expanded={isExpanded}
-              className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary/80"
+              className="mt-1 inline-flex h-6 items-center gap-1 rounded-md px-1 text-xs font-semibold text-primary hover:bg-primary/8 hover:text-primary/80"
               onClick={() => onToggleReplies(comment.id)}
             >
               {isExpanded ? (
@@ -492,7 +517,7 @@ type AvatarUser = ArticleCommentResponse["author"] | AuthUserResponse;
 function AuthorAvatar({ user, size = "md" }: { user: AvatarUser; size?: "sm" | "md" }) {
   const label = user.name ?? user.login;
   const initial = label.slice(0, 1).toUpperCase();
-  const sizeClassName = size === "sm" ? "size-8 text-xs" : "size-10 text-sm";
+  const sizeClassName = size === "sm" ? "size-7 text-xs" : "size-9 text-sm";
 
   return (
     <span
@@ -583,6 +608,23 @@ async function loadCurrentUser() {
 }
 
 function formatCommentDate(value: string) {
+  const parts = new Intl.DateTimeFormat("zh-CN", {
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  })
+    .formatToParts(new Date(value))
+    .reduce<Record<string, string>>((accumulator, part) => {
+      accumulator[part.type] = part.value;
+      return accumulator;
+    }, {});
+
+  return `${parts.month}-${parts.day} ${parts.hour}:${parts.minute}`;
+}
+
+function formatFullCommentDate(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {
     dateStyle: "medium",
     timeStyle: "short",

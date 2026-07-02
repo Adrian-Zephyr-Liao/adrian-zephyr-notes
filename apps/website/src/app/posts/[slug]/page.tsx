@@ -53,17 +53,17 @@ async function PostPage({ params }: PostPageProps) {
   const headings = getMarkdownHeadings(post.markdown);
 
   return (
-    <main className="flex-1 overflow-x-clip px-3 pb-14 sm:px-4">
+    <main className="flex-1 overflow-x-clip px-3 pb-12 sm:px-4 sm:pb-14">
       <ArticleMotionShell>
-        <div className="mx-auto grid w-[min(1180px,calc(100vw-1.5rem))] gap-5 pt-8 sm:w-[min(1180px,calc(100vw-2rem))]">
+        <div className="mx-auto grid w-full max-w-[1180px] gap-4 pt-5 sm:gap-5 sm:pt-8">
           <GlassPanel
             tone="strong"
-            className="relative overflow-hidden rounded-3xl px-5 py-8 sm:px-8 lg:px-10 lg:py-12"
+            className="relative min-w-0 overflow-hidden rounded-2xl px-4 py-6 sm:rounded-3xl sm:px-8 lg:px-10 lg:py-12"
           >
             <div className="absolute inset-0 -z-10 bg-(image:--gradient-brand) opacity-10" />
             <div className="absolute -top-20 right-8 -z-10 size-64 rounded-full bg-primary/20 blur-3xl" />
             <Link
-              className="mb-8 inline-flex items-center gap-1.5 rounded-full bg-white/50 px-3 py-1.5 text-sm font-semibold text-muted-foreground transition hover:bg-white/75 hover:text-foreground dark:bg-white/10 dark:hover:bg-white/15"
+              className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-white/50 px-3 py-1.5 text-sm font-semibold text-muted-foreground transition hover:bg-white/75 hover:text-foreground sm:mb-8 dark:bg-white/10 dark:hover:bg-white/15"
               href="/"
             >
               <ChevronLeft className="size-4" />
@@ -87,14 +87,14 @@ async function PostPage({ params }: PostPageProps) {
                 ))}
               </div>
               <div className="grid min-w-0 gap-4">
-                <h1 className="flex max-w-full min-w-0 flex-wrap gap-x-3 gap-y-1 text-3xl/tight font-black tracking-normal wrap-anywhere text-foreground sm:max-w-4xl sm:text-5xl lg:text-6xl">
+                <h1 className="flex max-w-full min-w-0 flex-wrap gap-x-2 gap-y-1 text-2xl/tight font-black tracking-normal wrap-anywhere text-foreground sm:max-w-4xl sm:gap-x-3 sm:text-5xl lg:text-6xl">
                   {post.title.split(" ").map((part) => (
                     <span key={part} className="max-w-full min-w-0 wrap-anywhere">
                       {part}
                     </span>
                   ))}
                 </h1>
-                <p className="max-w-3xl text-base leading-8 wrap-anywhere text-muted-foreground sm:text-lg">
+                <p className="max-w-3xl text-sm leading-7 wrap-anywhere text-muted-foreground sm:text-lg sm:leading-8">
                   {post.description}
                 </p>
               </div>
@@ -119,8 +119,11 @@ async function PostPage({ params }: PostPageProps) {
             </div>
           </GlassPanel>
 
-          <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-            <GlassPanel tone="strong" className="rounded-3xl px-5 py-7 sm:px-8 lg:px-10">
+          <div className="grid min-w-0 items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
+            <GlassPanel
+              tone="strong"
+              className="min-w-0 rounded-2xl px-4 py-5 sm:rounded-3xl sm:px-8 sm:py-7 lg:px-10"
+            >
               <MarkdownRenderer content={post.markdown} />
               <ArticleComments slug={post.slug} />
 

@@ -8,7 +8,7 @@ import {
 } from "./article-comment-thread";
 
 describe("createArticleCommentThreads", () => {
-  it("keeps replies at the maximum rendered depth instead of nesting forever", () => {
+  it("keeps replies in a two-level thread instead of nesting forever", () => {
     const [thread] = createArticleCommentThreads([
       createComment("root", "adrian", [
         createComment("level-1", "mira", [
@@ -19,19 +19,19 @@ describe("createArticleCommentThreads", () => {
       ]),
     ]);
 
-    expect(thread.replies).toHaveLength(1);
-    expect(thread.replies[0]?.id).toBe("level-1");
-    expect(thread.replies[0]?.replies.map((comment) => comment.id)).toEqual([
+    expect(thread.replies.map((comment) => comment.id)).toEqual([
+      "level-1",
       "level-2",
       "level-3",
       "level-4",
     ]);
-    expect(thread.replies[0]?.replies[0]?.replies).toEqual([]);
-    expect(thread.replies[0]?.replies[1]?.replyContext?.login).toBe("noah");
-    expect(thread.replies[0]?.replies[2]?.replyContext?.login).toBe("iris");
+    expect(thread.replies[0]?.replies).toEqual([]);
+    expect(thread.replies[1]?.replyContext?.login).toBe("mira");
+    expect(thread.replies[2]?.replyContext?.login).toBe("noah");
+    expect(thread.replies[3]?.replyContext?.login).toBe("iris");
   });
 
-  it("does not add reply context to normally nested replies", () => {
+  it("does not add reply context to direct replies", () => {
     const [thread] = createArticleCommentThreads([
       createComment("root", "adrian", [createComment("level-1", "mira")]),
     ]);
@@ -80,7 +80,7 @@ describe("getVisibleCommentReplies", () => {
 });
 
 describe("findReplyExpansionTargetId", () => {
-  it("expands the direct parent when replying within the rendered reply depth", () => {
+  it("expands the root thread when replying inside a two-level thread", () => {
     const comments = [
       createComment("root", "adrian", [
         createComment("level-1", "mira", [createComment("level-2", "noah")]),
@@ -88,10 +88,10 @@ describe("findReplyExpansionTargetId", () => {
     ];
 
     expect(findReplyExpansionTargetId(comments, "root")).toBe("root");
-    expect(findReplyExpansionTargetId(comments, "level-1")).toBe("level-1");
+    expect(findReplyExpansionTargetId(comments, "level-1")).toBe("root");
   });
 
-  it("expands the visible reply group when replying beyond the rendered depth", () => {
+  it("expands the root thread when replying beyond the rendered reply depth", () => {
     const comments = [
       createComment("root", "adrian", [
         createComment("level-1", "mira", [
@@ -100,8 +100,8 @@ describe("findReplyExpansionTargetId", () => {
       ]),
     ];
 
-    expect(findReplyExpansionTargetId(comments, "level-2")).toBe("level-1");
-    expect(findReplyExpansionTargetId(comments, "level-3")).toBe("level-1");
+    expect(findReplyExpansionTargetId(comments, "level-2")).toBe("root");
+    expect(findReplyExpansionTargetId(comments, "level-3")).toBe("root");
   });
 });
 

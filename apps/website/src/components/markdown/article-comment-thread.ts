@@ -4,7 +4,7 @@ import type {
   ArticleCommentResponse,
 } from "@adrian-zephyr-notes/contracts";
 
-const MAX_RENDERED_REPLY_DEPTH = 2;
+const MAX_RENDERED_REPLY_DEPTH = 1;
 const DEFAULT_VISIBLE_REPLY_COUNT = 2;
 
 type ArticleCommentThreadItem = Omit<ArticleCommentResponse, "replies"> & {
