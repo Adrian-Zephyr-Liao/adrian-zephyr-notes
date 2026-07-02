@@ -17,6 +17,7 @@ import {
 
 import { ArticleSidebarProfile } from "@/components/markdown/article-sidebar-profile";
 import { ArticleComments } from "@/components/markdown/article-comments";
+import { ArticleAiSummaryCard } from "@/components/markdown/article-ai-summary-card";
 import { ArticleMotionShell } from "@/components/markdown/article-motion-shell";
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Badge } from "@/components/ui/badge";
@@ -125,6 +126,7 @@ async function PostPage({ params }: PostPageProps) {
               tone="strong"
               className="min-w-0 rounded-2xl px-4 py-5 sm:rounded-3xl sm:px-8 sm:py-7 lg:px-10"
             >
+              {post.aiSummary ? <ArticleAiSummaryCard summary={post.aiSummary} /> : null}
               <MarkdownRenderer content={post.markdown} />
               <ArticleComments slug={post.slug} />
 

@@ -32,7 +32,13 @@ type ArticleListItemResponse = {
   updatedAt: string;
 };
 
+type ArticleAiSummaryResponse = {
+  text: string;
+  generatedAt: string;
+};
+
 type ArticleDetailResponse = ArticleListItemResponse & {
+  aiSummary: ArticleAiSummaryResponse | null;
   markdown: string;
 };
 
@@ -40,6 +46,7 @@ type ArticleListResponse = PaginatedResponse<ArticleListItemResponse>;
 
 export type {
   ArticleCategorySummary,
+  ArticleAiSummaryResponse,
   ArticleDetailResponse,
   ArticleListItemResponse,
   ArticleListQuery,

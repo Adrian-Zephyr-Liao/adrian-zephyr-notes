@@ -1,5 +1,6 @@
 export type {
   ArticleCategorySummary,
+  ArticleAiSummaryResponse,
   ArticleDetailResponse,
   ArticleListItemResponse,
   ArticleListQuery,

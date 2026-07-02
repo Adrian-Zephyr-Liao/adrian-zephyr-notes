@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -18,6 +19,7 @@ const prisma = new PrismaClient({
 });
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
+const ARTICLE_SUMMARY_PROMPT_VERSION = "article-summary-v1";
 
 async function main() {
   const post = await loadMarkdownSyntaxShowcasePost();
@@ -103,7 +105,48 @@ async function main() {
     skipDuplicates: true,
   });
 
+  await queueArticleAiSummary(article.id, post);
   await seedSiteAnnouncements(now);
+}
+
+async function queueArticleAiSummary(articleId, post) {
+  const contentHash = createArticleSummaryContentHash({
+    title: post.title,
+    description: post.description,
+    markdown: post.markdown,
+  });
+  const current = await prisma.articleAiSummary.findUnique({
+    where: { articleId },
+  });
+
+  if (
+    current &&
+    current.contentHash === contentHash &&
+    current.promptVersion === ARTICLE_SUMMARY_PROMPT_VERSION
+  ) {
+    return;
+  }
+
+  await prisma.articleAiSummary.upsert({
+    where: { articleId },
+    update: {
+      attemptCount: 0,
+      contentHash,
+      errorMessage: null,
+      generatedAt: null,
+      model: null,
+      promptVersion: ARTICLE_SUMMARY_PROMPT_VERSION,
+      provider: null,
+      status: "PENDING",
+      summary: null,
+    },
+    create: {
+      articleId,
+      contentHash,
+      promptVersion: ARTICLE_SUMMARY_PROMPT_VERSION,
+      status: "PENDING",
+    },
+  });
 }
 
 async function seedSiteAnnouncements(now) {
@@ -224,6 +267,12 @@ function categorySlugByName(value) {
 
 function tagSlugByName(value) {
   return value.trim().toLowerCase().replaceAll(/\s+/g, "-");
+}
+
+function createArticleSummaryContentHash(input) {
+  return createHash("sha256")
+    .update(JSON.stringify([input.title, input.description, input.markdown]))
+    .digest("hex");
 }
 
 await main()

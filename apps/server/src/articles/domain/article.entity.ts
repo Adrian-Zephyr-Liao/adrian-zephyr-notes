@@ -1,4 +1,5 @@
 import type { ArticleStatus } from "./article-status";
+import type { ArticleAiSummary } from "./article-ai-summary.entity";
 import { ArticleId } from "./value-objects/article-id";
 import { ArticleSlug } from "./value-objects/article-slug";
 
@@ -27,11 +28,13 @@ type ArticleProps = {
   publishedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  aiSummary: ArticleAiSummary | null;
 };
 
-type CreateArticleProps = Omit<ArticleProps, "id" | "slug"> & {
+type CreateArticleProps = Omit<ArticleProps, "id" | "slug" | "aiSummary"> & {
   id: string;
   slug: string;
+  aiSummary?: ArticleAiSummary | null;
 };
 
 class Article {
@@ -49,6 +52,7 @@ class Article {
       publishedAt: cloneDateOrNull(props.publishedAt),
       createdAt: cloneDate(props.createdAt),
       updatedAt: cloneDate(props.updatedAt),
+      aiSummary: props.aiSummary ?? null,
     });
 
     if (article.props.status === "PUBLISHED" && !article.props.publishedAt) {
@@ -108,6 +112,10 @@ class Article {
 
   get updatedAt() {
     return cloneDate(this.props.updatedAt);
+  }
+
+  get aiSummary() {
+    return this.props.aiSummary;
   }
 
   isPubliclyVisible(now: Date) {

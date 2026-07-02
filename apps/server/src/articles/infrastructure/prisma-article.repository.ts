@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
+import { ArticleAiSummary } from "../domain/article-ai-summary.entity";
 import { Article } from "../domain/article.entity";
 import type { ArticleRepository, ListPublishedArticlesFilters } from "../domain/article.repository";
 
@@ -11,6 +12,7 @@ const articleInclude = {
       tag: true,
     },
   },
+  aiSummary: true,
 } satisfies Prisma.ArticleInclude;
 
 type ArticleRecord = Prisma.ArticleGetPayload<{
@@ -118,6 +120,29 @@ function toDomainArticle(record: ArticleRecord) {
     wordCount: record.wordCount,
     readingMinutes: record.readingMinutes,
     publishedAt: record.publishedAt,
+    createdAt: record.createdAt,
+    updatedAt: record.updatedAt,
+    aiSummary: record.aiSummary ? toDomainArticleAiSummary(record.aiSummary) : null,
+  });
+}
+
+function toDomainArticleAiSummary(record: ArticleRecord["aiSummary"]) {
+  if (!record) {
+    return null;
+  }
+
+  return ArticleAiSummary.create({
+    id: record.id,
+    articleId: record.articleId,
+    summary: record.summary,
+    status: record.status,
+    contentHash: record.contentHash,
+    promptVersion: record.promptVersion,
+    provider: record.provider,
+    model: record.model,
+    attemptCount: record.attemptCount,
+    errorMessage: record.errorMessage,
+    generatedAt: record.generatedAt,
     createdAt: record.createdAt,
     updatedAt: record.updatedAt,
   });

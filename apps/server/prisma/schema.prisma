@@ -22,6 +22,13 @@ enum GuestbookMessageStatus {
   HIDDEN
 }
 
+enum ArticleAiSummaryStatus {
+  PENDING
+  GENERATING
+  READY
+  FAILED
+}
+
 model Article {
   id             String            @id @default(uuid()) @db.Uuid
   slug           String            @unique
@@ -40,9 +47,30 @@ model Article {
   tags           ArticleTagLink[]
   revisions      ArticleRevision[]
   comments       ArticleComment[]
+  aiSummary      ArticleAiSummary?
 
   @@index([status, publishedAt(sort: Desc)])
   @@map("articles")
+}
+
+model ArticleAiSummary {
+  id            String                 @id @default(uuid()) @db.Uuid
+  articleId     String                 @unique @map("article_id") @db.Uuid
+  summary       String?
+  status        ArticleAiSummaryStatus @default(PENDING)
+  contentHash   String                 @map("content_hash")
+  promptVersion String                 @map("prompt_version")
+  provider      String?
+  model         String?
+  attemptCount  Int                    @default(0) @map("attempt_count")
+  errorMessage  String?                @map("error_message")
+  generatedAt   DateTime?              @map("generated_at") @db.Timestamptz(6)
+  createdAt     DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
+  article       Article                @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@index([status, updatedAt])
+  @@map("article_ai_summaries")
 }
 
 model User {
