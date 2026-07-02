@@ -1,20 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
-import { copySetCookieHeaders, getBackendApiBaseUrl } from "@/lib/backend-api";
+import { NextRequest } from "next/server";
+import { proxyBackendRequest } from "@/lib/backend-api";
 
 export async function POST(request: NextRequest) {
-  const response = await fetch(`${getBackendApiBaseUrl()}/api/auth/logout`, {
+  return proxyBackendRequest(request, {
     method: "POST",
-    headers: {
-      cookie: request.headers.get("cookie") ?? "",
-    },
-    cache: "no-store",
-  });
-  const headers = new Headers();
-
-  copySetCookieHeaders(response, headers);
-
-  return new NextResponse(null, {
-    status: response.status,
-    headers,
+    path: "/api/auth/logout",
+    responseBody: "empty",
   });
 }
