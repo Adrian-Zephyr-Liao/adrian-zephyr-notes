@@ -1,4 +1,8 @@
-import type { ArticleDetailResponse, ArticleListResponse } from "@adrian-zephyr-notes/contracts";
+import type {
+  ArticleDetailResponse,
+  ArticleListQuery,
+  ArticleListResponse,
+} from "@adrian-zephyr-notes/contracts";
 
 const DEFAULT_API_BASE_URL = "http://localhost:3001";
 
@@ -18,8 +22,24 @@ async function getArticleBySlug(slug: string): Promise<ArticleDetailResponse | n
   return (await response.json()) as ArticleDetailResponse;
 }
 
-async function getArticles(): Promise<ArticleListResponse> {
-  const response = await fetch(`${getApiBaseUrl()}/api/articles?page=1&pageSize=12`, {
+async function getArticles(query: ArticleListQuery = {}): Promise<ArticleListResponse> {
+  const searchParams = new URLSearchParams();
+  searchParams.set("page", String(query.page ?? 1));
+  searchParams.set("pageSize", String(query.pageSize ?? 12));
+
+  if (query.category) {
+    searchParams.set("category", query.category);
+  }
+
+  if (query.tag) {
+    searchParams.set("tag", query.tag);
+  }
+
+  if (query.q) {
+    searchParams.set("q", query.q);
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/api/articles?${searchParams.toString()}`, {
     cache: "no-store",
   });
 

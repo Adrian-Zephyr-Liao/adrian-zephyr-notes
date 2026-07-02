@@ -2,7 +2,6 @@ import {
   Archive,
   BarChart3,
   BookOpenText,
-  Boxes,
   CircleGauge,
   Dice5,
   Gamepad2,
@@ -56,10 +55,9 @@ const navGroups: NavGroup[] = [
   {
     label: "文章",
     items: [
-      { href: "/archives", label: "总览", icon: Archive },
-      { href: "/categories", label: "分类", icon: Boxes },
-      { href: "/tags", label: "标签", icon: Tags },
-      { href: "/charts", label: "文章统计", icon: BarChart3 },
+      { href: "/#articles", label: "最新文章", icon: Home },
+      { href: "/archives", label: "文章归档", icon: Archive },
+      { href: "/tags", label: "标签浏览", icon: Tags },
     ],
   },
   {
@@ -101,7 +99,6 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const primaryNavGroups = navGroups.slice(0, 2);
-const secondaryNavGroups = navGroups.slice(2);
+const desktopDropdownGroups = navGroups.slice(1);
 
-export { navGroups, portalLinks, primaryNavGroups, secondaryNavGroups };
+export { desktopDropdownGroups, navGroups, portalLinks };
