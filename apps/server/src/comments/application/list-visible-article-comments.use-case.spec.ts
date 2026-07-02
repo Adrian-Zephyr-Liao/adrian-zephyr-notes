@@ -18,6 +18,7 @@ describe("ListVisibleArticleCommentsUseCase", () => {
       {
         page: 2,
         pageSize: 5,
+        viewerUserId: undefined,
       },
     );
     expect(result.pagination).toEqual({

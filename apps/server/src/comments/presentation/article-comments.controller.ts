@@ -24,13 +24,14 @@ import {
 import {
   ArticleCommentArticleNotFoundError,
   ArticleCommentAuthenticationRequiredError,
+  ArticleCommentLikeTargetNotFoundError,
   ArticleCommentParentNotFoundError,
 } from "../application/article-comment.errors";
 import { CreateArticleCommentUseCase } from "../application/create-article-comment.use-case";
 import { ListVisibleArticleCommentsUseCase } from "../application/list-visible-article-comments.use-case";
 import {
-  type ArticleCommentRecord,
   type ArticleCommentTreeRecord,
+  type CreatedArticleCommentRecord,
   toArticleCommentResponse,
   toArticleCommentsResponse,
 } from "../infrastructure/article-comments.mapper";
@@ -40,7 +41,7 @@ import { CreateArticleCommentDto } from "./dto/create-article-comment.dto";
 @Controller("api/articles/:slug/comments")
 class ArticleCommentsController {
   constructor(
-    private readonly createArticleComment: CreateArticleCommentUseCase<ArticleCommentRecord>,
+    private readonly createArticleComment: CreateArticleCommentUseCase<CreatedArticleCommentRecord>,
     private readonly listVisibleArticleComments: ListVisibleArticleCommentsUseCase<ArticleCommentTreeRecord>,
     private readonly getCurrentUser: GetCurrentUserUseCase,
   ) {}
@@ -49,11 +50,15 @@ class ArticleCommentsController {
   async list(
     @Param("slug") slug: string,
     @Query() query: ArticleCommentsQueryDto,
+    @Req() request: Request,
   ): Promise<ArticleCommentsResponse> {
     try {
+      const cookies = parseCookies(request.headers.cookie);
+      const user = await this.getCurrentUser.execute(cookies[SESSION_COOKIE_NAME]);
       const comments = await this.listVisibleArticleComments.execute(slug, {
         page: query.page,
         pageSize: query.pageSize,
+        viewerUserId: user?.id ?? null,
       });
       return toArticleCommentsResponse(comments);
     } catch (error) {
@@ -125,6 +130,15 @@ function mapArticleCommentError(error: unknown) {
       error: {
         code: "PARENT_COMMENT_NOT_FOUND",
         message: "Parent comment not found",
+      },
+    });
+  }
+
+  if (error instanceof ArticleCommentLikeTargetNotFoundError) {
+    return new NotFoundException({
+      error: {
+        code: "COMMENT_NOT_FOUND",
+        message: "Comment not found",
       },
     });
   }

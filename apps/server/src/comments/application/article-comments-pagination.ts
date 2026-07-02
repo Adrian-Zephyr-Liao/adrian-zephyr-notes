@@ -1,6 +1,7 @@
 type ArticleCommentsPaginationInput = {
   page?: number;
   pageSize?: number;
+  viewerUserId?: string | null;
 };
 
 function normalizeArticleCommentsQuery(input: ArticleCommentsPaginationInput) {

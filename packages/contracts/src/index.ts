@@ -9,6 +9,7 @@ export type {
 export type { AuthUserResponse } from "./public/auth.js";
 export type {
   ArticleCommentAuthor,
+  ArticleCommentLikeResponse,
   ArticleCommentResponse,
   ArticleCommentsResponse,
   CreateArticleCommentRequest,

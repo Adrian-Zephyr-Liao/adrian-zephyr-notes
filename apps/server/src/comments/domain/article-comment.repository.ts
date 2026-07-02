@@ -1,6 +1,7 @@
 type ArticleCommentsListInput = {
   page: number;
   pageSize: number;
+  viewerUserId?: string | null;
 };
 
 type ArticleCommentsPage<TComment> = {

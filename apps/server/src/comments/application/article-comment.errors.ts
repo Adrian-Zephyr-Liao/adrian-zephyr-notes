@@ -16,8 +16,15 @@ class ArticleCommentParentNotFoundError extends Error {
   }
 }
 
+class ArticleCommentLikeTargetNotFoundError extends Error {
+  constructor() {
+    super("Comment not found.");
+  }
+}
+
 export {
   ArticleCommentArticleNotFoundError,
   ArticleCommentAuthenticationRequiredError,
+  ArticleCommentLikeTargetNotFoundError,
   ArticleCommentParentNotFoundError,
 };

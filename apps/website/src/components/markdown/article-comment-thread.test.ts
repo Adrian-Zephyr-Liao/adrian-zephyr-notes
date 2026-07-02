@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ArticleCommentResponse } from "@adrian-zephyr-notes/contracts";
 import {
+  applyCommentLikeState,
   createArticleCommentThreads,
   findReplyExpansionTargetId,
   getVisibleCommentReplies,
@@ -104,6 +105,27 @@ describe("findReplyExpansionTargetId", () => {
   });
 });
 
+describe("applyCommentLikeState", () => {
+  it("updates like state for nested comments without changing unrelated comments", () => {
+    const comments = [
+      createComment("root", "adrian", [
+        createComment("reply-1", "mira", [createComment("reply-2", "noah")]),
+      ]),
+    ];
+
+    const result = applyCommentLikeState(comments, {
+      commentId: "reply-2",
+      likeCount: 9,
+      likedByMe: true,
+    });
+
+    expect(result[0]?.likeCount).toBe(0);
+    expect(result[0]?.replies[0]?.likeCount).toBe(0);
+    expect(result[0]?.replies[0]?.replies[0]?.likeCount).toBe(9);
+    expect(result[0]?.replies[0]?.replies[0]?.likedByMe).toBe(true);
+  });
+});
+
 function createComment(
   id: string,
   login: string,
@@ -121,6 +143,8 @@ function createComment(
       profileUrl: `https://github.com/${login}`,
     },
     replies,
+    likeCount: 0,
+    likedByMe: false,
     createdAt: "2026-07-02T00:00:00.000Z",
     updatedAt: "2026-07-02T00:00:00.000Z",
   };

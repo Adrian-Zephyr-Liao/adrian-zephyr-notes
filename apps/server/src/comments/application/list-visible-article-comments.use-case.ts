@@ -23,10 +23,10 @@ class ListVisibleArticleCommentsUseCase<TComment = unknown> {
       throw new ArticleCommentArticleNotFoundError();
     }
 
-    return this.articleCommentRepository.listVisibleByArticleId(
-      articleId,
-      normalizeArticleCommentsQuery(input),
-    );
+    return this.articleCommentRepository.listVisibleByArticleId(articleId, {
+      ...normalizeArticleCommentsQuery(input),
+      viewerUserId: input.viewerUserId,
+    });
   }
 }
 

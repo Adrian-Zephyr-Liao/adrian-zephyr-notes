@@ -1,4 +1,8 @@
-import type { ArticleCommentAuthor, ArticleCommentResponse } from "@adrian-zephyr-notes/contracts";
+import type {
+  ArticleCommentAuthor,
+  ArticleCommentLikeResponse,
+  ArticleCommentResponse,
+} from "@adrian-zephyr-notes/contracts";
 
 const MAX_RENDERED_REPLY_DEPTH = 2;
 const DEFAULT_VISIBLE_REPLY_COUNT = 2;
@@ -48,6 +52,30 @@ function findReplyExpansionTargetId(
     maxRenderedReplyDepth,
     parentCommentId,
     ancestors: [],
+  });
+}
+
+function applyCommentLikeState(
+  comments: ArticleCommentResponse[],
+  likeState: ArticleCommentLikeResponse,
+): ArticleCommentResponse[] {
+  return comments.map((comment) => {
+    if (comment.id === likeState.commentId) {
+      return {
+        ...comment,
+        likeCount: likeState.likeCount,
+        likedByMe: likeState.likedByMe,
+      };
+    }
+
+    if (comment.replies.length === 0) {
+      return comment;
+    }
+
+    return {
+      ...comment,
+      replies: applyCommentLikeState(comment.replies, likeState),
+    };
   });
 }
 
@@ -139,6 +167,7 @@ function findReplyExpansionTarget({
 export {
   DEFAULT_VISIBLE_REPLY_COUNT,
   MAX_RENDERED_REPLY_DEPTH,
+  applyCommentLikeState,
   createArticleCommentThreads,
   findReplyExpansionTargetId,
   getVisibleCommentReplies,

@@ -6,14 +6,16 @@ import type {
   CreateArticleCommentInput,
 } from "../domain/article-comment.repository";
 import {
-  articleCommentInclude,
+  articleCommentCreateInclude,
+  createArticleCommentInclude,
   type ArticleCommentRecord,
   type ArticleCommentTreeRecord,
+  type CreatedArticleCommentRecord,
 } from "./article-comments.mapper";
 
 @Injectable()
 class PrismaArticleCommentRepository implements ArticleCommentRepository<
-  ArticleCommentRecord,
+  CreatedArticleCommentRecord,
   ArticleCommentTreeRecord
 > {
   constructor(private readonly prisma: PrismaService) {}
@@ -58,7 +60,7 @@ class PrismaArticleCommentRepository implements ArticleCommentRepository<
     const [rootComments, totalItems] = await this.prisma.$transaction([
       this.prisma.articleComment.findMany({
         where,
-        include: articleCommentInclude,
+        include: createArticleCommentInclude(input.viewerUserId),
         orderBy: {
           createdAt: "asc",
         },
@@ -70,6 +72,7 @@ class PrismaArticleCommentRepository implements ArticleCommentRepository<
     const descendantComments = await this.listVisibleDescendantsByParentIds(
       articleId,
       rootComments.map((comment) => comment.id),
+      input.viewerUserId,
     );
 
     return {
@@ -86,11 +89,15 @@ class PrismaArticleCommentRepository implements ArticleCommentRepository<
   create(input: CreateArticleCommentInput) {
     return this.prisma.articleComment.create({
       data: input,
-      include: articleCommentInclude,
+      include: articleCommentCreateInclude,
     });
   }
 
-  private async listVisibleDescendantsByParentIds(articleId: string, parentCommentIds: string[]) {
+  private async listVisibleDescendantsByParentIds(
+    articleId: string,
+    parentCommentIds: string[],
+    viewerUserId?: string | null,
+  ) {
     const descendants: ArticleCommentRecord[] = [];
     const visitedCommentIds = new Set(parentCommentIds);
     let nextParentCommentIds = parentCommentIds;
@@ -104,7 +111,7 @@ class PrismaArticleCommentRepository implements ArticleCommentRepository<
           },
           status: "VISIBLE",
         },
-        include: articleCommentInclude,
+        include: createArticleCommentInclude(viewerUserId),
         orderBy: {
           createdAt: "asc",
         },

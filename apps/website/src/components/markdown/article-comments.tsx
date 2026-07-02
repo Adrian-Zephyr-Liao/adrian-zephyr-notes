@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import type {
+  ArticleCommentLikeResponse,
   ArticleCommentResponse,
   ArticleCommentsResponse,
   AuthUserResponse,
@@ -10,6 +11,7 @@ import {
   ChevronDown,
   ChevronUp,
   Github,
+  Heart,
   LogOut,
   MessageCircle,
   Reply,
@@ -20,6 +22,7 @@ import {
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Button } from "@/components/ui/button";
 import {
+  applyCommentLikeState,
   createArticleCommentThreads,
   findReplyExpansionTargetId,
   getVisibleCommentReplies,
@@ -40,6 +43,7 @@ function ArticleComments({ slug }: { slug: string }) {
   const [expandedCommentIds, setExpandedCommentIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
+  const [likingCommentIds, setLikingCommentIds] = useState<ReadonlySet<string>>(() => new Set());
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -143,6 +147,59 @@ function ArticleComments({ slug }: { slug: string }) {
     setErrorMessage(null);
   }
 
+  async function handleToggleLike(target: ArticleCommentResponse) {
+    if (!user) {
+      window.location.href = loginUrl;
+      return;
+    }
+
+    if (likingCommentIds.has(target.id)) {
+      return;
+    }
+
+    const previousLikeState: ArticleCommentLikeResponse = {
+      commentId: target.id,
+      likeCount: target.likeCount,
+      likedByMe: target.likedByMe,
+    };
+    const optimisticLikeState: ArticleCommentLikeResponse = {
+      commentId: target.id,
+      likeCount: Math.max(target.likeCount + (target.likedByMe ? -1 : 1), 0),
+      likedByMe: !target.likedByMe,
+    };
+
+    setLikingCommentIds((current) => new Set(current).add(target.id));
+    setComments((current) => applyCommentLikeState(current, optimisticLikeState));
+    setErrorMessage(null);
+
+    try {
+      const response = await fetch(`/api/comments/${encodeURIComponent(target.id)}/like`, {
+        method: target.likedByMe ? "DELETE" : "PUT",
+      });
+
+      if (response.status === 401) {
+        window.location.href = loginUrl;
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Failed to toggle comment like: ${response.status}`);
+      }
+
+      const likeState = (await response.json()) as ArticleCommentLikeResponse;
+      setComments((current) => applyCommentLikeState(current, likeState));
+    } catch {
+      setComments((current) => applyCommentLikeState(current, previousLikeState));
+      setErrorMessage("点赞操作失败，请稍后重试。");
+    } finally {
+      setLikingCommentIds((current) => {
+        const next = new Set(current);
+        next.delete(target.id);
+        return next;
+      });
+    }
+  }
+
   async function handleLoadMore() {
     if (!pagination || isLoadingMore || pagination.page >= pagination.totalPages) {
       return;
@@ -226,7 +283,9 @@ function ArticleComments({ slug }: { slug: string }) {
                 comment={comment}
                 depth={0}
                 expandedCommentIds={expandedCommentIds}
+                likingCommentIds={likingCommentIds}
                 onReply={handleReply}
+                onToggleLike={handleToggleLike}
                 onToggleReplies={toggleReplyExpansion}
               />
             ))}
@@ -312,13 +371,17 @@ function CommentItem({
   comment,
   depth,
   expandedCommentIds,
+  likingCommentIds,
   onReply,
+  onToggleLike,
   onToggleReplies,
 }: {
   comment: ArticleCommentThreadItem;
   depth: number;
   expandedCommentIds: ReadonlySet<string>;
+  likingCommentIds: ReadonlySet<string>;
   onReply: (comment: ArticleCommentResponse) => void;
+  onToggleLike: (comment: ArticleCommentResponse) => void;
   onToggleReplies: (commentId: string) => void;
 }) {
   const isExpanded = expandedCommentIds.has(comment.id);
@@ -361,6 +424,19 @@ function CommentItem({
               <Reply className="size-4" />
               回复
             </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => onToggleLike(comment)}
+              disabled={likingCommentIds.has(comment.id)}
+              aria-pressed={comment.likedByMe}
+            >
+              <Heart
+                className={comment.likedByMe ? "size-4 fill-primary text-primary" : "size-4"}
+              />
+              {comment.likeCount}
+            </Button>
           </div>
         </div>
       </div>
@@ -379,7 +455,9 @@ function CommentItem({
               comment={reply}
               depth={depth + 1}
               expandedCommentIds={expandedCommentIds}
+              likingCommentIds={likingCommentIds}
               onReply={onReply}
+              onToggleLike={onToggleLike}
               onToggleReplies={onToggleReplies}
             />
           ))}

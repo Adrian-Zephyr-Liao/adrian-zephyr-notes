@@ -52,6 +52,7 @@ model User {
   updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
   sessions       UserSession[]
   articleComments ArticleComment[]
+  articleCommentLikes ArticleCommentLike[]
 
   @@map("users")
 }
@@ -76,6 +77,7 @@ model ArticleComment {
   authorId        String           @map("author_id") @db.Uuid
   parentCommentId String?          @map("parent_comment_id") @db.Uuid
   body            String
+  likeCount       Int              @default(0) @map("like_count")
   status          ArticleCommentStatus @default(VISIBLE)
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -83,11 +85,24 @@ model ArticleComment {
   author          User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parentComment   ArticleComment?  @relation("ArticleCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
   replies         ArticleComment[] @relation("ArticleCommentReplies")
+  likes           ArticleCommentLike[]
 
   @@index([articleId, parentCommentId, status, createdAt])
   @@index([authorId])
   @@index([parentCommentId])
   @@map("article_comments")
+}
+
+model ArticleCommentLike {
+  commentId String         @map("comment_id") @db.Uuid
+  userId    String         @map("user_id") @db.Uuid
+  createdAt DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  comment   ArticleComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([commentId, userId])
+  @@index([userId])
+  @@map("article_comment_likes")
 }
 
 model ArticleCategory {
