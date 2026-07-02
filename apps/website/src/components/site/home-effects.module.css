@@ -1,0 +1,158 @@
+@keyframes float-note {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(var(--note-rotation, 0deg));
+  }
+
+  50% {
+    transform: translate3d(0.15rem, -0.45rem, 0) rotate(calc(var(--note-rotation, 0deg) + 2deg));
+  }
+}
+
+@keyframes orbit-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes route-pulse {
+  0%,
+  100% {
+    opacity: 0.28;
+    transform: translate3d(0, 0, 0) rotate(-8deg);
+  }
+
+  50% {
+    opacity: 0.72;
+    transform: translate3d(-0.4rem, 0.25rem, 0) rotate(-6deg);
+  }
+}
+
+.heroPaperGrid {
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in oklch, var(--primary), transparent 88%) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in oklch, var(--primary), transparent 90%) 1px,
+      transparent 1px
+    ),
+    radial-gradient(
+      circle at 12% 14%,
+      color-mix(in oklch, var(--primary), transparent 78%),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 82% 76%,
+      color-mix(in oklch, var(--secondary), transparent 68%),
+      transparent 34%
+    );
+  background-size:
+    2.4rem 2.4rem,
+    2.4rem 2.4rem,
+    100% 100%,
+    100% 100%;
+  opacity: 0.72;
+}
+
+.heroRoute {
+  width: 18rem;
+  height: 9rem;
+  border-top: 1px dashed color-mix(in oklch, var(--primary), transparent 38%);
+  border-right: 1px dashed color-mix(in oklch, var(--primary), transparent 48%);
+  border-radius: 999px;
+  opacity: 0.42;
+}
+
+.studioGlow {
+  background:
+    radial-gradient(
+      circle at 24% 18%,
+      color-mix(in oklch, var(--primary), transparent 70%),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 78% 76%,
+      color-mix(in oklch, var(--secondary), transparent 58%),
+      transparent 38%
+    ),
+    linear-gradient(135deg, color-mix(in oklch, var(--background), white 24%), var(--background));
+}
+
+.studioOrbit {
+  border: 1px dashed color-mix(in oklch, var(--primary), transparent 42%);
+  border-radius: 999px;
+  opacity: 0.78;
+}
+
+.studioOrbit::before,
+.studioOrbit::after {
+  position: absolute;
+  content: "";
+  border-radius: 999px;
+}
+
+.studioOrbit::before {
+  inset: 1.15rem;
+  border: 1px solid color-mix(in oklch, var(--secondary), transparent 54%);
+}
+
+.studioOrbit::after {
+  top: 0.8rem;
+  right: 0.65rem;
+  width: 0.65rem;
+  height: 0.65rem;
+  background: var(--primary);
+  box-shadow: 0 0 18px color-mix(in oklch, var(--primary), transparent 35%);
+}
+
+.floatingNote {
+  --note-rotation: 0deg;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--secondary), white 28%),
+    color-mix(in oklch, var(--background), var(--secondary) 18%)
+  );
+  box-shadow: 0 10px 24px rgba(16, 45, 56, 0.12);
+}
+
+:global(.dark) .studioGlow {
+  background:
+    radial-gradient(
+      circle at 24% 18%,
+      color-mix(in oklch, var(--primary), transparent 78%),
+      transparent 34%
+    ),
+    radial-gradient(
+      circle at 78% 76%,
+      color-mix(in oklch, var(--secondary), transparent 72%),
+      transparent 38%
+    ),
+    linear-gradient(135deg, color-mix(in oklch, var(--background), white 4%), var(--background));
+}
+
+:global(.dark) .floatingNote {
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--primary), transparent 72%),
+    color-mix(in oklch, var(--card), var(--secondary) 12%)
+  );
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.24);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .floatingNote {
+    animation: float-note 5.8s ease-in-out infinite;
+  }
+
+  .studioOrbit {
+    animation: orbit-spin 18s linear infinite;
+  }
+
+  .heroRoute {
+    animation: route-pulse 5.2s ease-in-out infinite;
+  }
+}

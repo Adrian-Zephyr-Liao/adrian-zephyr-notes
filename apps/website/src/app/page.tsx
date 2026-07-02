@@ -7,7 +7,7 @@ export default async function Home() {
 
   return (
     <main className="flex-1 overflow-hidden px-3 pb-14 sm:px-4">
-      <HomeHero />
+      <HomeHero articles={articles.data} />
       <ArticleListSection articles={articles.data} />
     </main>
   );
