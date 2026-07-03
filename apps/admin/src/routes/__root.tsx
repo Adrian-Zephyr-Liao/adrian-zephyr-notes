@@ -1,48 +1,36 @@
-import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router";
+import { Outlet, createRootRoute } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
-import Footer from "../components/Footer";
-import Header from "../components/Header";
-
-import appCss from "../styles.css?url";
-
-const THEME_INIT_SCRIPT = `(function(){try{var stored=window.localStorage.getItem('theme');var mode=(stored==='light'||stored==='dark'||stored==='system'||stored==='auto')?stored:'system';if(mode==='auto'){mode='system'}var prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;var resolved=mode==='system'?(prefersDark?'dark':'light'):mode;var root=document.documentElement;root.classList.remove('light','dark');root.classList.add(resolved);root.style.colorScheme=resolved;}catch(e){}})();`;
+import type { ReactNode } from "react";
+import { useEffect } from "react";
+import "../styles.css";
 
 export const Route = createRootRoute({
-  head: () => ({
-    meta: [
-      {
-        charSet: "utf-8",
-      },
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
-      },
-      {
-        title: "TanStack Start Starter",
-      },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
-  }),
-  shellComponent: RootDocument,
+  component: RootComponent,
 });
 
-function RootDocument({ children }: { children: React.ReactNode }) {
+function RootComponent() {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
-        <HeadContent />
-      </head>
-      <body className="font-sans wrap-anywhere antialiased selection:bg-[rgba(79,184,178,0.24)]">
-        <Header />
-        {children}
-        <Footer />
+    <AdminProviders>
+      <Outlet />
+    </AdminProviders>
+  );
+}
+
+function AdminProviders({ children }: { children: ReactNode }) {
+  useEffect(() => {
+    const storedTheme = window.localStorage.getItem("admin-theme");
+    const resolvedTheme = storedTheme === "dark" ? "dark" : "light";
+
+    document.documentElement.dataset.theme = resolvedTheme;
+    document.documentElement.classList.toggle("dark", resolvedTheme === "dark");
+    document.documentElement.style.colorScheme = resolvedTheme;
+  }, []);
+
+  return (
+    <>
+      {children}
+      {import.meta.env.DEV ? (
         <TanStackDevtools
           config={{
             position: "bottom-right",
@@ -54,8 +42,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
             },
           ]}
         />
-        <Scripts />
-      </body>
-    </html>
+      ) : null}
+    </>
   );
 }

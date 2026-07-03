@@ -185,13 +185,14 @@
   }
 
   .markdown-code-copy-button {
-    @apply inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-medium whitespace-nowrap transition outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50 dark:focus-visible:ring-primary/35;
+    @apply inline-flex h-7 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-2 text-xs font-medium whitespace-nowrap transition outline-none select-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 dark:focus-visible:ring-primary/35;
     --markdown-copy-border: color-mix(in oklch, var(--border) 36%, transparent);
     --markdown-copy-bg: color-mix(in oklch, white 58%, transparent);
     --markdown-copy-fg: var(--muted-foreground);
     border-color: var(--markdown-copy-border);
     background-color: var(--markdown-copy-bg);
     color: var(--markdown-copy-fg);
+    cursor: pointer;
   }
 
   .markdown-code-copy-button:hover {

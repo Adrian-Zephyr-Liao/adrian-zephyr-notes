@@ -1,0 +1,90 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  AdminApiError,
+  buildAdminQueryString,
+  requestAdminApi,
+  withAdminQuery,
+} from "./admin-http";
+
+describe("admin HTTP helpers", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.stubEnv("VITE_BACKEND_API_BASE_URL", "http://localhost:3001");
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("builds query strings without empty filter values", () => {
+    expect(
+      buildAdminQueryString({
+        page: 2,
+        q: "markdown",
+        status: "ALL",
+        unused: undefined,
+        empty: "",
+        nullable: null,
+      }),
+    ).toBe("page=2&q=markdown");
+    expect(withAdminQuery("/api/admin/articles", { page: 1 })).toBe("/api/admin/articles?page=1");
+  });
+
+  it("sends JSON requests with credentials and accept headers", async () => {
+    const fetch = mockFetch(new Response(JSON.stringify({ ok: true })));
+
+    await expect(
+      requestAdminApi<{ ok: boolean }>("/api/admin/example", {
+        json: {
+          title: "hello",
+        },
+        method: "POST",
+      }),
+    ).resolves.toEqual({ ok: true });
+
+    expect(fetch).toHaveBeenCalledWith(
+      "http://localhost:3001/api/admin/example",
+      expect.objectContaining({
+        body: JSON.stringify({
+          title: "hello",
+        }),
+        credentials: "include",
+        method: "POST",
+      }),
+    );
+    const requestInit = fetch.mock.calls[0]![1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+
+    expect(headers.get("accept")).toBe("application/json");
+    expect(headers.get("content-type")).toBe("application/json");
+  });
+
+  it("supports empty successful responses", async () => {
+    mockFetch(new Response(null, { status: 204 }));
+
+    await expect(
+      requestAdminApi<void>("/api/admin/example", {
+        emptyResponse: true,
+        method: "DELETE",
+      }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("throws typed admin API errors for failed responses", async () => {
+    mockFetch(new Response("Forbidden", { status: 403 }));
+
+    await expect(requestAdminApi("/api/admin/example")).rejects.toMatchObject({
+      message: "Admin API request failed: 403",
+      status: 403,
+    } satisfies Partial<AdminApiError>);
+  });
+});
+
+function mockFetch(response: Response) {
+  const fetch = vi.fn().mockResolvedValue(response);
+
+  vi.stubGlobal("fetch", fetch);
+
+  return fetch;
+}

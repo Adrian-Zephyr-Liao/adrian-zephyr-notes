@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AZ Notes Admin</title>
+    <script>
+      (function () {
+        try {
+          var stored = window.localStorage.getItem("admin-theme");
+          var mode = stored === "dark" ? "dark" : "light";
+          var root = document.documentElement;
+          root.dataset.theme = mode;
+          root.classList.toggle("dark", mode === "dark");
+          root.style.colorScheme = mode;
+        } catch (error) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

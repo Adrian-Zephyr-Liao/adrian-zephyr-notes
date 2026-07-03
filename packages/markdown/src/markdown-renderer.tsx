@@ -1,4 +1,4 @@
-import { MarkdownAsync, type Components } from "react-markdown";
+import { MarkdownAsync, MarkdownHooks, type Components } from "react-markdown";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
@@ -123,5 +123,49 @@ async function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   );
 }
 
-export { MarkdownRenderer };
+function MarkdownPreview({ content, className }: MarkdownRendererProps) {
+  return (
+    <article className={cx("markdown-body", className)}>
+      <MarkdownHooks
+        remarkPlugins={[remarkGfm]}
+        rehypePlugins={[
+          rehypeSlug,
+          [
+            rehypeAutolinkHeadings,
+            {
+              behavior: "append",
+              properties: {
+                className: ["markdown-heading-anchor"],
+                ariaLabel: "链接到这个小节",
+                tabIndex: -1,
+              },
+              content: {
+                type: "element",
+                tagName: "span",
+                properties: { ariaHidden: "true" },
+                children: [{ type: "text", value: "#" }],
+              },
+            },
+          ],
+          [
+            rehypePrettyCode,
+            {
+              keepBackground: false,
+              theme: {
+                light: "github-light",
+                dark: "github-dark",
+              },
+            },
+          ],
+        ]}
+        components={markdownComponents}
+        skipHtml
+      >
+        {content}
+      </MarkdownHooks>
+    </article>
+  );
+}
+
+export { MarkdownPreview, MarkdownRenderer };
 export type { MarkdownRendererProps };

@@ -9,55 +9,58 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ArticlesNewRouteImport } from './routes/articles.new'
+import { Route as ArticlesArticleIdEditRouteImport } from './routes/articles.$articleId.edit'
 
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArticlesNewRoute = ArticlesNewRouteImport.update({
+  id: '/articles/new',
+  path: '/articles/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArticlesArticleIdEditRoute = ArticlesArticleIdEditRouteImport.update({
+  id: '/articles/$articleId/edit',
+  path: '/articles/$articleId/edit',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/articles/new': typeof ArticlesNewRoute
+  '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/articles/new': typeof ArticlesNewRoute
+  '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/articles/new': typeof ArticlesNewRoute
+  '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about'
+  fullPaths: '/' | '/articles/new' | '/articles/$articleId/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about'
-  id: '__root__' | '/' | '/about'
+  to: '/' | '/articles/new' | '/articles/$articleId/edit'
+  id: '__root__' | '/' | '/articles/new' | '/articles/$articleId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  ArticlesNewRoute: typeof ArticlesNewRoute
+  ArticlesArticleIdEditRoute: typeof ArticlesArticleIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -65,22 +68,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/articles/new': {
+      id: '/articles/new'
+      path: '/articles/new'
+      fullPath: '/articles/new'
+      preLoaderRoute: typeof ArticlesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/articles/$articleId/edit': {
+      id: '/articles/$articleId/edit'
+      path: '/articles/$articleId/edit'
+      fullPath: '/articles/$articleId/edit'
+      preLoaderRoute: typeof ArticlesArticleIdEditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  ArticlesNewRoute: ArticlesNewRoute,
+  ArticlesArticleIdEditRoute: ArticlesArticleIdEditRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-  }
-}
