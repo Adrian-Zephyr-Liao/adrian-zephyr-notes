@@ -28,6 +28,9 @@
   --glass-surface: color-mix(in oklch, white 70%, transparent);
   --glass-surface-strong: color-mix(in oklch, white 86%, transparent);
   --glass-border: color-mix(in oklch, white 58%, var(--primary) 16%);
+  --scrollbar-track: color-mix(in oklch, var(--background) 80%, transparent);
+  --scrollbar-thumb: color-mix(in oklch, var(--primary) 42%, var(--foreground) 8%);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--primary) 62%, var(--foreground) 12%);
   --gradient-brand: linear-gradient(135deg, #168a92 0%, #6f63d6 48%, #d68536 100%);
   --gradient-soft:
     radial-gradient(circle at 18% 10%, rgba(22, 138, 146, 0.2), transparent 32%),
@@ -87,6 +90,9 @@
   --glass-surface: color-mix(in oklch, var(--card) 72%, transparent);
   --glass-surface-strong: color-mix(in oklch, var(--card) 88%, transparent);
   --glass-border: color-mix(in oklch, var(--primary) 30%, white 8%);
+  --scrollbar-track: color-mix(in oklch, var(--background) 72%, transparent);
+  --scrollbar-thumb: color-mix(in oklch, var(--primary) 48%, white 8%);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--primary) 68%, white 14%);
   --gradient-soft:
     radial-gradient(circle at 18% 10%, rgba(51, 183, 193, 0.18), transparent 34%),
     radial-gradient(circle at 82% 16%, rgba(143, 127, 231, 0.17), transparent 36%),
@@ -98,10 +104,50 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    scrollbar-width: thin;
   }
 
   html {
     min-height: 100%;
+  }
+
+  *::-webkit-scrollbar {
+    width: 0.75rem;
+    height: 0.75rem;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+
+  *::-webkit-scrollbar-thumb {
+    min-height: 2.5rem;
+    border: 0.25rem solid transparent;
+    border-radius: 999px;
+    background: var(--scrollbar-thumb);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  @media (hover: none), (pointer: coarse) {
+    * {
+      scrollbar-width: none;
+    }
+
+    *::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
+    }
   }
 
   body {
