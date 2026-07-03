@@ -42,7 +42,7 @@
   }
 
   .markdown-body h2 {
-    @apply mt-12 mb-5 flex min-w-0 items-start gap-2 border-b border-(--glass-border) pb-3 text-2xl leading-tight font-black;
+    @apply mt-12 mb-5 flex min-w-0 items-center gap-2 border-b border-(--glass-border) pb-3 text-2xl leading-tight font-black;
   }
 
   .markdown-body h3 {
@@ -95,6 +95,86 @@
     @apply font-semibold text-primary underline decoration-primary/35 decoration-2 underline-offset-4 transition hover:text-foreground hover:decoration-primary;
   }
 
+  .markdown-toc-link {
+    @apply relative isolate overflow-visible pr-10;
+  }
+
+  .markdown-toc-link::before {
+    @apply pointer-events-none absolute top-1/2 right-8 left-12 h-px origin-right -translate-y-1/2 scale-x-75 opacity-0 content-[""];
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklch, var(--primary) 18%, transparent) 18%,
+      color-mix(in oklch, var(--primary) 52%, white 8%) 72%,
+      color-mix(in oklch, var(--primary) 72%, white 12%) 92%,
+      transparent
+    );
+    filter: blur(0.35px) saturate(1.35)
+      drop-shadow(0 0 6px color-mix(in oklch, var(--primary) 42%, transparent));
+    mask-image: linear-gradient(90deg, transparent, black 18%, black 90%, transparent);
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease;
+  }
+
+  .markdown-toc-link::after {
+    @apply pointer-events-none absolute top-1/2 right-7 left-12 h-4 origin-right -translate-y-1/2 scale-x-75 opacity-0 content-[""];
+    background: linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in oklch, var(--primary) 4%, transparent) 18%,
+      color-mix(in oklch, var(--primary) 13%, transparent) 72%,
+      color-mix(in oklch, var(--primary) 24%, transparent) 92%,
+      transparent
+    );
+    clip-path: polygon(0 50%, 18% 37%, 76% 42%, 100% 50%, 76% 58%, 18% 63%);
+    filter: blur(2px) saturate(1.1);
+    mask-image: linear-gradient(90deg, transparent, black 22%, black 92%, transparent);
+    transition: opacity 180ms ease;
+  }
+
+  .markdown-toc-link > * {
+    @apply relative z-10;
+  }
+
+  .markdown-toc-link-text {
+    @apply min-w-0;
+  }
+
+  .markdown-toc-link-guide {
+    @apply pointer-events-none absolute top-1/2 right-1 z-20 size-7 opacity-0;
+    background: url("/images/illustrations/toc-glow-guide.png") center / contain no-repeat;
+    filter: drop-shadow(0 0 10px color-mix(in oklch, var(--primary) 44%, transparent));
+    transform: translateY(-50%) translateX(0.35rem) scaleX(-1) scale(0.9);
+    transform-origin: center;
+    transition:
+      opacity 180ms ease,
+      transform 180ms ease;
+  }
+
+  .markdown-toc-link-active {
+    background: transparent;
+    box-shadow: none;
+    text-shadow: 0 0 14px color-mix(in oklch, var(--primary) 34%, transparent);
+  }
+
+  .markdown-toc-link-active:hover {
+    background: transparent;
+  }
+
+  .markdown-toc-link-active::before {
+    @apply scale-x-100 opacity-70;
+  }
+
+  .markdown-toc-link-active::after {
+    @apply scale-x-100 opacity-90;
+  }
+
+  .markdown-toc-link-active .markdown-toc-link-guide {
+    @apply opacity-100;
+    transform: translateY(-50%) translateX(0) scaleX(-1) scale(1);
+  }
+
   .markdown-body ul,
   .markdown-body ol {
     @apply my-5 grid gap-2 pl-6;
@@ -117,7 +197,7 @@
   }
 
   .markdown-task-list-label input[type="checkbox"] {
-    @apply mt-1 mr-0 shrink-0;
+    @apply mt-2 mr-0 shrink-0;
   }
 
   .markdown-body blockquote {
