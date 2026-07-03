@@ -20,7 +20,7 @@ function RootComponent() {
 function AdminProviders({ children }: { children: ReactNode }) {
   useEffect(() => {
     const storedTheme = window.localStorage.getItem("admin-theme");
-    const resolvedTheme = storedTheme === "dark" ? "dark" : "light";
+    const resolvedTheme = storedTheme === "light" ? "light" : "dark";
 
     document.documentElement.dataset.theme = resolvedTheme;
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");

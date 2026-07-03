@@ -278,10 +278,10 @@ function AdminSectionFallback() {
 function ThemeToggle() {
   const [theme, setTheme] = useState(() =>
     typeof window === "undefined"
-      ? "light"
-      : window.localStorage.getItem("admin-theme") === "dark"
-        ? "dark"
-        : "light",
+      ? "dark"
+      : window.localStorage.getItem("admin-theme") === "light"
+        ? "light"
+        : "dark",
   );
 
   function toggleTheme() {

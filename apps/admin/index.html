@@ -8,7 +8,7 @@
       (function () {
         try {
           var stored = window.localStorage.getItem("admin-theme");
-          var mode = stored === "dark" ? "dark" : "light";
+          var mode = stored === "light" ? "light" : "dark";
           var root = document.documentElement;
           root.dataset.theme = mode;
           root.classList.toggle("dark", mode === "dark");

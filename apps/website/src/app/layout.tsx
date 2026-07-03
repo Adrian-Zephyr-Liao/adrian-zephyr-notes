@@ -21,12 +21,7 @@ export default function RootLayout({
           aria-hidden="true"
           className="site-viewport-background pointer-events-none fixed inset-0 z-0"
         />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           <div className="relative z-10 flex min-h-screen flex-col">
             <RouteTransitionProgress />
             <SiteHeader />
