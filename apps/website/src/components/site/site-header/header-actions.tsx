@@ -7,7 +7,7 @@ import { ThemeToggle } from "./theme-toggle";
 function ConsoleSwitch() {
   return (
     <button
-      className="group/console relative hidden h-8 w-12 items-center justify-center rounded-full border border-white/25 bg-white/40 shadow-sm transition duration-200 hover:bg-white/65 md:flex dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15"
+      className="group/console relative hidden h-8 w-12 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-white/40 shadow-sm transition duration-200 outline-none hover:bg-white/65 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:flex dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15"
       type="button"
       aria-label="中控台"
     >

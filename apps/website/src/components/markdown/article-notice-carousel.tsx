@@ -98,7 +98,7 @@ function ArticleNoticeCarousel({ announcements }: ArticleNoticeCarouselProps) {
               onClick={() => setActiveIndex(index)}
               style={index === activeIndex ? activeNoticeDotStyle : undefined}
               className={cn(
-                "size-2.5 rounded-full bg-foreground/16 transition focus-visible:ring-3 focus-visible:ring-(--notice-status-color) focus-visible:outline-none dark:bg-white/18",
+                "size-2.5 cursor-pointer rounded-full bg-foreground/16 transition focus-visible:ring-3 focus-visible:ring-(--notice-status-color) focus-visible:outline-none dark:bg-white/18",
                 index === activeIndex && "w-6",
               )}
             />

@@ -3,6 +3,7 @@ import { Heart, MailOpen, SendHorizontal } from "lucide-react";
 
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Button } from "@/components/ui/button";
+import { InlineActionButton } from "@/components/ui/inline-action-button";
 import { AuthorAvatar, AuthorName, getAuthorName } from "./guestbook-avatar";
 import { formatFullDate, formatShortDate } from "./guestbook-date";
 import { GuestbookMailbox } from "./guestbook-mailbox";
@@ -125,9 +126,8 @@ function GuestbookMessageItem({
               <SendHorizontal className="size-3.5 text-primary/75" />
               已投递
             </span>
-            <button
-              type="button"
-              className="inline-flex h-6 items-center gap-1 rounded-md px-1 transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+            <InlineActionButton
+              size="sm"
               onClick={() => onToggleLike(message)}
               disabled={isLiking}
               aria-label={`给 ${authorName} 的留言点赞`}
@@ -137,7 +137,7 @@ function GuestbookMessageItem({
                 className={message.likedByMe ? "size-3.5 fill-primary text-primary" : "size-3.5"}
               />
               {message.likeCount}
-            </button>
+            </InlineActionButton>
           </div>
         </div>
         <div

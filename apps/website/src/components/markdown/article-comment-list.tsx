@@ -3,6 +3,7 @@ import { ChevronDown, ChevronUp, Heart, Reply } from "lucide-react";
 
 import { StatusIllustration } from "@/components/status/status-illustration";
 import { Button } from "@/components/ui/button";
+import { InlineActionButton } from "@/components/ui/inline-action-button";
 import { AuthorAvatar } from "./article-comment-avatar";
 import { formatCommentDate, formatFullCommentDate } from "./article-comment-date";
 import { getVisibleCommentReplies, type ArticleCommentThreadItem } from "./article-comment-thread";
@@ -84,6 +85,7 @@ function CommentItem({
   onToggleReplies: (commentId: string) => void;
 }) {
   const isExpanded = expandedCommentIds.has(comment.id);
+  const authorName = comment.author.name ?? comment.author.login;
   const { canToggleReplies, hiddenReplyCount, visibleReplies } = getVisibleCommentReplies(
     comment,
     isExpanded,
@@ -126,27 +128,25 @@ function CommentItem({
             <time dateTime={comment.createdAt} title={formatFullCommentDate(comment.createdAt)}>
               {formatCommentDate(comment.createdAt)}
             </time>
-            <button
-              type="button"
-              className="inline-flex h-5 items-center gap-0.5 rounded-md px-1 transition hover:bg-muted hover:text-foreground"
-              onClick={() => onReply(comment)}
-            >
+            <InlineActionButton aria-label={`回复 ${authorName}`} onClick={() => onReply(comment)}>
               <Reply className="size-3.5" />
               回复
-            </button>
-            <button
-              type="button"
-              className="inline-flex h-5 items-center gap-0.5 rounded-md px-1 transition hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+            </InlineActionButton>
+            <InlineActionButton
               onClick={() => onToggleLike(comment)}
               disabled={likingCommentIds.has(comment.id)}
-              aria-label={comment.likedByMe ? "取消点赞" : "点赞"}
+              aria-label={
+                comment.likedByMe
+                  ? `取消给 ${authorName} 的评论点赞`
+                  : `给 ${authorName} 的评论点赞`
+              }
               aria-pressed={comment.likedByMe}
             >
               <Heart
                 className={comment.likedByMe ? "size-3.5 fill-primary text-primary" : "size-3.5"}
               />
               {comment.likeCount}
-            </button>
+            </InlineActionButton>
           </div>
         </div>
       </div>
@@ -172,10 +172,12 @@ function CommentItem({
             />
           ))}
           {canToggleReplies ? (
-            <button
-              type="button"
+            <InlineActionButton
               aria-expanded={isExpanded}
-              className="mt-1 inline-flex h-6 items-center gap-1 rounded-md px-1 text-xs font-semibold text-primary hover:bg-primary/8 hover:text-primary/80"
+              className="mt-1 font-semibold"
+              size="sm"
+              variant="primary"
+              aria-label={isExpanded ? "收起回复" : `展开 ${hiddenReplyCount} 条回复`}
               onClick={() => onToggleReplies(comment.id)}
             >
               {isExpanded ? (
@@ -189,7 +191,7 @@ function CommentItem({
                   <ChevronDown className="size-3.5" />
                 </>
               )}
-            </button>
+            </InlineActionButton>
           ) : null}
         </div>
       ) : null}
