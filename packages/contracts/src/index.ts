@@ -8,6 +8,8 @@ export type {
 export type {
   AdminArticleAiSummaryStatus,
   AdminArticleDetailResponse,
+  AdminArticleEditorDraftResponse,
+  AdminArticleEditorDraftValues,
   AdminArticleListItemResponse,
   AdminArticleListQuery,
   AdminArticleListResponse,
@@ -15,6 +17,7 @@ export type {
   AdminArticleTaxonomyOption,
   AdminArticleTaxonomyOptionsResponse,
   CreateAdminArticleRequest,
+  SaveAdminArticleEditorDraftRequest,
   UpdateAdminArticleRequest,
 } from "./admin/articles.js";
 export type {

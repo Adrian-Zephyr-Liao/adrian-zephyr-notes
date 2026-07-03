@@ -3,6 +3,7 @@ import type {
   AdminArticleCommentListResponse,
   AdminArticleCommentListItemResponse,
   AdminArticleDetailResponse,
+  AdminArticleEditorDraftResponse,
   AdminArticleListQuery,
   AdminArticleListResponse,
   AdminArticleTaxonomyOptionsResponse,
@@ -15,6 +16,7 @@ import type {
   AdminSiteAnnouncementResponse,
   AdminSiteConfigResponse,
   CreateAdminArticleRequest,
+  SaveAdminArticleEditorDraftRequest,
   UpdateAdminArticleRequest,
   UpdateAdminArticleCommentRequest,
   UpdateAdminGuestbookMessageRequest,
@@ -46,6 +48,26 @@ async function getAdminArticle(id: string) {
 
 async function listAdminArticleTaxonomies() {
   return requestAdminApi<AdminArticleTaxonomyOptionsResponse>("/api/admin/articles/taxonomies");
+}
+
+async function getCurrentAdminArticleEditorDraft(articleId?: string | null) {
+  return requestAdminApi<AdminArticleEditorDraftResponse | null>(
+    withAdminQuery("/api/admin/article-drafts/current", { articleId }),
+  );
+}
+
+async function saveCurrentAdminArticleEditorDraft(input: SaveAdminArticleEditorDraftRequest) {
+  return requestAdminApi<AdminArticleEditorDraftResponse>("/api/admin/article-drafts/current", {
+    json: input,
+    method: "PUT",
+  });
+}
+
+async function deleteCurrentAdminArticleEditorDraft(articleId?: string | null) {
+  await requestAdminApi<void>(withAdminQuery("/api/admin/article-drafts/current", { articleId }), {
+    emptyResponse: true,
+    method: "DELETE",
+  });
 }
 
 async function createAdminArticle(input: CreateAdminArticleRequest) {
@@ -136,7 +158,9 @@ export {
   AdminApiError,
   createAdminArticle,
   deleteAdminArticle,
+  deleteCurrentAdminArticleEditorDraft,
   getAdminArticle,
+  getCurrentAdminArticleEditorDraft,
   getAdminLoginUrl,
   getAdminSiteConfig,
   getCurrentAdmin,
@@ -146,6 +170,7 @@ export {
   listAdminGuestbookMessages,
   listAdminOperationLogs,
   logoutAdmin,
+  saveCurrentAdminArticleEditorDraft,
   updateAdminArticle,
   updateAdminArticleComment,
   updateAdminGuestbookMessage,

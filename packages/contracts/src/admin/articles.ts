@@ -43,6 +43,31 @@ type AdminArticleTaxonomyOptionsResponse = {
   tags: AdminArticleTaxonomyOption[];
 };
 
+type AdminArticleEditorDraftValues = {
+  title: string;
+  description: string;
+  markdown: string;
+  status: AdminArticleStatus;
+  categorySlug: string;
+  tagSlugs: string[];
+  coverImageUrl: string;
+};
+
+type AdminArticleEditorDraftResponse = {
+  id: string;
+  articleId: string | null;
+  baseArticleUpdatedAt: string | null;
+  savedAt: string;
+  values: AdminArticleEditorDraftValues;
+};
+
+type SaveAdminArticleEditorDraftRequest = {
+  articleId?: string | null;
+  baseArticleUpdatedAt?: string | null;
+  clientSavedAt: string;
+  values: AdminArticleEditorDraftValues;
+};
+
 type UpdateAdminArticleRequest = {
   title?: string;
   description?: string;
@@ -68,6 +93,8 @@ type AdminArticleListResponse = PaginatedResponse<AdminArticleListItemResponse>;
 export type {
   AdminArticleAiSummaryStatus,
   AdminArticleDetailResponse,
+  AdminArticleEditorDraftResponse,
+  AdminArticleEditorDraftValues,
   AdminArticleListItemResponse,
   AdminArticleListQuery,
   AdminArticleListResponse,
@@ -75,5 +102,6 @@ export type {
   AdminArticleTaxonomyOption,
   AdminArticleTaxonomyOptionsResponse,
   CreateAdminArticleRequest,
+  SaveAdminArticleEditorDraftRequest,
   UpdateAdminArticleRequest,
 };

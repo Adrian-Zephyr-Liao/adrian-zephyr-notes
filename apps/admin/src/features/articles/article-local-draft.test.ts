@@ -4,6 +4,7 @@ import {
   areArticleEditorValuesEqual,
   createArticleLocalDraftKey,
   createArticleLocalDraftRecord,
+  pickLatestRestorableArticleDraft,
   readArticleLocalDraft,
   removeArticleLocalDraft,
   shouldRestoreArticleLocalDraft,
@@ -66,6 +67,55 @@ describe("article local draft", () => {
         createValues({ tagSlugs: ["ddd", "markdown"] }),
       ),
     ).toBe(true);
+  });
+
+  it("selects the newest restorable draft across local and cloud candidates", () => {
+    const serverValues = createValues({ markdown: "# Server" });
+
+    expect(
+      pickLatestRestorableArticleDraft(
+        [
+          {
+            source: "local",
+            savedAt: "2026-07-03T00:10:00.000Z",
+            values: createValues({ markdown: "# Local" }),
+          },
+          {
+            source: "cloud",
+            savedAt: "2026-07-03T00:12:00.000Z",
+            values: createValues({ markdown: "# Cloud" }),
+          },
+        ],
+        serverValues,
+        "2026-07-03T00:05:00.000Z",
+      ),
+    ).toMatchObject({
+      source: "cloud",
+      values: expect.objectContaining({ markdown: "# Cloud" }),
+    });
+  });
+
+  it("ignores drafts older than the server article or equal to server values", () => {
+    const serverValues = createValues({ markdown: "# Server" });
+
+    expect(
+      pickLatestRestorableArticleDraft(
+        [
+          {
+            source: "local",
+            savedAt: "2026-07-03T00:01:00.000Z",
+            values: createValues({ markdown: "# Local" }),
+          },
+          {
+            source: "cloud",
+            savedAt: "2026-07-03T00:12:00.000Z",
+            values: serverValues,
+          },
+        ],
+        serverValues,
+        "2026-07-03T00:05:00.000Z",
+      ),
+    ).toBeUndefined();
   });
 
   it("does not throw when storage is unavailable", () => {
