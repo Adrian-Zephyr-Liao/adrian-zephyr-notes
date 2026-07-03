@@ -1,4 +1,4 @@
-import type { AuthUserResponse } from "@adrian-zephyr-notes/contracts";
+import type { AdminUserResponse, AuthUserResponse } from "@adrian-zephyr-notes/contracts";
 import type { AuthUser } from "../domain/auth-user.entity";
 
 function toAuthUserResponse(user: AuthUser): AuthUserResponse {
@@ -12,4 +12,11 @@ function toAuthUserResponse(user: AuthUser): AuthUserResponse {
   };
 }
 
-export { toAuthUserResponse };
+function toAdminUserResponse(user: AuthUser): AdminUserResponse {
+  return {
+    ...toAuthUserResponse(user),
+    role: "ADMIN",
+  };
+}
+
+export { toAdminUserResponse, toAuthUserResponse };

@@ -1,3 +1,4 @@
+import type { ConfigService } from "@nestjs/config";
 import type { Request, Response } from "express";
 import { describe, expect, it, vi } from "vitest";
 import type { CompleteGithubLoginUseCase } from "../application/complete-github-login.use-case";
@@ -42,6 +43,18 @@ describe("AuthController", () => {
     );
     expect(response.redirect).toHaveBeenCalledWith("http://localhost:3002/posts/5f7448b7");
   });
+
+  it("redirects GitHub callbacks back to the configured admin origin", async () => {
+    const controller = createController();
+    const response = createResponseDouble();
+    const request = createRequestDouble(
+      "azn_oauth_state=state; azn_oauth_verifier=verifier; azn_oauth_return_to=%2F; azn_oauth_frontend_origin=http%3A%2F%2Flocalhost%3A3000",
+    );
+
+    await controller.authController.githubCallback("code", "state", request, response);
+
+    expect(response.redirect).toHaveBeenCalledWith("http://localhost:3000/");
+  });
 });
 
 function createController() {
@@ -67,6 +80,11 @@ function createController() {
   const logoutUseCase = {
     execute: vi.fn(),
   } as unknown as LogoutUseCase;
+  const configService = {
+    get: vi.fn((key: string) =>
+      key === "ADMIN_FRONTEND_ORIGIN" ? "http://localhost:3000" : undefined,
+    ),
+  } as unknown as ConfigService;
   const githubOAuthClient = {
     getFrontendOrigin: vi.fn(() => "http://localhost:3002"),
   } as unknown as GithubOAuthClient;
@@ -77,6 +95,7 @@ function createController() {
       completeGithubLogin,
       getCurrentUser,
       logoutUseCase,
+      configService,
       githubOAuthClient,
     ),
     completeGithubLogin,

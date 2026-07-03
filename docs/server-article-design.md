@@ -457,7 +457,7 @@ Docker Compose 从仓库根目录 `.env` 读取配置。`.env.example` 提供非
 
 1. 增加 Prisma、配置加载和 PostgreSQL 连接健康检查。
 2. 定义 Article domain、repository interface 和 use cases。
-3. 增加 Prisma schema、migration、seed 示例文章。
+3. 增加 Prisma schema 与 migration，内容通过管理端落库。
 4. 实现 Prisma repository 和 REST controller。
 5. 让网站前台从 API 读取文章，移除运行时静态文章依赖。
 6. 增加 GitHub OAuth、本地 session 和文章评论接口。
@@ -484,7 +484,7 @@ Never:
 - 不提交真实数据库密码。
 - 不在前台 API 返回草稿或归档文章。
 - 不让 Controller 直接访问 Prisma。
-- 不把临时 seed 数据当成生产数据来源。
+- 不把临时示例数据当成生产数据来源。
 
 ## 已确认决策
 

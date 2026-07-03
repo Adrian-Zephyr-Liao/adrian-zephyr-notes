@@ -9,7 +9,6 @@
     "db:generate": "pnpm --filter @adrian-zephyr-notes/server prisma:generate",
     "db:migrate": "pnpm --filter @adrian-zephyr-notes/server prisma:migrate",
     "db:deploy": "pnpm --filter @adrian-zephyr-notes/server prisma:deploy",
-    "db:seed": "pnpm --filter @adrian-zephyr-notes/server db:seed",
     "build": "pnpm -r --filter './apps/*' build",
     "check": "pnpm format:check && pnpm lint && pnpm typecheck",
     "format": "vp fmt . --write --disable-nested-config",

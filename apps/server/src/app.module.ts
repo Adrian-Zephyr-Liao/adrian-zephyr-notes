@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AuthModule } from "./auth/auth.module";
+import { AuditModule } from "./audit/audit.module";
 import { ArticlesModule } from "./articles/articles.module";
 import { CommentsModule } from "./comments/comments.module";
 import { GuestbookModule } from "./guestbook/guestbook.module";
@@ -15,6 +16,7 @@ import { AppService } from "./app.service";
       isGlobal: true,
     }),
     AuthModule,
+    AuditModule,
     ArticlesModule,
     CommentsModule,
     GuestbookModule,

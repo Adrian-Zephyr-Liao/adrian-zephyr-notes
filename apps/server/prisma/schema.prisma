@@ -20,6 +20,7 @@ enum ArticleCommentStatus {
 enum GuestbookMessageStatus {
   VISIBLE
   HIDDEN
+  DELETED
 }
 
 enum ArticleAiSummaryStatus {
@@ -88,6 +89,7 @@ model User {
   articleCommentLikes ArticleCommentLike[]
   guestbookMessages GuestbookMessage[]
   guestbookMessageLikes GuestbookMessageLike[]
+  adminOperationLogs AdminOperationLog[]
 
   @@map("users")
 }
@@ -148,12 +150,14 @@ model GuestbookMessage {
   body             String
   likeCount        Int                    @default(0) @map("like_count")
   status           GuestbookMessageStatus @default(VISIBLE)
+  isPinned         Boolean                @default(false) @map("is_pinned")
+  pinnedAt         DateTime?              @map("pinned_at") @db.Timestamptz(6)
   createdAt        DateTime               @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime               @updatedAt @map("updated_at") @db.Timestamptz(6)
   author           User?                  @relation(fields: [authorUserId], references: [id], onDelete: SetNull)
   likes            GuestbookMessageLike[]
 
-  @@index([status, createdAt(sort: Desc)])
+  @@index([status, isPinned, pinnedAt(sort: Desc), createdAt(sort: Desc)])
   @@index([authorUserId])
   @@index([guestFingerprint, createdAt])
   @@map("guestbook_messages")
@@ -233,4 +237,34 @@ model SiteAnnouncement {
 
   @@index([isEnabled, sortOrder])
   @@map("site_announcements")
+}
+
+model SiteSetting {
+  key       String   @id
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("site_settings")
+}
+
+model AdminOperationLog {
+  id           String   @id @default(uuid()) @db.Uuid
+  actorUserId  String?  @map("actor_user_id") @db.Uuid
+  actorLogin   String   @map("actor_login")
+  action       String
+  resourceType String   @map("resource_type")
+  resourceId   String?  @map("resource_id")
+  summary      String
+  metadata     Json?
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  actor        User?    @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt(sort: Desc)])
+  @@index([actorLogin, createdAt(sort: Desc)])
+  @@index([action, createdAt(sort: Desc)])
+  @@index([resourceType, resourceId])
+  @@map("admin_operation_logs")
 }

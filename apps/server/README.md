@@ -1,98 +1,69 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Server
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+The server is a NestJS API backed by PostgreSQL and Prisma. It owns persistence,
+GitHub OAuth, comment and guestbook moderation, site configuration, audit logs,
+and OpenAI-compatible article summary generation.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
-
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
+## Development
 
 ```bash
-$ pnpm install
+docker compose up -d postgres
+vp run db:generate
+vp run db:deploy
+vp run dev:server
 ```
 
-## Compile and run the project
+The server listens on `PORT` or `3001` by default.
+
+## Environment
 
 ```bash
-# development
-$ pnpm run start
-
-# watch mode
-$ pnpm run start:dev
-
-# production mode
-$ pnpm run start:prod
+DATABASE_URL=postgresql://user:password@localhost:15432/adrian_zephyr_notes?schema=public
+FRONTEND_ORIGIN=http://localhost:3002
+ADMIN_FRONTEND_ORIGIN=http://localhost:3000
+ADMIN_GITHUB_LOGINS=Adrian-Zephyr-Liao
+GITHUB_OAUTH_CLIENT_ID=...
+GITHUB_OAUTH_CLIENT_SECRET=...
+GITHUB_OAUTH_CALLBACK_URL=http://localhost:3002/api/auth/github/callback
+LLM_API_KEY=
+LLM_BASE_URL=https://api.minimax.io/v1
+LLM_MODEL=MiniMax-M3
 ```
 
-## Run tests
+Missing `LLM_API_KEY` must not prevent the server from starting. AI summaries are
+generated only when the provider is configured.
 
-```bash
-# unit tests
-$ pnpm run test
+## Architecture
 
-# e2e tests
-$ pnpm run test:e2e
+Business modules follow the same four-layer structure:
 
-# test coverage
-$ pnpm run test:cov
+```text
+domain/          entities, value objects, repository ports, domain errors
+application/     use cases and orchestration
+infrastructure/  Prisma repositories and external provider clients
+presentation/    controllers, guards, decorators, DTOs
 ```
 
-## Deployment
+Current bounded contexts:
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+- `articles`: public article reads, admin article writes, taxonomies, AI summaries
+- `auth`: GitHub OAuth, user sessions, admin access policy
+- `comments`: public article comments and admin moderation
+- `guestbook`: public guestbook messages and admin moderation
+- `site-config`: public and admin site settings, announcements
+- `audit`: admin operation log read/write model
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+`domain` code should not depend on Nest, Prisma, HTTP DTOs, or shared frontend
+contracts. `packages/contracts` is for public HTTP shapes only.
 
-```bash
-$ pnpm install -g @nestjs/mau
-$ mau deploy
-```
+## Commands
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+| Command                                               | Description                   |
+| ----------------------------------------------------- | ----------------------------- |
+| `vp run -F @adrian-zephyr-notes/server dev`           | Start Nest in watch mode      |
+| `vp run -F @adrian-zephyr-notes/server build`         | Build server output           |
+| `vp run -F @adrian-zephyr-notes/server test`          | Run server tests              |
+| `vp run db:generate`                                  | Generate Prisma client        |
+| `vp run db:migrate`                                   | Create/apply local migrations |
+| `vp run db:deploy`                                    | Apply committed migrations    |
+| `vp run -F @adrian-zephyr-notes/server prisma:studio` | Open Prisma Studio            |

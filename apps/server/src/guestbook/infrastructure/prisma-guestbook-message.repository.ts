@@ -45,9 +45,7 @@ class PrismaGuestbookMessageRepository implements GuestbookMessageRepository<
       this.prisma.guestbookMessage.findMany({
         where,
         include: createGuestbookMessageInclude(input.viewerUserId),
-        orderBy: {
-          createdAt: "desc",
-        },
+        orderBy: [{ isPinned: "desc" }, { pinnedAt: "desc" }, { createdAt: "desc" }],
         skip: (input.page - 1) * input.pageSize,
         take: input.pageSize,
       }),

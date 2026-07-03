@@ -8,7 +8,9 @@ type SiteAnnouncementProps = {
   status: string;
   command: string;
   output: string;
+  isEnabled: boolean;
   sortOrder: number;
+  createdAt: Date;
   updatedAt: Date;
 };
 
@@ -27,6 +29,7 @@ class SiteAnnouncement {
       status: requireText(props.status, "Site announcement status"),
       command: requireText(props.command, "Site announcement command"),
       output: requireText(props.output, "Site announcement output"),
+      createdAt: new Date(props.createdAt.getTime()),
       updatedAt: new Date(props.updatedAt.getTime()),
     });
   }
@@ -67,8 +70,16 @@ class SiteAnnouncement {
     return this.props.output;
   }
 
+  get isEnabled() {
+    return this.props.isEnabled;
+  }
+
   get sortOrder() {
     return this.props.sortOrder;
+  }
+
+  get createdAt() {
+    return new Date(this.props.createdAt.getTime());
   }
 
   get updatedAt() {

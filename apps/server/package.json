@@ -13,7 +13,6 @@
     "prisma:migrate": "prisma migrate dev --config prisma.config.ts",
     "prisma:deploy": "prisma migrate deploy --config prisma.config.ts",
     "prisma:studio": "prisma studio --config prisma.config.ts",
-    "db:seed": "node prisma/seed.mjs",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",

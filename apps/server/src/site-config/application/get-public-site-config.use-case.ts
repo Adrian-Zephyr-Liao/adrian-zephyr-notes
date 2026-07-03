@@ -12,8 +12,14 @@ class GetPublicSiteConfigUseCase {
   ) {}
 
   async execute() {
+    const [announcements, settings] = await Promise.all([
+      this.siteConfigRepository.listEnabledAnnouncements(),
+      this.siteConfigRepository.getSettings(),
+    ]);
+
     return {
-      announcements: await this.siteConfigRepository.listEnabledAnnouncements(),
+      announcements,
+      settings,
     };
   }
 }
