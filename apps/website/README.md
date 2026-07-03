@@ -1,36 +1,52 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Website
 
-## Getting Started
+The website is a Next.js app for public article reading, comments, guestbook
+messages, status pages, and interactive visual details.
 
-First, run the development server:
+It uses same-origin Next.js route handlers for browser flows that involve
+cookies or CORS-sensitive authentication. Those handlers proxy to the NestJS API
+server through `BACKEND_API_BASE_URL`.
+
+## Development
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+vp run dev:website
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app runs on <http://localhost:3002> by default.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+BACKEND_API_BASE_URL=http://localhost:3001
+ARTICLE_API_BASE_URL=http://localhost:3001
+```
 
-## Learn More
+`BACKEND_API_BASE_URL` is the current source of truth for Next.js API route
+handlers. `ARTICLE_API_BASE_URL` is kept for compatibility with older local
+commands and should not be used for new code.
 
-To learn more about Next.js, take a look at the following resources:
+## Structure
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```text
+src/app/                  Next.js routes and API proxy handlers
+src/components/guestbook/ guestbook product experience
+src/components/markdown/  article rendering, comments, notices, AI summary
+src/components/site/      home page, header, skeletons, transitions
+src/components/status/    empty/error/not-found states
+src/components/ui/        shared UI primitives
+src/lib/                  public API clients and backend proxy helpers
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Client-side API calls should go through `src/lib/api-client.ts` or a focused
+feature client. Cookie-sensitive browser calls should prefer same-origin
+`src/app/api/*` routes instead of calling the NestJS API directly.
 
-## Deploy on Vercel
+## Commands
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Command                                        | Description               |
+| ---------------------------------------------- | ------------------------- |
+| `vp run -F @adrian-zephyr-notes/website dev`   | Start the dev server      |
+| `vp run -F @adrian-zephyr-notes/website test`  | Run website tests         |
+| `vp run -F @adrian-zephyr-notes/website build` | Build the production site |
+| `vp run -F @adrian-zephyr-notes/website start` | Start a production build  |

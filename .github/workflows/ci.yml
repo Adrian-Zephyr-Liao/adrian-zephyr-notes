@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci_user:ci_password@localhost:5432/adrian_zephyr_notes?schema=public
+      BACKEND_API_BASE_URL: http://localhost:3001
+      VITE_BACKEND_API_BASE_URL: http://localhost:3001
+      FRONTEND_ORIGIN: http://localhost:3002
+      ADMIN_FRONTEND_ORIGIN: http://localhost:3000
+      ADMIN_GITHUB_LOGINS: Adrian-Zephyr-Liao
+      GITHUB_OAUTH_CLIENT_ID: ci-placeholder
+      GITHUB_OAUTH_CLIENT_SECRET: ci-placeholder
+      GITHUB_OAUTH_CALLBACK_URL: http://localhost:3002/api/auth/github/callback
+      LLM_BASE_URL: https://api.example.test/v1
+      LLM_MODEL: ci-placeholder
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.13.1
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @adrian-zephyr-notes/server prisma:generate
+
+      - name: Check
+        run: pnpm check
+
+      - name: Test
+        run: pnpm test
+
+      - name: Build server
+        run: pnpm --filter @adrian-zephyr-notes/server build
+
+      - name: Build website
+        run: pnpm --filter @adrian-zephyr-notes/website build
+
+      - name: Build admin
+        run: pnpm --filter @adrian-zephyr-notes/admin build
