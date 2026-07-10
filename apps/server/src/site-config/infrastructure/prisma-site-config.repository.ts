@@ -11,12 +11,7 @@ import {
   normalizeSiteConfigSettings,
   type SiteConfigSettings,
 } from "../domain/site-settings";
-
-const SITE_SETTING_KEYS = {
-  home: "home",
-  navigationItems: "navigation-items",
-  socialLinks: "social-links",
-} as const;
+import { SITE_SETTING_KEYS } from "../domain/site-setting-keys";
 
 @Injectable()
 class PrismaSiteConfigRepository implements SiteConfigRepository {
@@ -33,6 +28,10 @@ class PrismaSiteConfigRepository implements SiteConfigRepository {
     const settingsByKey = new Map(records.map((record) => [record.key, record.value]));
 
     return normalizeSiteConfigSettings({
+      adminAgentAutomationPolicy: toSettingValue(
+        settingsByKey.get(SITE_SETTING_KEYS.adminAgentAutomationPolicy),
+        defaultSiteConfigSettings.adminAgentAutomationPolicy,
+      ),
       home: toSettingValue(
         settingsByKey.get(SITE_SETTING_KEYS.home),
         defaultSiteConfigSettings.home,
@@ -85,6 +84,14 @@ class PrismaSiteConfigRepository implements SiteConfigRepository {
     const normalizedSettings = normalizeSiteConfigSettings(settings);
 
     await this.prisma.$transaction([
+      this.prisma.siteSetting.upsert({
+        where: { key: SITE_SETTING_KEYS.adminAgentAutomationPolicy },
+        update: { value: normalizedSettings.adminAgentAutomationPolicy },
+        create: {
+          key: SITE_SETTING_KEYS.adminAgentAutomationPolicy,
+          value: normalizedSettings.adminAgentAutomationPolicy,
+        },
+      }),
       this.prisma.siteSetting.upsert({
         where: { key: SITE_SETTING_KEYS.home },
         update: { value: normalizedSettings.home },

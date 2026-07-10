@@ -8,6 +8,7 @@ describe("decideArticleAiSummaryQueue", () => {
         {
           contentHash: "same-hash",
           promptVersion: "article-summary-v1",
+          status: "READY",
         },
         {
           articleId: "24c86b96-1962-4a2a-8632-2d1425c45a3f",
@@ -24,10 +25,28 @@ describe("decideArticleAiSummaryQueue", () => {
         {
           contentHash: "old-hash",
           promptVersion: "article-summary-v1",
+          status: "READY",
         },
         {
           articleId: "24c86b96-1962-4a2a-8632-2d1425c45a3f",
           contentHash: "new-hash",
+          promptVersion: "article-summary-v1",
+        },
+      ),
+    ).toBe("QUEUED");
+  });
+
+  it("queues again when the previous attempt failed", () => {
+    expect(
+      decideArticleAiSummaryQueue(
+        {
+          contentHash: "same-hash",
+          promptVersion: "article-summary-v1",
+          status: "FAILED",
+        },
+        {
+          articleId: "24c86b96-1962-4a2a-8632-2d1425c45a3f",
+          contentHash: "same-hash",
           promptVersion: "article-summary-v1",
         },
       ),

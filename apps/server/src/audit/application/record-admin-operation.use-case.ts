@@ -4,6 +4,9 @@ import {
   type AdminOperationLogRepository,
   type RecordAdminOperationInput,
 } from "../domain/admin-operation-log.repository";
+import { createAdminOperationSummary } from "../domain/admin-operation-summary";
+
+type RecordAdminOperationCommand = Omit<RecordAdminOperationInput, "summary">;
 
 @Injectable()
 class RecordAdminOperationUseCase {
@@ -12,17 +15,26 @@ class RecordAdminOperationUseCase {
     private readonly adminOperationLogRepository: AdminOperationLogRepository,
   ) {}
 
-  execute(input: RecordAdminOperationInput) {
+  execute(input: RecordAdminOperationCommand) {
+    const metadata = input.metadata ?? null;
+    const resourceId = normalizeOptionalText(input.resourceId);
+    const resourceType = requireText(input.resourceType, "Resource type");
+
     return this.adminOperationLogRepository.record({
       ...input,
-      metadata: input.metadata ?? null,
+      metadata,
       requestContext: {
         ipAddress: normalizeOptionalText(input.requestContext?.ipAddress),
         userAgent: normalizeOptionalText(input.requestContext?.userAgent),
       },
-      resourceId: normalizeOptionalText(input.resourceId),
-      resourceType: requireText(input.resourceType, "Resource type"),
-      summary: requireText(input.summary, "Summary"),
+      resourceId,
+      resourceType,
+      summary: createAdminOperationSummary({
+        action: input.action,
+        metadata,
+        resourceId,
+        resourceType,
+      }),
     });
   }
 }

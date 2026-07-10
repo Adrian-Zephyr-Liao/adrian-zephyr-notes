@@ -78,7 +78,6 @@ class AdminGuestbookMessagesController {
         action: "GUESTBOOK_MESSAGE_UPDATED",
         resourceType: "guestbook_message",
         resourceId: message.id,
-        summary: `Updated guestbook message ${message.id}`,
         metadata: {
           isPinned: message.isPinned,
           status: message.status,

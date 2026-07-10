@@ -7,6 +7,7 @@ import {
 } from "../domain/admin-article-comment.repository";
 
 type ListAdminArticleCommentsInput = {
+  commentId?: string;
   page?: number;
   pageSize?: number;
   search?: string;
@@ -29,6 +30,7 @@ function normalizeListAdminArticleCommentsInput(
   input: ListAdminArticleCommentsInput,
 ): ListAdminArticleCommentsFilters {
   return {
+    commentId: normalizeOptionalText(input.commentId),
     page: normalizePositiveInteger(input.page, 1),
     pageSize: Math.min(normalizePositiveInteger(input.pageSize, 20), 50),
     search: normalizeOptionalText(input.search),

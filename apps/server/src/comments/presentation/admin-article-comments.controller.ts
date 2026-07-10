@@ -50,6 +50,7 @@ class AdminArticleCommentsController {
     @Query() query: AdminArticleCommentListQueryDto,
   ): Promise<AdminArticleCommentListResponse> {
     const result = await this.listAdminArticleComments.execute({
+      commentId: query.commentId,
       page: query.page,
       pageSize: query.pageSize,
       search: query.q,
@@ -77,7 +78,6 @@ class AdminArticleCommentsController {
         action: "COMMENT_STATUS_UPDATED",
         resourceType: "article_comment",
         resourceId: comment.id,
-        summary: `Updated article comment status to ${comment.status}`,
         metadata: {
           articleSlug: comment.article.slug,
           status: comment.status,

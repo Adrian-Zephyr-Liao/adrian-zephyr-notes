@@ -18,6 +18,6 @@ import { AdminOperationLogsController } from "./presentation/admin-operation-log
       useClass: PrismaAdminOperationLogRepository,
     },
   ],
-  exports: [RecordAdminOperationUseCase],
+  exports: [ListAdminOperationLogsUseCase, RecordAdminOperationUseCase],
 })
 export class AuditModule {}

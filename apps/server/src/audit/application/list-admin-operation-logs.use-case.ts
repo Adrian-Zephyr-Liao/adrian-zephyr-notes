@@ -52,7 +52,12 @@ function normalizeOptionalText(value: string | undefined) {
 }
 
 function normalizeAction(value: string | undefined): AdminOperationLogAction | undefined {
-  return value === "ARTICLE_UPDATED" ||
+  return value === "ADMIN_AGENT_FINDING_CREATED" ||
+    value === "ADMIN_AGENT_FINDING_DECIDED" ||
+    value === "ADMIN_AGENT_TASK_CONTROLLED" ||
+    value === "ADMIN_AGENT_TASK_RESUMED" ||
+    value === "ADMIN_AGENT_TASK_STARTED" ||
+    value === "ARTICLE_UPDATED" ||
     value === "ARTICLE_CREATED" ||
     value === "ARTICLE_DELETED" ||
     value === "COMMENT_STATUS_UPDATED" ||

@@ -1,7 +1,11 @@
 import { Type } from "class-transformer";
-import { IsIn, IsInt, IsOptional, IsString, Max, Min } from "class-validator";
+import { IsIn, IsInt, IsOptional, IsString, IsUUID, Max, Min } from "class-validator";
 
 class AdminArticleCommentListQueryDto {
+  @IsOptional()
+  @IsUUID()
+  commentId?: string;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()

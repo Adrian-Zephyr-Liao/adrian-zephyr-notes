@@ -24,5 +24,6 @@ import { SiteConfigController } from "./presentation/site-config.controller";
       useClass: PrismaSiteConfigRepository,
     },
   ],
+  exports: [GetAdminSiteConfigUseCase, SITE_CONFIG_REPOSITORY, UpdateAdminSiteAnnouncementUseCase],
 })
 export class SiteConfigModule {}

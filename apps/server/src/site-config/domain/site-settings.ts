@@ -1,3 +1,9 @@
+import {
+  getDefaultAdminAgentAutomationPolicy,
+  normalizeAdminAgentAutomationPolicy,
+  type AdminAgentAutomationPolicy,
+} from "../../admin-agent/domain/admin-agent-automation-policy";
+
 type SiteNavigationItem = {
   id: string;
   label: string;
@@ -28,12 +34,14 @@ type SiteHomeConfig = {
 };
 
 type SiteConfigSettings = {
+  adminAgentAutomationPolicy: AdminAgentAutomationPolicy;
   home: SiteHomeConfig;
   navigationItems: SiteNavigationItem[];
   socialLinks: SiteSocialLink[];
 };
 
 const defaultSiteConfigSettings: SiteConfigSettings = {
+  adminAgentAutomationPolicy: getDefaultAdminAgentAutomationPolicy(),
   home: {
     eyebrow: "Adrian Zephyr Notes",
     title: "记录工程、写作和长期思考",
@@ -84,6 +92,9 @@ const defaultSiteConfigSettings: SiteConfigSettings = {
 
 function normalizeSiteConfigSettings(input: SiteConfigSettings): SiteConfigSettings {
   return {
+    adminAgentAutomationPolicy: normalizeAdminAgentAutomationPolicy(
+      input.adminAgentAutomationPolicy,
+    ),
     home: normalizeHomeConfig(input.home),
     navigationItems: normalizeNavigationItems(input.navigationItems),
     socialLinks: normalizeSocialLinks(input.socialLinks),

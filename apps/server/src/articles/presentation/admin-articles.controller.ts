@@ -93,7 +93,6 @@ class AdminArticlesController {
         action: "ARTICLE_CREATED",
         resourceType: "article",
         resourceId: article.id,
-        summary: `Created article ${article.slug}`,
         metadata: {
           slug: article.slug,
           status: article.status,
@@ -147,7 +146,6 @@ class AdminArticlesController {
         action: "ARTICLE_UPDATED",
         resourceType: "article",
         resourceId: article.id,
-        summary: `Updated article ${article.slug}`,
         metadata: {
           changedFields: toChangedFields(body),
           status: article.status,
@@ -174,7 +172,6 @@ class AdminArticlesController {
         action: "ARTICLE_DELETED",
         resourceType: "article",
         resourceId: article.id,
-        summary: `Deleted article ${article.slug}`,
         metadata: {
           slug: article.slug,
           status: article.status,

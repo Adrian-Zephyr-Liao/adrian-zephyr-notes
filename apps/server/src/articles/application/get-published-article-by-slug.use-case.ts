@@ -21,7 +21,7 @@ class GetPublishedArticleBySlugUseCase {
     private readonly generatePendingArticleSummaries: GeneratePendingArticleSummariesUseCase,
   ) {}
 
-  async execute(slug: string, now = new Date()) {
+  async execute(slug: string, now = new Date()): Promise<Article> {
     const articleSlug = ArticleSlug.create(slug);
     const article = await this.articleRepository.findPublishedBySlug(articleSlug.toString(), now);
 
@@ -29,15 +29,13 @@ class GetPublishedArticleBySlugUseCase {
       throw new ArticleNotFoundError(articleSlug.toString());
     }
 
-    void this.ensureAiSummaryFresh(article);
-
-    return article;
+    return this.ensureAiSummaryFresh(article, now);
   }
 
-  private async ensureAiSummaryFresh(article: Article) {
+  private async ensureAiSummaryFresh(article: Article, now: Date): Promise<Article> {
     try {
       if (isArticleAiSummaryFresh(article)) {
-        return;
+        return article;
       }
 
       await this.queueArticleSummary.execute({
@@ -46,13 +44,23 @@ class GetPublishedArticleBySlugUseCase {
         description: article.description,
         markdown: article.markdown,
       });
-      await this.generatePendingArticleSummaries.execute({ articleId: article.id, limit: 1 });
+      const result = await this.generatePendingArticleSummaries.execute({
+        articleId: article.id,
+        limit: 1,
+      });
+
+      if (result.succeeded === 0) {
+        return article;
+      }
+
+      return (await this.articleRepository.findPublishedBySlug(article.slug, now)) ?? article;
     } catch (error) {
       this.logger.warn(
         `Failed to trigger article AI summary generation for article ${article.id}: ${toErrorMessage(
           error,
         )}`,
       );
+      return article;
     }
   }
 }

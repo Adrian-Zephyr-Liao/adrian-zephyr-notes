@@ -1,6 +1,7 @@
 type AdminArticleCommentStatus = "HIDDEN" | "VISIBLE";
 
 type ListAdminArticleCommentsFilters = {
+  commentId?: string;
   page: number;
   pageSize: number;
   search?: string;

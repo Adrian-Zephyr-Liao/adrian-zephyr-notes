@@ -87,6 +87,10 @@ function buildAdminArticleCommentWhere(
 ): Prisma.ArticleCommentWhereInput {
   const where: Prisma.ArticleCommentWhereInput = {};
 
+  if (filters.commentId) {
+    where.id = filters.commentId;
+  }
+
   if (filters.status) {
     where.status = filters.status;
   }
@@ -142,4 +146,4 @@ function isPrismaRecordNotFound(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
 }
 
-export { PrismaAdminArticleCommentRepository };
+export { PrismaAdminArticleCommentRepository, buildAdminArticleCommentWhere };

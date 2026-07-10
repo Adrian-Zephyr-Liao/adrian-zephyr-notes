@@ -11,6 +11,7 @@ describe("ListAdminArticleCommentsUseCase", () => {
     const useCase = new ListAdminArticleCommentsUseCase(repository);
 
     await useCase.execute({
+      commentId: "  comment-1  ",
       page: 0,
       pageSize: 500,
       search: "  hello  ",
@@ -18,6 +19,7 @@ describe("ListAdminArticleCommentsUseCase", () => {
     });
 
     expect(repository.list).toHaveBeenCalledWith({
+      commentId: "comment-1",
       page: 1,
       pageSize: 50,
       search: "hello",
@@ -29,6 +31,7 @@ describe("ListAdminArticleCommentsUseCase", () => {
 describe("normalizeListAdminArticleCommentsInput", () => {
   it("drops unsupported status filters", () => {
     expect(normalizeListAdminArticleCommentsInput({ status: "ALL" })).toEqual({
+      commentId: undefined,
       page: 1,
       pageSize: 20,
       search: undefined,

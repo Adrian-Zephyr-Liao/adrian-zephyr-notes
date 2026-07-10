@@ -67,5 +67,6 @@ import { ArticlesController } from "./presentation/articles.controller";
       useClass: OpenAiCompatibleArticleSummaryGenerator,
     },
   ],
+  exports: [GetAdminArticleByIdUseCase, ListAdminArticlesUseCase],
 })
 export class ArticlesModule {}

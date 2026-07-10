@@ -24,6 +24,7 @@ function toAdminSiteConfigResponse(input: {
 }): AdminSiteConfigResponse {
   return {
     ...toSiteConfigResponse(input),
+    adminAgentAutomationPolicy: input.settings.adminAgentAutomationPolicy,
     announcements: input.announcements.map(toAdminSiteAnnouncementResponse),
   };
 }

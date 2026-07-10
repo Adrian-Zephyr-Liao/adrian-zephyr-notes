@@ -14,6 +14,7 @@ type ChatCompletionResponse = {
 };
 
 const defaultBaseUrl = "https://api.openai.com/v1";
+const defaultTimeoutMs = 15_000;
 const maxMarkdownCharacters = 24000;
 const minimaxProvider = "minimax";
 
@@ -39,6 +40,7 @@ class OpenAiCompatibleArticleSummaryGenerator implements ArticleSummaryGenerator
         Authorization: `Bearer ${apiKey}`,
         "Content-Type": "application/json",
       },
+      signal: AbortSignal.timeout(this.getTimeoutMs()),
       body: JSON.stringify(buildChatCompletionRequestBody(model, input, this.getProvider())),
     });
 
@@ -77,6 +79,16 @@ class OpenAiCompatibleArticleSummaryGenerator implements ArticleSummaryGenerator
   private getChatCompletionsUrl() {
     const baseUrl = this.configService.get<string>("LLM_BASE_URL")?.trim() || defaultBaseUrl;
     return new URL("chat/completions", withTrailingSlash(baseUrl)).toString();
+  }
+
+  private getTimeoutMs() {
+    const configuredTimeout = Number(this.configService.get<string>("LLM_TIMEOUT_MS"));
+
+    if (Number.isFinite(configuredTimeout) && configuredTimeout > 0) {
+      return configuredTimeout;
+    }
+
+    return defaultTimeoutMs;
   }
 }
 
