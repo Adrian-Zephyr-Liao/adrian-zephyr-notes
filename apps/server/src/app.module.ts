@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { AdminAgentModule } from "./admin-agent/admin-agent.module";
 import { AuthModule } from "./auth/auth.module";
 import { AuditModule } from "./audit/audit.module";
 import { ArticlesModule } from "./articles/articles.module";
@@ -12,9 +13,10 @@ import { AppService } from "./app.service";
 @Module({
   imports: [
     ConfigModule.forRoot({
-      envFilePath: [".env", "apps/server/.env"],
+      envFilePath: [".env", "../../.env", "apps/server/.env"],
       isGlobal: true,
     }),
+    AdminAgentModule,
     AuthModule,
     AuditModule,
     ArticlesModule,
