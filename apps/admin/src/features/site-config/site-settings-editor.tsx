@@ -1,10 +1,11 @@
 import type {
+  AdminAgentFindingCategory,
   AdminSiteConfigResponse,
   SiteNavigationItemResponse,
   SiteSocialLinkResponse,
   UpdateAdminSiteSettingsRequest,
 } from "@adrian-zephyr-notes/contracts";
-import { Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { Loader2, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 import {
@@ -35,8 +36,8 @@ function SiteSettingsEditor({
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <CardTitle>首页 / 导航 / 社交</CardTitle>
-            <CardDescription>这些配置会直接影响读者侧展示。</CardDescription>
+            <CardTitle>首页 / 导航 / Agent</CardTitle>
+            <CardDescription>管理读者侧展示，以及后台 Agent 治理策略。</CardDescription>
           </div>
           <Button disabled={saving} type="button" onClick={onSave}>
             {saving ? <Loader2 className="animate-spin" /> : <Save />}
@@ -133,8 +134,105 @@ function SiteSettingsEditor({
           title="社交链接"
           onChange={(socialLinks) => onChange({ ...settings, socialLinks })}
         />
+        <AgentAutomationPolicySection
+          policy={settings.adminAgentAutomationPolicy}
+          onChange={(adminAgentAutomationPolicy) =>
+            onChange({ ...settings, adminAgentAutomationPolicy })
+          }
+        />
       </CardContent>
     </Card>
+  );
+}
+
+function AgentAutomationPolicySection({
+  onChange,
+  policy,
+}: {
+  onChange: (policy: UpdateAdminSiteSettingsRequest["adminAgentAutomationPolicy"]) => void;
+  policy: UpdateAdminSiteSettingsRequest["adminAgentAutomationPolicy"];
+}) {
+  function patchPolicy(patch: Partial<typeof policy>) {
+    onChange({
+      ...policy,
+      ...patch,
+      autoHideEnabled: false,
+      mode: "MANUAL_REVIEW",
+    });
+  }
+
+  function toggleCategory(category: AdminAgentFindingCategory, checked: boolean) {
+    const categories = new Set(policy.eligibleCategories);
+
+    if (checked) {
+      categories.add(category);
+    } else {
+      categories.delete(category);
+    }
+
+    patchPolicy({
+      eligibleCategories: Array.from(categories).filter(isConfigurableAutomationCategory),
+    });
+  }
+
+  return (
+    <section className="grid gap-3 rounded-xl border border-border/70 bg-background/65 p-4">
+      <div className="flex items-start gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
+          <ShieldCheck aria-hidden="true" className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <h3 className="text-sm font-semibold">Agent 候选规则</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            用于标记高置信自动化候选；当前不会自动执行，所有候选仍需管理员确认。
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <Field label="自动执行">
+          <div className="flex min-h-10 items-center gap-2 rounded-md border border-border/70 bg-muted/35 px-3 text-sm text-muted-foreground">
+            <Checkbox aria-label="自动执行未开放" checked={false} disabled />
+            <span>未开放，候选仍需管理员确认</span>
+          </div>
+        </Field>
+        <Field label="候选阈值">
+          <Input
+            max={1}
+            min={0.5}
+            step={0.01}
+            type="number"
+            value={policy.confidenceThreshold}
+            onChange={(event) => patchPolicy({ confidenceThreshold: Number(event.target.value) })}
+          />
+        </Field>
+      </div>
+
+      <div className="grid gap-2">
+        <p className="text-xs font-medium text-muted-foreground">适用分类</p>
+        <div className="flex flex-wrap gap-3">
+          {configurableAutomationCategories.map((category) => (
+            <label key={category} className="flex items-center gap-2 text-sm">
+              <Checkbox
+                checked={policy.eligibleCategories.includes(category)}
+                id={`agent-policy-category-${category}`}
+                onCheckedChange={(checked) => toggleCategory(category, checked)}
+              />
+              <span>{formatAutomationCategory(category)}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 text-sm">
+        <Checkbox
+          id="agent-policy-strong-evidence"
+          checked={policy.requiresStrongEvidence}
+          onCheckedChange={(checked) => patchPolicy({ requiresStrongEvidence: checked })}
+        />
+        <label htmlFor="agent-policy-strong-evidence">必须命中强证据</label>
+      </div>
+    </section>
   );
 }
 
@@ -345,6 +443,7 @@ function BaseLinkFields<TItem extends EditableBaseLink>({
 
 function toSettingsDraft(config: AdminSiteConfigResponse): UpdateAdminSiteSettingsRequest {
   return {
+    adminAgentAutomationPolicy: config.adminAgentAutomationPolicy,
     home: config.home,
     navigationItems: config.navigationItems,
     socialLinks: config.socialLinks,
@@ -354,7 +453,20 @@ function toSettingsDraft(config: AdminSiteConfigResponse): UpdateAdminSiteSettin
 function normalizeSettingsDraft(
   settings: UpdateAdminSiteSettingsRequest,
 ): UpdateAdminSiteSettingsRequest {
+  const eligibleCategories = normalizeEligiblePolicyCategories(
+    settings.adminAgentAutomationPolicy.eligibleCategories,
+  );
+
   return {
+    adminAgentAutomationPolicy: {
+      ...settings.adminAgentAutomationPolicy,
+      autoHideEnabled: false,
+      confidenceThreshold: normalizeConfidenceThreshold(
+        settings.adminAgentAutomationPolicy.confidenceThreshold,
+      ),
+      eligibleCategories,
+      mode: "MANUAL_REVIEW",
+    },
     home: {
       ...settings.home,
       secondaryActionLabel: normalizeNullableText(settings.home.secondaryActionLabel),
@@ -391,6 +503,44 @@ function createSocialItem(index: number): SiteSocialLinkResponse {
 function normalizeNullableText(value: string | null) {
   const normalized = value?.trim();
   return normalized ? normalized : null;
+}
+
+const configurableAutomationCategories = [
+  "SPAM",
+  "ABUSE",
+] as const satisfies readonly AdminAgentFindingCategory[];
+
+function isConfigurableAutomationCategory(
+  category: AdminAgentFindingCategory,
+): category is (typeof configurableAutomationCategories)[number] {
+  return configurableAutomationCategories.includes(
+    category as (typeof configurableAutomationCategories)[number],
+  );
+}
+
+function formatAutomationCategory(category: AdminAgentFindingCategory) {
+  const labels: Record<AdminAgentFindingCategory, string> = {
+    ABUSE: "辱骂攻击",
+    HARASSMENT: "骚扰",
+    OTHER: "其他",
+    SENSITIVE: "敏感内容",
+    SPAM: "广告垃圾",
+  };
+
+  return labels[category];
+}
+
+function normalizeEligiblePolicyCategories(categories: AdminAgentFindingCategory[]) {
+  const normalized = categories.filter(isConfigurableAutomationCategory);
+  return normalized.length > 0 ? normalized : [...configurableAutomationCategories];
+}
+
+function normalizeConfidenceThreshold(value: number) {
+  if (!Number.isFinite(value)) {
+    return 0.95;
+  }
+
+  return Math.min(1, Math.max(0.5, Number(value.toFixed(2))));
 }
 
 export { normalizeSettingsDraft, SiteSettingsEditor, toSettingsDraft };

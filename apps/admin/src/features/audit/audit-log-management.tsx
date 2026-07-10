@@ -18,6 +18,12 @@ import { Input } from "../../components/ui/input";
 import { Select } from "../../components/ui/select";
 import { listAdminOperationLogs } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
+import {
+  formatAuditClientLabel,
+  formatAuditMetadataEntries,
+  formatAuditResourceLabel,
+  formatAuditSummary,
+} from "./audit-metadata";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -120,34 +126,7 @@ function AuditLogManagement() {
             </div>
           ) : null}
           {logs.map((log) => (
-            <article
-              key={log.id}
-              className="rounded-xl border border-border/70 bg-background/65 p-4"
-            >
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={auditActionMeta[log.action].variant}>
-                      {auditActionMeta[log.action].label}
-                    </Badge>
-                    <span className="text-sm font-medium">{log.summary}</span>
-                  </div>
-                  <p className="mt-2 text-xs break-all text-muted-foreground">
-                    {log.resourceType}
-                    {log.resourceId ? ` / ${log.resourceId}` : ""}
-                  </p>
-                  <code className="mt-2 block max-w-full overflow-hidden rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-                    {log.metadata ? JSON.stringify(log.metadata) : "{}"}
-                  </code>
-                </div>
-                <div className="text-left text-xs text-muted-foreground md:text-right">
-                  <p className="font-medium text-foreground">@{log.actorLogin}</p>
-                  <p>{formatDateTime(log.createdAt)}</p>
-                  <p className="mt-1 max-w-[280px] truncate">{log.ipAddress ?? "未知 IP"}</p>
-                  <p className="max-w-[280px] truncate">{log.userAgent ?? "未知客户端"}</p>
-                </div>
-              </div>
-            </article>
+            <AuditLogItem key={log.id} log={log} />
           ))}
           {!isLoading && logs.length === 0 ? (
             <div className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
@@ -162,6 +141,53 @@ function AuditLogManagement() {
         />
       </CardContent>
     </Card>
+  );
+}
+
+function AuditLogItem({ log }: { log: AdminOperationLogResponse }) {
+  const actionMeta = getAuditActionMeta(log.action);
+
+  return (
+    <article className="rounded-xl border border-border/70 bg-background/65 p-4">
+      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant={actionMeta.variant}>{actionMeta.label}</Badge>
+            <span className="text-sm font-medium">{formatAuditSummary(log)}</span>
+          </div>
+          <p className="mt-2 text-xs text-muted-foreground">{formatAuditResourceLabel(log)}</p>
+          <AuditMetadataPanel log={log} />
+        </div>
+        <div className="text-left text-xs text-muted-foreground md:text-right">
+          <p className="font-medium text-foreground">@{log.actorLogin}</p>
+          <p>{formatDateTime(log.createdAt)}</p>
+          <p className="mt-1 max-w-70 truncate">{formatAuditClientLabel(log)}</p>
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function AuditMetadataPanel({ log }: { log: AdminOperationLogResponse }) {
+  const entries = formatAuditMetadataEntries(log.metadata);
+
+  if (entries.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+      <dl className="grid gap-2 sm:grid-cols-2">
+        {entries.map((entry) => (
+          <div key={entry.key} className="min-w-0">
+            <dt className="text-[0.7rem] font-medium tracking-normal text-muted-foreground">
+              {entry.label}
+            </dt>
+            <dd className="mt-0.5 text-xs break-all text-foreground">{entry.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
   );
 }
 
@@ -207,6 +233,11 @@ const auditActionMeta: Record<
   AdminOperationLogAction,
   { label: string; variant: "default" | "destructive" | "outline" | "success" | "warning" }
 > = {
+  ADMIN_AGENT_FINDING_CREATED: { label: "Agent 建议", variant: "default" },
+  ADMIN_AGENT_FINDING_DECIDED: { label: "Agent 决策", variant: "outline" },
+  ADMIN_AGENT_TASK_CONTROLLED: { label: "Agent 操作", variant: "warning" },
+  ADMIN_AGENT_TASK_RESUMED: { label: "Agent 确认", variant: "success" },
+  ADMIN_AGENT_TASK_STARTED: { label: "Agent 发起", variant: "default" },
   ARTICLE_CREATED: { label: "文章创建", variant: "success" },
   ARTICLE_DELETED: { label: "文章删除", variant: "destructive" },
   ARTICLE_UPDATED: { label: "文章更新", variant: "default" },
@@ -215,6 +246,12 @@ const auditActionMeta: Record<
   SITE_ANNOUNCEMENT_UPDATED: { label: "公告更新", variant: "outline" },
   SITE_SETTINGS_UPDATED: { label: "站点配置", variant: "success" },
 };
+
+const fallbackAuditActionMeta = { label: "后台操作", variant: "outline" } as const;
+
+function getAuditActionMeta(action: AdminOperationLogAction) {
+  return auditActionMeta[action] ?? fallbackAuditActionMeta;
+}
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat("zh-CN", {

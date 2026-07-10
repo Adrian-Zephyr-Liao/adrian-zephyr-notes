@@ -163,7 +163,7 @@ function GuestbookModeration() {
                     <StatusBadge status={message.status} />
                     <Badge variant="outline">{message.likeCount} 赞</Badge>
                   </div>
-                  <p className="text-sm leading-6 whitespace-pre-wrap">{message.body}</p>
+                  <p className="text-sm/6 whitespace-pre-wrap">{message.body}</p>
                   <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                     <span>{formatDateTime(message.createdAt)}</span>
                     <span>

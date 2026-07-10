@@ -79,6 +79,35 @@ describe("admin HTTP helpers", () => {
       status: 403,
     } satisfies Partial<AdminApiError>);
   });
+
+  it("preserves backend business error payloads for recoverable actions", async () => {
+    mockFetch(
+      new Response(
+        JSON.stringify({
+          code: "ADMIN_AGENT_TASK_BRANCH_UNAVAILABLE",
+          details: {
+            taskId: "run-1",
+          },
+          message: "Agent 业务处理当前不能另开分支。",
+        }),
+        {
+          headers: {
+            "content-type": "application/json",
+          },
+          status: 409,
+        },
+      ),
+    );
+
+    await expect(requestAdminApi("/api/admin/agent/tasks/run-1/control")).rejects.toMatchObject({
+      code: "ADMIN_AGENT_TASK_BRANCH_UNAVAILABLE",
+      details: {
+        taskId: "run-1",
+      },
+      message: "Agent 业务处理当前不能另开分支。",
+      status: 409,
+    } satisfies Partial<AdminApiError>);
+  });
 });
 
 function mockFetch(response: Response) {

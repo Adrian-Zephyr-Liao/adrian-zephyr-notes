@@ -1,4 +1,4 @@
-const DEFAULT_BACKEND_API_BASE_URL = "http://localhost:3001";
+const DEFAULT_BACKEND_API_BASE_URL = "";
 
 type AdminQueryValue = boolean | null | number | string | undefined;
 type AdminQuery = object;
@@ -12,6 +12,8 @@ class AdminApiError extends Error {
   constructor(
     message: string,
     readonly status: number,
+    readonly code?: string,
+    readonly details?: unknown,
   ) {
     super(message);
   }
@@ -71,7 +73,13 @@ async function requestAdminApi<TResponse>(
   });
 
   if (!response.ok) {
-    throw new AdminApiError(`Admin API request failed: ${response.status}`, response.status);
+    const errorPayload = await parseAdminApiErrorPayload(response);
+    const message =
+      typeof errorPayload.message === "string" && errorPayload.message.trim().length > 0
+        ? errorPayload.message
+        : `Admin API request failed: ${response.status}`;
+
+    throw new AdminApiError(message, response.status, errorPayload.code, errorPayload.details);
   }
 
   if (emptyResponse || response.status === 204) {
@@ -79,6 +87,49 @@ async function requestAdminApi<TResponse>(
   }
 
   return (await response.json()) as TResponse;
+}
+
+async function parseAdminApiErrorPayload(response: Response) {
+  const fallback = {
+    code: undefined,
+    details: undefined,
+    message: undefined,
+  };
+  const contentType = response.headers.get("content-type") ?? "";
+
+  if (!contentType.toLowerCase().includes("application/json")) {
+    return fallback;
+  }
+
+  try {
+    const payload = (await response.json()) as unknown;
+
+    if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+      return fallback;
+    }
+
+    const record = payload as Record<string, unknown>;
+
+    return {
+      code: typeof record.code === "string" ? record.code : undefined,
+      details: record.details,
+      message: normalizeAdminApiErrorMessage(record.message),
+    };
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeAdminApiErrorMessage(message: unknown) {
+  if (typeof message === "string") {
+    return message;
+  }
+
+  if (Array.isArray(message)) {
+    return message.filter((item): item is string => typeof item === "string").join("；");
+  }
+
+  return undefined;
 }
 
 export {

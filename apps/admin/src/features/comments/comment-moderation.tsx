@@ -21,7 +21,11 @@ import { cn } from "../../lib/utils";
 
 const DEFAULT_PAGE_SIZE = 10;
 
-function CommentModeration() {
+type CommentModerationProps = {
+  focusedCommentId?: string | null;
+};
+
+function CommentModeration({ focusedCommentId = null }: CommentModerationProps) {
   const [comments, setComments] = useState<AdminArticleCommentListItemResponse[]>([]);
   const [pagination, setPagination] = useState({
     page: 1,
@@ -30,6 +34,7 @@ function CommentModeration() {
     totalPages: 0,
   });
   const [query, setQuery] = useState<AdminArticleCommentListQuery>({
+    commentId: focusedCommentId ?? undefined,
     page: 1,
     pageSize: DEFAULT_PAGE_SIZE,
     status: "ALL",
@@ -38,6 +43,8 @@ function CommentModeration() {
   const [isLoading, setIsLoading] = useState(false);
   const [updatingCommentId, setUpdatingCommentId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  const isFocusedMode = Boolean(query.commentId);
 
   useEffect(() => {
     setIsLoading(true);
@@ -50,6 +57,29 @@ function CommentModeration() {
       .catch(() => setErrorMessage("评论列表加载失败，请检查服务端或管理员权限配置。"))
       .finally(() => setIsLoading(false));
   }, [query]);
+
+  useEffect(() => {
+    if (!focusedCommentId) {
+      setQuery((current) =>
+        current.commentId
+          ? {
+              page: 1,
+              pageSize: DEFAULT_PAGE_SIZE,
+              status: "ALL",
+            }
+          : current,
+      );
+      return;
+    }
+
+    setSearchText("");
+    setQuery({
+      commentId: focusedCommentId,
+      page: 1,
+      pageSize: DEFAULT_PAGE_SIZE,
+      status: "ALL",
+    });
+  }, [focusedCommentId]);
 
   async function updateCommentStatus(
     comment: AdminArticleCommentListItemResponse,
@@ -99,6 +129,29 @@ function CommentModeration() {
             {errorMessage}
           </div>
         ) : null}
+        {isFocusedMode ? (
+          <div
+            className="flex flex-col gap-2 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-sm text-primary sm:flex-row sm:items-center sm:justify-between"
+            role="status"
+          >
+            <span>已定位到 Agent 风险卡片关联的评论。</span>
+            <Button
+              size="sm"
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setSearchText("");
+                setQuery({
+                  page: 1,
+                  pageSize: DEFAULT_PAGE_SIZE,
+                  status: "ALL",
+                });
+              }}
+            >
+              查看全部评论
+            </Button>
+          </div>
+        ) : null}
         <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px]">
           <div className="relative">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
@@ -111,6 +164,7 @@ function CommentModeration() {
                 if (event.key === "Enter") {
                   setQuery((current) => ({
                     ...current,
+                    commentId: undefined,
                     page: 1,
                     q: searchText.trim() || undefined,
                   }));
@@ -123,6 +177,7 @@ function CommentModeration() {
             onChange={(event) =>
               setQuery((current) => ({
                 ...current,
+                commentId: undefined,
                 page: 1,
                 status: event.target.value as AdminArticleCommentListQuery["status"],
               }))
@@ -143,7 +198,12 @@ function CommentModeration() {
           {comments.map((comment) => (
             <article
               key={comment.id}
-              className="rounded-xl border border-border/70 bg-background/65 p-4"
+              aria-current={comment.id === query.commentId ? "true" : undefined}
+              className={cn(
+                "rounded-xl border border-border/70 bg-background/65 p-4",
+                comment.id === query.commentId &&
+                  "border-primary/45 bg-primary/10 ring-2 ring-primary/20",
+              )}
             >
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
                 <div className="min-w-0 space-y-3">
@@ -157,7 +217,7 @@ function CommentModeration() {
                       <Badge variant="secondary">{comment.replyCount} 条回复</Badge>
                     ) : null}
                   </div>
-                  <p className="text-sm leading-6 whitespace-pre-wrap">{comment.body}</p>
+                  <p className="text-sm/6 whitespace-pre-wrap">{comment.body}</p>
                   {comment.parent ? (
                     <div className="rounded-lg border border-border/70 bg-muted/45 p-3">
                       <p className="text-xs text-muted-foreground">
