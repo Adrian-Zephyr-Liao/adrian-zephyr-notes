@@ -3,8 +3,11 @@ packages:
   - "packages/*"
 
 allowBuilds:
+  "@prisma/engines": true
+  "@scarf/scarf": set this to true or false
   esbuild: true
   lightningcss: true
+  prisma: true
   sharp: false
   unrs-resolver: false
 
@@ -13,5 +16,7 @@ ignoredBuiltDependencies:
   - unrs-resolver
 
 onlyBuiltDependencies:
+  - "@prisma/engines"
   - esbuild
   - lightningcss
+  - prisma
