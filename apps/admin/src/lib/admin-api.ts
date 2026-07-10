@@ -7,6 +7,19 @@ import type {
   AdminArticleListQuery,
   AdminArticleListResponse,
   AdminArticleTaxonomyOptionsResponse,
+  AdminAgentConversationMessagesResponse,
+  AdminAgentHomeResponse,
+  AdminAgentTaskSummaryResponse,
+  AdminAgentTaskListQuery,
+  AdminAgentTaskListResponse,
+  ControlAdminAgentTaskRequest,
+  ControlAdminAgentTaskResponse,
+  DecideAdminAgentFindingsRequest,
+  DecideAdminAgentFindingsResponse,
+  ResumeAdminAgentTaskRequest,
+  ResumeAdminAgentTaskResponse,
+  StartAdminAgentTaskRequest,
+  StartAdminAgentTaskResponse,
   AdminGuestbookMessageListItemResponse,
   AdminGuestbookMessagesQuery,
   AdminGuestbookMessagesResponse,
@@ -26,7 +39,7 @@ import type {
 import { AdminApiError, getBackendApiBaseUrl, requestAdminApi, withAdminQuery } from "./admin-http";
 
 function getAdminLoginUrl(returnTo = "/") {
-  const url = new URL(`${getBackendApiBaseUrl()}/api/auth/github/start`);
+  const url = new URL(`${getBackendApiBaseUrl()}/api/auth/github/start`, window.location.origin);
 
   url.searchParams.set("target", "admin");
   url.searchParams.set("returnTo", returnTo);
@@ -54,6 +67,57 @@ async function getCurrentAdminArticleEditorDraft(articleId?: string | null) {
   return requestAdminApi<AdminArticleEditorDraftResponse | null>(
     withAdminQuery("/api/admin/article-drafts/current", { articleId }),
   );
+}
+
+async function getAdminAgentHome() {
+  return requestAdminApi<AdminAgentHomeResponse>("/api/admin/agent/home");
+}
+
+async function listAdminAgentConversationMessages(conversationId: string) {
+  return requestAdminApi<AdminAgentConversationMessagesResponse>(
+    `/api/admin/agent/conversations/${encodeURIComponent(conversationId)}/messages`,
+  );
+}
+
+async function listAdminAgentTasks(query: AdminAgentTaskListQuery = {}) {
+  return requestAdminApi<AdminAgentTaskListResponse>(
+    withAdminQuery("/api/admin/agent/tasks", query),
+  );
+}
+
+async function getAdminAgentTask(taskId: string) {
+  return requestAdminApi<AdminAgentTaskSummaryResponse>(`/api/admin/agent/tasks/${taskId}`);
+}
+
+async function startAdminAgentTask(input: StartAdminAgentTaskRequest) {
+  return requestAdminApi<StartAdminAgentTaskResponse>("/api/admin/agent/tasks", {
+    json: input,
+    method: "POST",
+  });
+}
+
+async function controlAdminAgentTask(taskId: string, input: ControlAdminAgentTaskRequest) {
+  return requestAdminApi<ControlAdminAgentTaskResponse>(
+    `/api/admin/agent/tasks/${taskId}/control`,
+    {
+      json: input,
+      method: "POST",
+    },
+  );
+}
+
+async function decideAdminAgentFindings(input: DecideAdminAgentFindingsRequest) {
+  return requestAdminApi<DecideAdminAgentFindingsResponse>("/api/admin/agent/findings/decisions", {
+    json: input,
+    method: "POST",
+  });
+}
+
+async function resumeAdminAgentTask(taskId: string, input: ResumeAdminAgentTaskRequest) {
+  return requestAdminApi<ResumeAdminAgentTaskResponse>(`/api/admin/agent/tasks/${taskId}/resume`, {
+    json: input,
+    method: "POST",
+  });
 }
 
 async function saveCurrentAdminArticleEditorDraft(input: SaveAdminArticleEditorDraftRequest) {
@@ -156,21 +220,29 @@ async function logoutAdmin() {
 
 export {
   AdminApiError,
+  controlAdminAgentTask,
   createAdminArticle,
+  decideAdminAgentFindings,
   deleteAdminArticle,
   deleteCurrentAdminArticleEditorDraft,
+  getAdminAgentHome,
+  getAdminAgentTask,
   getAdminArticle,
   getCurrentAdminArticleEditorDraft,
   getAdminLoginUrl,
   getAdminSiteConfig,
   getCurrentAdmin,
+  listAdminAgentTasks,
+  listAdminAgentConversationMessages,
   listAdminArticleComments,
   listAdminArticleTaxonomies,
   listAdminArticles,
   listAdminGuestbookMessages,
   listAdminOperationLogs,
   logoutAdmin,
+  resumeAdminAgentTask,
   saveCurrentAdminArticleEditorDraft,
+  startAdminAgentTask,
   updateAdminArticle,
   updateAdminArticleComment,
   updateAdminGuestbookMessage,

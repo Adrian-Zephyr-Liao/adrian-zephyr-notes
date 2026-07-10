@@ -9,13 +9,49 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SiteRouteImport } from './routes/site'
+import { Route as GuestbookRouteImport } from './routes/guestbook'
+import { Route as CommentsRouteImport } from './routes/comments'
+import { Route as AuditRouteImport } from './routes/audit'
+import { Route as AgentRouteImport } from './routes/agent'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
 import { Route as ArticlesNewRouteImport } from './routes/articles.new'
 import { Route as ArticlesArticleIdEditRouteImport } from './routes/articles.$articleId.edit'
 
+const SiteRoute = SiteRouteImport.update({
+  id: '/site',
+  path: '/site',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GuestbookRoute = GuestbookRouteImport.update({
+  id: '/guestbook',
+  path: '/guestbook',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommentsRoute = CommentsRouteImport.update({
+  id: '/comments',
+  path: '/comments',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuditRoute = AuditRouteImport.update({
+  id: '/audit',
+  path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentRoute = AgentRouteImport.update({
+  id: '/agent',
+  path: '/agent',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArticlesIndexRoute = ArticlesIndexRouteImport.update({
+  id: '/articles/',
+  path: '/articles/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArticlesNewRoute = ArticlesNewRouteImport.update({
@@ -31,41 +67,135 @@ const ArticlesArticleIdEditRoute = ArticlesArticleIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/agent': typeof AgentRoute
+  '/audit': typeof AuditRoute
+  '/comments': typeof CommentsRoute
+  '/guestbook': typeof GuestbookRoute
+  '/site': typeof SiteRoute
   '/articles/new': typeof ArticlesNewRoute
+  '/articles/': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/agent': typeof AgentRoute
+  '/audit': typeof AuditRoute
+  '/comments': typeof CommentsRoute
+  '/guestbook': typeof GuestbookRoute
+  '/site': typeof SiteRoute
   '/articles/new': typeof ArticlesNewRoute
+  '/articles': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/agent': typeof AgentRoute
+  '/audit': typeof AuditRoute
+  '/comments': typeof CommentsRoute
+  '/guestbook': typeof GuestbookRoute
+  '/site': typeof SiteRoute
   '/articles/new': typeof ArticlesNewRoute
+  '/articles/': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/articles/new' | '/articles/$articleId/edit'
+  fullPaths:
+    | '/'
+    | '/agent'
+    | '/audit'
+    | '/comments'
+    | '/guestbook'
+    | '/site'
+    | '/articles/new'
+    | '/articles/'
+    | '/articles/$articleId/edit'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/articles/new' | '/articles/$articleId/edit'
-  id: '__root__' | '/' | '/articles/new' | '/articles/$articleId/edit'
+  to:
+    | '/'
+    | '/agent'
+    | '/audit'
+    | '/comments'
+    | '/guestbook'
+    | '/site'
+    | '/articles/new'
+    | '/articles'
+    | '/articles/$articleId/edit'
+  id:
+    | '__root__'
+    | '/'
+    | '/agent'
+    | '/audit'
+    | '/comments'
+    | '/guestbook'
+    | '/site'
+    | '/articles/new'
+    | '/articles/'
+    | '/articles/$articleId/edit'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AgentRoute: typeof AgentRoute
+  AuditRoute: typeof AuditRoute
+  CommentsRoute: typeof CommentsRoute
+  GuestbookRoute: typeof GuestbookRoute
+  SiteRoute: typeof SiteRoute
   ArticlesNewRoute: typeof ArticlesNewRoute
+  ArticlesIndexRoute: typeof ArticlesIndexRoute
   ArticlesArticleIdEditRoute: typeof ArticlesArticleIdEditRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/site': {
+      id: '/site'
+      path: '/site'
+      fullPath: '/site'
+      preLoaderRoute: typeof SiteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/guestbook': {
+      id: '/guestbook'
+      path: '/guestbook'
+      fullPath: '/guestbook'
+      preLoaderRoute: typeof GuestbookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/comments': {
+      id: '/comments'
+      path: '/comments'
+      fullPath: '/comments'
+      preLoaderRoute: typeof CommentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/audit': {
+      id: '/audit'
+      path: '/audit'
+      fullPath: '/audit'
+      preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agent': {
+      id: '/agent'
+      path: '/agent'
+      fullPath: '/agent'
+      preLoaderRoute: typeof AgentRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/articles/': {
+      id: '/articles/'
+      path: '/articles'
+      fullPath: '/articles/'
+      preLoaderRoute: typeof ArticlesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/articles/new': {
@@ -87,7 +217,13 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AgentRoute: AgentRoute,
+  AuditRoute: AuditRoute,
+  CommentsRoute: CommentsRoute,
+  GuestbookRoute: GuestbookRoute,
+  SiteRoute: SiteRoute,
   ArticlesNewRoute: ArticlesNewRoute,
+  ArticlesIndexRoute: ArticlesIndexRoute,
   ArticlesArticleIdEditRoute: ArticlesArticleIdEditRoute,
 }
 export const routeTree = rootRouteImport

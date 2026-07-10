@@ -1,0 +1,24 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AZ Notes Agent assistant avatar</title>
+  <desc id="desc">A compact teal assistant avatar for the Agent workbench.</desc>
+  <rect width="256" height="256" rx="64" fill="#061218"/>
+  <circle cx="128" cy="118" r="88" fill="url(#halo)" opacity="0.75"/>
+  <path d="M72 95C72 77.3269 86.3269 63 104 63H152C169.673 63 184 77.3269 184 95V141C184 158.673 169.673 173 152 173H104C86.3269 173 72 158.673 72 141V95Z" fill="#0B2F35"/>
+  <path d="M72 95C72 77.3269 86.3269 63 104 63H152C169.673 63 184 77.3269 184 95V141C184 158.673 169.673 173 152 173H104C86.3269 173 72 158.673 72 141V95Z" stroke="#19D3C5" stroke-width="7"/>
+  <path d="M128 63V42" stroke="#19D3C5" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="128" cy="35" r="10" fill="#19D3C5"/>
+  <path d="M97 119C97 112.925 101.925 108 108 108C114.075 108 119 112.925 119 119V122C119 128.075 114.075 133 108 133C101.925 133 97 128.075 97 122V119Z" fill="#76FFF3"/>
+  <path d="M137 119C137 112.925 141.925 108 148 108C154.075 108 159 112.925 159 119V122C159 128.075 154.075 133 148 133C141.925 133 137 128.075 137 122V119Z" fill="#76FFF3"/>
+  <path d="M104 153C118.596 162.067 137.404 162.067 152 153" stroke="#76FFF3" stroke-width="7" stroke-linecap="round"/>
+  <path d="M55 116H72" stroke="#19D3C5" stroke-width="7" stroke-linecap="round"/>
+  <path d="M184 116H201" stroke="#19D3C5" stroke-width="7" stroke-linecap="round"/>
+  <path d="M83 190C98 202 112.5 208 128 208C143.5 208 158 202 173 190" stroke="#0E4D53" stroke-width="12" stroke-linecap="round"/>
+  <path d="M76 198C90 219 107.333 229.5 128 229.5C148.667 229.5 166 219 180 198" stroke="#19D3C5" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+  <defs>
+    <radialGradient id="halo" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(128 118) rotate(90) scale(94)">
+      <stop stop-color="#1AE2D3" stop-opacity="0.42"/>
+      <stop offset="0.56" stop-color="#0D4F57" stop-opacity="0.24"/>
+      <stop offset="1" stop-color="#061218" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

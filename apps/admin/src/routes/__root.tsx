@@ -1,6 +1,5 @@
+import { CopilotKit } from "@copilotkit/react-core/v2";
 import { Outlet, createRootRoute } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { ReactNode } from "react";
 import { useEffect } from "react";
 import "../styles.css";
@@ -28,21 +27,13 @@ function AdminProviders({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <>
+    <CopilotKit
+      agent="admin-agent"
+      credentials="include"
+      runtimeUrl="/api/copilotkit"
+      useSingleEndpoint={true}
+    >
       {children}
-      {import.meta.env.DEV ? (
-        <TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
-          plugins={[
-            {
-              name: "Tanstack Router",
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-          ]}
-        />
-      ) : null}
-    </>
+    </CopilotKit>
   );
 }
