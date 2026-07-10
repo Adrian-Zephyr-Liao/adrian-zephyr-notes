@@ -5,7 +5,7 @@ export default defineConfig({
     globals: true,
   },
   fmt: {
-    ignorePatterns: ["apps/admin/src/routeTree.gen.ts"],
+    ignorePatterns: [".agents/**", "apps/admin/src/routeTree.gen.ts"],
     overrides: [
       {
         files: ["apps/admin/**/*.{js,jsx,mjs,ts,tsx,mts,cts,css}"],
@@ -44,6 +44,7 @@ export default defineConfig({
       node: true,
     },
     ignorePatterns: [
+      ".agents/**",
       "node_modules/**",
       "apps/*/node_modules/**",
       "apps/*/dist/**",
