@@ -1,8 +1,10 @@
-import { MarkdownAsync, MarkdownHooks, type Components } from "react-markdown";
+import Markdown, { MarkdownAsync, MarkdownHooks, type Components } from "react-markdown";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
+import { isValidElement, type ReactNode } from "react";
+import type { PluggableList } from "unified";
 
 import { CodeCopyButton } from "./code-copy-button";
 import { cx } from "./utils";
@@ -10,7 +12,41 @@ import { cx } from "./utils";
 type MarkdownRendererProps = {
   content: string;
   className?: string;
+  variant?: "document" | "stream";
 };
+
+const documentRehypePlugins: PluggableList = [
+  rehypeSlug,
+  [
+    rehypeAutolinkHeadings,
+    {
+      behavior: "append",
+      properties: {
+        className: ["markdown-heading-anchor"],
+        ariaLabel: "链接到这个小节",
+        tabIndex: -1,
+      },
+      content: {
+        type: "element",
+        tagName: "span",
+        properties: { ariaHidden: "true" },
+        children: [{ type: "text", value: "#" }],
+      },
+    },
+  ],
+  [
+    rehypePrettyCode,
+    {
+      keepBackground: false,
+      theme: {
+        light: "github-light",
+        dark: "github-dark",
+      },
+    },
+  ],
+];
+
+const streamRehypePlugins: PluggableList = [rehypeSlug];
 
 const markdownComponents = {
   a({ className, href = "", children, node: _node, ...props }) {
@@ -42,7 +78,7 @@ const markdownComponents = {
     );
   },
   pre({ className, children, node: _node, ...props }) {
-    const language = getCodeLanguage(props);
+    const language = getCodeLanguage(props, children);
 
     return (
       <div className="markdown-code-shell" data-code-copy-root="">
@@ -65,14 +101,44 @@ const markdownComponents = {
   },
 } satisfies Components;
 
-function getCodeLanguage(props: Record<string, unknown>) {
+function getCodeLanguage(props: Record<string, unknown>, children: ReactNode) {
   const language = props["data-language"];
 
   if (typeof language === "string" && language.trim()) {
     return language.trim();
   }
 
+  const languageFromCodeClass = getCodeLanguageFromChildren(children);
+
+  if (languageFromCodeClass) {
+    return languageFromCodeClass;
+  }
+
   return "text";
+}
+
+function getCodeLanguageFromChildren(children: ReactNode) {
+  const childNodes = Array.isArray(children) ? children : [children];
+
+  for (const child of childNodes) {
+    if (!isValidElement(child)) {
+      continue;
+    }
+
+    const childProps = child.props as { className?: unknown };
+
+    if (typeof childProps.className !== "string") {
+      continue;
+    }
+
+    const languageMatch = /(?:^|\s)language-(?<language>\S+)/.exec(childProps.className);
+
+    if (languageMatch?.groups?.language) {
+      return languageMatch.groups.language;
+    }
+  }
+
+  return null;
 }
 
 function isExternalLink(href: string) {
@@ -84,36 +150,7 @@ async function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
     <article className={cx("markdown-body", className)}>
       <MarkdownAsync
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[
-          rehypeSlug,
-          [
-            rehypeAutolinkHeadings,
-            {
-              behavior: "append",
-              properties: {
-                className: ["markdown-heading-anchor"],
-                ariaLabel: "链接到这个小节",
-                tabIndex: -1,
-              },
-              content: {
-                type: "element",
-                tagName: "span",
-                properties: { ariaHidden: "true" },
-                children: [{ type: "text", value: "#" }],
-              },
-            },
-          ],
-          [
-            rehypePrettyCode,
-            {
-              keepBackground: false,
-              theme: {
-                light: "github-light",
-                dark: "github-dark",
-              },
-            },
-          ],
-        ]}
+        rehypePlugins={documentRehypePlugins}
         components={markdownComponents}
         skipHtml
       >
@@ -123,41 +160,33 @@ async function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   );
 }
 
-function MarkdownPreview({ content, className }: MarkdownRendererProps) {
+function MarkdownPreview({ content, className, variant = "document" }: MarkdownRendererProps) {
+  const previewClassName = cx(
+    "markdown-body",
+    variant === "stream" && "markdown-body-stream",
+    className,
+  );
+
+  if (variant === "stream") {
+    return (
+      <article className={previewClassName}>
+        <Markdown
+          remarkPlugins={[remarkGfm]}
+          rehypePlugins={streamRehypePlugins}
+          components={markdownComponents}
+          skipHtml
+        >
+          {content}
+        </Markdown>
+      </article>
+    );
+  }
+
   return (
-    <article className={cx("markdown-body", className)}>
+    <article className={previewClassName}>
       <MarkdownHooks
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[
-          rehypeSlug,
-          [
-            rehypeAutolinkHeadings,
-            {
-              behavior: "append",
-              properties: {
-                className: ["markdown-heading-anchor"],
-                ariaLabel: "链接到这个小节",
-                tabIndex: -1,
-              },
-              content: {
-                type: "element",
-                tagName: "span",
-                properties: { ariaHidden: "true" },
-                children: [{ type: "text", value: "#" }],
-              },
-            },
-          ],
-          [
-            rehypePrettyCode,
-            {
-              keepBackground: false,
-              theme: {
-                light: "github-light",
-                dark: "github-dark",
-              },
-            },
-          ],
-        ]}
+        rehypePlugins={documentRehypePlugins}
         components={markdownComponents}
         skipHtml
       >

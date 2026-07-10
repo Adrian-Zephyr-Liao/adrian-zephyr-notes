@@ -412,6 +412,76 @@
     @apply ml-1 no-underline;
   }
 
+  .markdown-body-stream {
+    @apply text-sm leading-6;
+  }
+
+  .markdown-body-stream h1 {
+    @apply mt-3 mb-2 text-lg leading-snug font-bold;
+  }
+
+  .markdown-body-stream h2 {
+    @apply mt-3 mb-2 border-0 p-0 text-base leading-snug font-bold;
+  }
+
+  .markdown-body-stream h2::before {
+    content: none;
+  }
+
+  .markdown-body-stream h3,
+  .markdown-body-stream h4,
+  .markdown-body-stream h5,
+  .markdown-body-stream h6 {
+    @apply mt-3 mb-2 text-sm leading-snug font-bold tracking-normal text-foreground normal-case;
+  }
+
+  .markdown-body-stream p {
+    @apply my-2;
+  }
+
+  .markdown-body-stream ul,
+  .markdown-body-stream ol {
+    @apply my-2 gap-1 pl-5;
+  }
+
+  .markdown-body-stream li {
+    @apply pl-0;
+  }
+
+  .markdown-body-stream blockquote {
+    @apply my-2 rounded-xl px-3 py-2 shadow-none;
+  }
+
+  .markdown-body-stream img {
+    @apply my-3 max-h-64 rounded-xl p-2;
+  }
+
+  .markdown-body-stream > .markdown-code-shell,
+  .markdown-body-stream .markdown-table-wrap {
+    @apply my-3 rounded-xl shadow-none;
+  }
+
+  .markdown-body-stream .markdown-code-toolbar {
+    @apply min-h-8 px-3 py-1;
+  }
+
+  .markdown-body-stream > .markdown-code-shell pre {
+    @apply p-3 text-xs leading-6;
+  }
+
+  .markdown-body-stream .markdown-table-wrap {
+    @apply overflow-x-auto;
+  }
+
+  .markdown-body-stream table {
+    @apply min-w-[32rem] text-xs;
+  }
+
+  .markdown-body-stream th,
+  .markdown-body-stream td {
+    @apply px-3 py-2;
+  }
+
   @media (max-width: 640px) {
     .markdown-body {
       @apply text-[0.96rem] leading-7;
