@@ -5,6 +5,7 @@ import type {
   SiteNavigationItemResponse,
   SiteSocialLinkResponse,
 } from "../public/site-config.js";
+import type { AdminAgentAutomationPolicyResponse } from "./agent.js";
 
 type AdminSiteAnnouncementResponse = SiteAnnouncementResponse & {
   key: string;
@@ -13,6 +14,7 @@ type AdminSiteAnnouncementResponse = SiteAnnouncementResponse & {
 };
 
 type AdminSiteConfigResponse = Omit<SiteConfigResponse, "announcements"> & {
+  adminAgentAutomationPolicy: AdminAgentAutomationPolicyResponse;
   announcements: AdminSiteAnnouncementResponse[];
 };
 
@@ -29,6 +31,7 @@ type UpdateAdminSiteAnnouncementRequest = {
 };
 
 type UpdateAdminSiteSettingsRequest = {
+  adminAgentAutomationPolicy: AdminAgentAutomationPolicyResponse;
   home: SiteHomeConfigResponse;
   navigationItems: SiteNavigationItemResponse[];
   socialLinks: SiteSocialLinkResponse[];

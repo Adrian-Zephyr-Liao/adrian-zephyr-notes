@@ -1,6 +1,11 @@
 import type { PaginatedResponse } from "../public/pagination.js";
 
 type AdminOperationLogAction =
+  | "ADMIN_AGENT_FINDING_CREATED"
+  | "ADMIN_AGENT_FINDING_DECIDED"
+  | "ADMIN_AGENT_TASK_CONTROLLED"
+  | "ADMIN_AGENT_TASK_RESUMED"
+  | "ADMIN_AGENT_TASK_STARTED"
   | "ARTICLE_CREATED"
   | "ARTICLE_DELETED"
   | "ARTICLE_UPDATED"

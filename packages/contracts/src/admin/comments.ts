@@ -3,6 +3,7 @@ import type { PaginatedResponse } from "../public/pagination.js";
 type AdminArticleCommentStatus = "HIDDEN" | "VISIBLE";
 
 type AdminArticleCommentListQuery = {
+  commentId?: string;
   page?: number;
   pageSize?: number;
   q?: string;
