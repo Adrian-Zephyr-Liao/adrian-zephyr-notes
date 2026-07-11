@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-alpine
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -24,9 +24,24 @@ RUN --mount=type=cache,id=azn-pnpm-store,target=/pnpm/store \
 
 COPY . .
 
-RUN pnpm --filter @adrian-zephyr-notes/server prisma:generate
-RUN pnpm --filter @adrian-zephyr-notes/server build
+ARG BACKEND_API_BASE_URL=http://server:3001
+ENV BACKEND_API_BASE_URL=$BACKEND_API_BASE_URL
+ENV ARTICLE_API_BASE_URL=$BACKEND_API_BASE_URL
 
-EXPOSE 3001
+RUN pnpm --filter @adrian-zephyr-notes/website build
 
-CMD ["node", "apps/server/dist/main.js"]
+FROM node:24-alpine AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+ENV PORT=3002
+ENV HOSTNAME=0.0.0.0
+
+RUN corepack enable
+
+COPY --from=builder /app /app
+
+EXPOSE 3002
+
+CMD ["pnpm", "--filter", "@adrian-zephyr-notes/website", "exec", "next", "start", "-H", "0.0.0.0", "-p", "3002"]

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-alpine
+FROM node:24-alpine AS builder
 
 WORKDIR /app
 
@@ -24,9 +24,14 @@ RUN --mount=type=cache,id=azn-pnpm-store,target=/pnpm/store \
 
 COPY . .
 
-RUN pnpm --filter @adrian-zephyr-notes/server prisma:generate
-RUN pnpm --filter @adrian-zephyr-notes/server build
+ARG VITE_BACKEND_API_BASE_URL
+ENV VITE_BACKEND_API_BASE_URL=$VITE_BACKEND_API_BASE_URL
 
-EXPOSE 3001
+RUN pnpm --filter @adrian-zephyr-notes/admin build
 
-CMD ["node", "apps/server/dist/main.js"]
+FROM nginx:1.27-alpine AS runner
+
+COPY apps/admin/nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/apps/admin/dist /usr/share/nginx/html
+
+EXPOSE 80

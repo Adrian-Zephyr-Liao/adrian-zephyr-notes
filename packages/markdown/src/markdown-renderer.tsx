@@ -131,10 +131,10 @@ function getCodeLanguageFromChildren(children: ReactNode) {
       continue;
     }
 
-    const languageMatch = /(?:^|\s)language-(?<language>\S+)/.exec(childProps.className);
+    const languageMatch = /(?:^|\s)language-(\S+)/.exec(childProps.className);
 
-    if (languageMatch?.groups?.language) {
-      return languageMatch.groups.language;
+    if (languageMatch?.[1]) {
+      return languageMatch[1];
     }
   }
 

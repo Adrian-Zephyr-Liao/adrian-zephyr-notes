@@ -6,6 +6,7 @@ node_modules/
 .env.*
 !.env.example
 !*.env.example
+deploy/docker/prod.env
 
 # App-local installs and build outputs
 apps/*/node_modules/
