@@ -24,7 +24,8 @@ RUN --mount=type=cache,id=azn-pnpm-store,target=/pnpm/store \
 
 COPY . .
 
-RUN pnpm --filter @adrian-zephyr-notes/server prisma:generate
+RUN DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public \
+  pnpm --filter @adrian-zephyr-notes/server prisma:generate
 RUN pnpm --filter @adrian-zephyr-notes/server build
 
 EXPOSE 3001
