@@ -13,12 +13,22 @@ type ArticleTag = {
   name: string;
 };
 
+type ArticleOrigin = "ORIGINAL" | "REPOSTED";
+
+type ArticleSource = {
+  author: string | null;
+  name: string;
+  url: string;
+};
+
 type ArticleProps = {
   id: ArticleId;
   slug: ArticleSlug;
   title: string;
   description: string;
   markdown: string;
+  origin: ArticleOrigin;
+  source: ArticleSource | null;
   status: ArticleStatus;
   category: ArticleCategory | null;
   tags: ArticleTag[];
@@ -48,6 +58,13 @@ class Article {
       title: requireText(props.title, "Article title"),
       description: requireText(props.description, "Article description"),
       markdown: requireText(props.markdown, "Article markdown"),
+      source: props.source
+        ? {
+            author: props.source.author?.trim() || null,
+            name: requireText(props.source.name, "Article source name"),
+            url: requireHttpUrl(props.source.url, "Article source URL"),
+          }
+        : null,
       tags: [...props.tags],
       publishedAt: cloneDateOrNull(props.publishedAt),
       createdAt: cloneDate(props.createdAt),
@@ -57,6 +74,14 @@ class Article {
 
     if (article.props.status === "PUBLISHED" && !article.props.publishedAt) {
       throw new Error("Published articles must have a publishedAt timestamp.");
+    }
+
+    if (article.props.origin === "ORIGINAL" && article.props.source) {
+      throw new Error("Original articles cannot include repost attribution.");
+    }
+
+    if (article.props.origin === "REPOSTED" && !article.props.source) {
+      throw new Error("Reposted articles require source attribution.");
     }
 
     if (article.props.wordCount < 0 || article.props.readingMinutes < 0) {
@@ -84,6 +109,14 @@ class Article {
 
   get markdown() {
     return this.props.markdown;
+  }
+
+  get origin() {
+    return this.props.origin;
+  }
+
+  get source() {
+    return this.props.source ? { ...this.props.source } : null;
   }
 
   get category() {
@@ -137,6 +170,22 @@ function requireText(value: string, fieldName: string) {
   return normalized;
 }
 
+function requireHttpUrl(value: string, fieldName: string) {
+  const normalized = requireText(value, fieldName);
+
+  try {
+    const url = new URL(normalized);
+
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      throw new Error();
+    }
+  } catch {
+    throw new Error(`${fieldName} must be a valid HTTP(S) URL.`);
+  }
+
+  return normalized;
+}
+
 function cloneDate(value: Date) {
   return new Date(value.getTime());
 }
@@ -146,4 +195,11 @@ function cloneDateOrNull(value: Date | null) {
 }
 
 export { Article };
-export type { ArticleCategory, ArticleProps, ArticleTag, CreateArticleProps };
+export type {
+  ArticleCategory,
+  ArticleOrigin,
+  ArticleProps,
+  ArticleSource,
+  ArticleTag,
+  CreateArticleProps,
+};

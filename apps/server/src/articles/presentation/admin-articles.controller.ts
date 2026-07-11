@@ -66,6 +66,7 @@ class AdminArticlesController {
       pageSize: query.pageSize,
       search: query.q,
       status: query.status,
+      origin: query.origin,
     });
 
     return toAdminArticleListResponse(result);
@@ -83,6 +84,10 @@ class AdminArticlesController {
         coverImageUrl: body.coverImageUrl,
         description: body.description,
         markdown: body.markdown,
+        origin: body.origin,
+        sourceAuthor: body.sourceAuthor,
+        sourceName: body.sourceName,
+        sourceUrl: body.sourceUrl,
         status: body.status,
         tagSlugs: body.tagSlugs,
         title: body.title,
@@ -136,6 +141,10 @@ class AdminArticlesController {
         coverImageUrl: body.coverImageUrl,
         description: body.description,
         markdown: body.markdown,
+        origin: body.origin,
+        sourceAuthor: body.sourceAuthor,
+        sourceName: body.sourceName,
+        sourceUrl: body.sourceUrl,
         status: body.status,
         tagSlugs: body.tagSlugs,
         title: body.title,

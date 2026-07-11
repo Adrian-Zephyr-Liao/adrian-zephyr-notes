@@ -1,6 +1,16 @@
 import Link from "next/link";
 import type { ArticleListItemResponse } from "@adrian-zephyr-notes/contracts";
-import { ArrowRight, CalendarDays, Clock3, FileText, FolderOpen, Layers3, Tag } from "lucide-react";
+import {
+  ArrowRight,
+  CalendarDays,
+  Clock3,
+  FileText,
+  FolderOpen,
+  Layers3,
+  Repeat2,
+  Sparkles,
+  Tag,
+} from "lucide-react";
 
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { StatusIllustration } from "@/components/status/status-illustration";
@@ -83,10 +93,20 @@ function FeaturedArticleCard({ article }: { article: ArticleListItemResponse }) 
             <Layers3 className="size-3" />
             最新精选
           </Badge>
-          <Badge variant="outline" className="gap-1.5 bg-background/45">
-            <FolderOpen className="size-3" />
-            {article.category?.name ?? "未分类"}
-          </Badge>
+          {article.category ? (
+            <Badge asChild variant="outline" className="gap-1.5 bg-background/45">
+              <Link href={`/categories/${article.category.slug}`}>
+                <FolderOpen className="size-3" />
+                {article.category.name}
+              </Link>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="gap-1.5 bg-background/45">
+              <FolderOpen className="size-3" />
+              未分类
+            </Badge>
+          )}
+          <ArticleOriginBadge article={article} />
         </div>
 
         <div className="grid gap-3">
@@ -104,9 +124,11 @@ function FeaturedArticleCard({ article }: { article: ArticleListItemResponse }) 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             {article.tags.slice(0, 4).map((tag) => (
-              <Badge key={tag.slug} variant="outline" className="gap-1.5 bg-background/45">
-                <Tag className="size-3" />
-                {tag.name}
+              <Badge key={tag.slug} asChild variant="outline" className="gap-1.5 bg-background/45">
+                <Link href={`/tags/${tag.slug}`}>
+                  <Tag className="size-3" />
+                  {tag.name}
+                </Link>
               </Badge>
             ))}
           </div>
@@ -133,10 +155,24 @@ function ArticleCard({ article, index }: { article: ArticleListItemResponse; ind
           <span className="grid size-9 place-items-center rounded-xl bg-primary/12 text-xs font-black text-primary">
             {String(index).padStart(2, "0")}
           </span>
-          <Badge variant="outline" className="max-w-[12rem] gap-1.5 truncate bg-background/40">
-            <FolderOpen className="size-3" />
-            <span className="truncate">{article.category?.name ?? "未分类"}</span>
-          </Badge>
+          {article.category ? (
+            <Badge
+              asChild
+              variant="outline"
+              className="max-w-[12rem] gap-1.5 truncate bg-background/40"
+            >
+              <Link href={`/categories/${article.category.slug}`}>
+                <FolderOpen className="size-3" />
+                <span className="truncate">{article.category.name}</span>
+              </Link>
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="max-w-[12rem] gap-1.5 bg-background/40">
+              <FolderOpen className="size-3" />
+              未分类
+            </Badge>
+          )}
+          <ArticleOriginBadge article={article} />
         </div>
 
         <div className="grid gap-2">
@@ -156,6 +192,18 @@ function ArticleCard({ article, index }: { article: ArticleListItemResponse; ind
         <ArrowRight className="size-4 text-muted-foreground transition group-hover/article:translate-x-0.5 group-hover/article:text-primary" />
       </div>
     </GlassPanel>
+  );
+}
+
+function ArticleOriginBadge({ article }: { article: ArticleListItemResponse }) {
+  const isReposted = article.origin === "REPOSTED";
+  const Icon = isReposted ? Repeat2 : Sparkles;
+
+  return (
+    <Badge variant={isReposted ? "secondary" : "outline"} className="gap-1.5 bg-background/45">
+      <Icon className="size-3" />
+      {isReposted ? "转载" : "原创"}
+    </Badge>
   );
 }
 

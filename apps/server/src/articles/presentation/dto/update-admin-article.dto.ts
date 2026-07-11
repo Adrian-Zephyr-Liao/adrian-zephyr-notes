@@ -32,6 +32,25 @@ class UpdateAdminArticleDto implements UpdateAdminArticleRequest {
   @IsOptional()
   @IsString()
   coverImageUrl?: string | null;
+
+  @IsOptional()
+  @IsIn(["ORIGINAL", "REPOSTED"])
+  origin?: UpdateAdminArticleRequest["origin"];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  sourceName?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  sourceAuthor?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2048)
+  sourceUrl?: string | null;
 }
 
 export { UpdateAdminArticleDto };

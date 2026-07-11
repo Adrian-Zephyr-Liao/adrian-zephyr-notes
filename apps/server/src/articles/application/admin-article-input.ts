@@ -5,6 +5,7 @@ import type {
   UpdateAdminArticleRepositoryInput,
 } from "../domain/admin-article.repository";
 import type { ArticleStatus } from "../domain/article-status";
+import type { ArticleOrigin } from "../domain/article.entity";
 import { ArticleSlug } from "../domain/value-objects/article-slug";
 import { AdminArticleValidationError } from "./admin-article.errors";
 import { calculateArticleReadingMetrics } from "./article-reading-metrics";
@@ -21,6 +22,10 @@ type CreateAdminArticleInput = {
   coverImageUrl?: string | null;
   description: string;
   markdown: string;
+  origin?: string;
+  sourceAuthor?: string | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
   status?: string;
   tagSlugs?: string[];
   title: string;
@@ -32,6 +37,10 @@ type UpdateAdminArticleInput = {
   description?: string;
   id: string;
   markdown?: string;
+  origin?: string;
+  sourceAuthor?: string | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
   status?: string;
   tagSlugs?: string[];
   title?: string;
@@ -43,12 +52,22 @@ function normalizeCreateAdminArticleInput(
 ): CreateAdminArticleRepositoryInput {
   const markdown = normalizeRequiredText(input.markdown, "Article markdown");
   const status = normalizeArticleStatus(input.status) ?? "DRAFT";
+  const origin = normalizeArticleOrigin(input.origin) ?? "ORIGINAL";
+  const source = normalizeArticleSourceInput({
+    origin,
+    sourceAuthor: input.sourceAuthor,
+    sourceName: input.sourceName,
+    sourceUrl: input.sourceUrl,
+    status,
+  });
 
   return {
     slug: createShortArticleSlug(),
     title: normalizeRequiredText(input.title, "Article title"),
     description: normalizeArticleDescription(input.description, status),
     markdown,
+    origin,
+    ...source,
     status,
     publishedAt: status === "PUBLISHED" ? now : null,
     categorySlug: normalizeOptionalText(input.categorySlug),
@@ -66,6 +85,15 @@ function normalizeUpdateAdminArticleInput(
   const markdown = normalizeOptionalRequiredText(input.markdown, "Article markdown");
   const status = normalizeArticleStatus(input.status);
   const nextStatus = status ?? current.status;
+  const origin = normalizeArticleOrigin(input.origin);
+  const nextOrigin = origin ?? current.origin;
+  const source = normalizeArticleSourceInput({
+    origin: nextOrigin,
+    sourceAuthor: input.sourceAuthor === undefined ? current.source?.author : input.sourceAuthor,
+    sourceName: input.sourceName === undefined ? current.source?.name : input.sourceName,
+    sourceUrl: input.sourceUrl === undefined ? current.source?.url : input.sourceUrl,
+    status: nextStatus,
+  });
   const updateInput: UpdateAdminArticleRepositoryInput = {
     id: normalizeRequiredText(input.id, "Article id"),
   };
@@ -85,6 +113,20 @@ function normalizeUpdateAdminArticleInput(
 
   if (input.coverImageUrl !== undefined) {
     updateInput.coverImageUrl = normalizeOptionalText(input.coverImageUrl);
+  }
+
+  if (
+    input.origin !== undefined ||
+    input.sourceAuthor !== undefined ||
+    input.sourceName !== undefined ||
+    input.sourceUrl !== undefined
+  ) {
+    updateInput.origin = nextOrigin;
+    Object.assign(updateInput, source);
+  }
+
+  if (input.status !== undefined && nextOrigin === "REPOSTED") {
+    Object.assign(updateInput, source);
   }
 
   if (input.categorySlug !== undefined) {
@@ -160,6 +202,65 @@ function normalizeArticleStatus(value: string | undefined): ArticleStatus | unde
   throw new AdminArticleValidationError("Unsupported article status.");
 }
 
+function normalizeArticleOrigin(value: string | undefined): ArticleOrigin | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (value === "ORIGINAL" || value === "REPOSTED") {
+    return value;
+  }
+
+  throw new AdminArticleValidationError("Unsupported article origin.");
+}
+
+function normalizeArticleSourceInput(input: {
+  origin: ArticleOrigin;
+  sourceAuthor?: string | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
+  status: ArticleStatus;
+}) {
+  if (input.origin === "ORIGINAL") {
+    return {
+      sourceAuthor: null,
+      sourceName: null,
+      sourceUrl: null,
+    };
+  }
+
+  const sourceAuthor = normalizeOptionalText(input.sourceAuthor);
+  const sourceName = normalizeOptionalText(input.sourceName);
+  const sourceUrl = normalizeOptionalText(input.sourceUrl);
+
+  if (input.status !== "DRAFT") {
+    if (!sourceName) {
+      throw new AdminArticleValidationError("Reposted articles require a source name.");
+    }
+
+    if (!sourceUrl || !isHttpUrl(sourceUrl)) {
+      throw new AdminArticleValidationError(
+        "Reposted articles require a valid HTTP(S) source URL.",
+      );
+    }
+  }
+
+  return {
+    sourceAuthor,
+    sourceName,
+    sourceUrl,
+  };
+}
+
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
 function normalizeOptionalRequiredText(value: string | undefined, fieldName: string) {
   return value === undefined ? undefined : normalizeRequiredText(value, fieldName);
 }
@@ -188,9 +289,15 @@ function normalizeOptionalText(value: string | null | undefined) {
 }
 
 function normalizeSlugList(values: string[]) {
-  return Array.from(
+  const slugs = Array.from(
     new Set(values.map((value) => value.trim()).filter((value) => value.length > 0)),
   );
+
+  if (slugs.length > 5) {
+    throw new AdminArticleValidationError("An article can have at most five tags.");
+  }
+
+  return slugs;
 }
 
 export {

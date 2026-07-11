@@ -112,6 +112,47 @@ describe("UpdateAdminArticleUseCase", () => {
     ).rejects.toBeInstanceOf(AdminArticleValidationError);
     expect(repository.update).not.toHaveBeenCalled();
   });
+
+  it("clears repost attribution when switching back to original", async () => {
+    const repository = createRepositoryDouble(
+      createArticle({
+        origin: "REPOSTED",
+        source: {
+          author: "Original Author",
+          name: "Source Site",
+          url: "https://example.com/original",
+        },
+      }),
+    );
+    const useCase = new UpdateAdminArticleUseCase(repository, createQueueDouble());
+
+    await useCase.execute({ id: "article-1", origin: "ORIGINAL" });
+
+    expect(repository.update).toHaveBeenCalledWith({
+      id: "article-1",
+      origin: "ORIGINAL",
+      sourceAuthor: null,
+      sourceName: null,
+      sourceUrl: null,
+    });
+  });
+
+  it("rejects publishing a repost draft without a valid source url", async () => {
+    const repository = createRepositoryDouble(
+      createArticle({
+        origin: "REPOSTED",
+        source: null,
+        status: "DRAFT",
+        publishedAt: null,
+      }),
+    );
+    const useCase = new UpdateAdminArticleUseCase(repository, createQueueDouble());
+
+    await expect(useCase.execute({ id: "article-1", status: "PUBLISHED" })).rejects.toBeInstanceOf(
+      AdminArticleValidationError,
+    );
+    expect(repository.update).not.toHaveBeenCalled();
+  });
 });
 
 function createRepositoryDouble(article: AdminArticleDetail) {
@@ -173,10 +214,12 @@ function createArticle(overrides: Partial<AdminArticleDetail> = {}): AdminArticl
     description: "Original description",
     id: "article-1",
     markdown: "# Original Markdown",
+    origin: "ORIGINAL",
     publishedAt: new Date("2026-07-02T00:00:00.000Z"),
     readingMinutes: 1,
     slug: "article-slug",
     status: "PUBLISHED",
+    source: null,
     tags: [{ slug: "markdown", name: "Markdown" }],
     title: "Original title",
     updatedAt: new Date("2026-07-02T00:00:00.000Z"),

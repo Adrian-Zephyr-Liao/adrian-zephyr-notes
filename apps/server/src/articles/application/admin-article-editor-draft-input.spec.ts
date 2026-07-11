@@ -33,6 +33,10 @@ describe("normalizeSaveAdminArticleEditorDraftInput", () => {
         categorySlug: "notes",
         tagSlugs: ["markdown"],
         coverImageUrl: "https://example.test/cover.png",
+        origin: "ORIGINAL",
+        sourceAuthor: "",
+        sourceName: "",
+        sourceUrl: "",
       },
     });
   });

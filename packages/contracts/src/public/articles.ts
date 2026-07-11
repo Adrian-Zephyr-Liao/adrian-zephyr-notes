@@ -5,9 +5,33 @@ type ArticleCategorySummary = {
   name: string;
 };
 
+type ArticleCategoryDetailResponse = ArticleCategorySummary & {
+  description: string | null;
+  publishedArticleCount: number;
+};
+
+type ArticleCategoryListResponse = {
+  data: ArticleCategoryDetailResponse[];
+};
+
 type ArticleTagSummary = {
   slug: string;
   name: string;
+};
+
+type ArticleTagDetailResponse = ArticleTagSummary & {
+  publishedArticleCount: number;
+};
+
+type ArticleTagListQuery = { page?: number; pageSize?: number };
+type ArticleTagListResponse = PaginatedResponse<ArticleTagDetailResponse>;
+
+type ArticleOrigin = "ORIGINAL" | "REPOSTED";
+
+type ArticleSource = {
+  author: string | null;
+  name: string;
+  url: string;
 };
 
 type ArticleListQuery = {
@@ -23,6 +47,8 @@ type ArticleListItemResponse = {
   slug: string;
   title: string;
   description: string;
+  origin: ArticleOrigin;
+  source: ArticleSource | null;
   category: ArticleCategorySummary | null;
   tags: ArticleTagSummary[];
   coverImageUrl: string | null;
@@ -46,10 +72,17 @@ type ArticleListResponse = PaginatedResponse<ArticleListItemResponse>;
 
 export type {
   ArticleCategorySummary,
+  ArticleCategoryDetailResponse,
+  ArticleCategoryListResponse,
   ArticleAiSummaryResponse,
   ArticleDetailResponse,
   ArticleListItemResponse,
   ArticleListQuery,
   ArticleListResponse,
+  ArticleOrigin,
+  ArticleSource,
   ArticleTagSummary,
+  ArticleTagDetailResponse,
+  ArticleTagListQuery,
+  ArticleTagListResponse,
 };

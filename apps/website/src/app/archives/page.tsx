@@ -86,9 +86,7 @@ async function ArchivesPage({ searchParams }: ArchivesPageProps) {
                     <div className="flex flex-wrap gap-2">
                       {article.tags.map((item) => (
                         <Badge key={item.slug} asChild variant="outline">
-                          <Link href={`/archives?tag=${encodeURIComponent(item.slug)}`}>
-                            {item.name}
-                          </Link>
+                          <Link href={`/tags/${item.slug}`}>{item.name}</Link>
                         </Badge>
                       ))}
                     </div>

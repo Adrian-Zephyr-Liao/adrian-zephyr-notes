@@ -22,6 +22,10 @@ class AdminArticleListQueryDto {
   @IsOptional()
   @IsIn(["ALL", "ARCHIVED", "DRAFT", "PUBLISHED"])
   status?: string;
+
+  @IsOptional()
+  @IsIn(["ALL", "ORIGINAL", "REPOSTED"])
+  origin?: "ALL" | "ORIGINAL" | "REPOSTED";
 }
 
 export { AdminArticleListQueryDto };

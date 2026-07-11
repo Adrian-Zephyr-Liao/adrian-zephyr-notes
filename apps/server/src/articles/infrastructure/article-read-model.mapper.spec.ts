@@ -38,6 +38,26 @@ describe("article read model mapper", () => {
 
     expect(toArticleDetailResponse(article).aiSummary).toBeNull();
   });
+
+  it("includes source attribution for reposted articles", () => {
+    const article = createArticle({
+      origin: "REPOSTED",
+      source: {
+        name: "Example Engineering",
+        author: "Ada",
+        url: "https://example.com/articles/original",
+      },
+    });
+
+    expect(toArticleDetailResponse(article)).toMatchObject({
+      origin: "REPOSTED",
+      source: {
+        name: "Example Engineering",
+        author: "Ada",
+        url: "https://example.com/articles/original",
+      },
+    });
+  });
 });
 
 function createArticle(overrides: Partial<Parameters<typeof Article.create>[0]> = {}) {
@@ -47,7 +67,9 @@ function createArticle(overrides: Partial<Parameters<typeof Article.create>[0]> 
     title: "Markdown 语法全量展示",
     description: "文章摘要",
     markdown: "# Markdown",
+    origin: "ORIGINAL",
     status: "PUBLISHED",
+    source: null,
     category: { slug: "markdown", name: "Markdown" },
     tags: [{ slug: "gfm", name: "GFM" }],
     coverImageUrl: null,

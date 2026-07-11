@@ -23,6 +23,8 @@ function toArticleListItemResponse(article: Article): ArticleListItemResponse {
     slug: article.slug,
     title: article.title,
     description: article.description,
+    origin: article.origin,
+    source: article.source,
     category: article.category,
     tags: article.tags,
     coverImageUrl: article.coverImageUrl,

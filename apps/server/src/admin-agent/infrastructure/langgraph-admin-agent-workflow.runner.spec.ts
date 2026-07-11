@@ -3215,10 +3215,12 @@ function createAdminArticleDetail(overrides: Partial<AdminArticleDetail> = {}): 
     description: "文章描述",
     id: "article-1",
     markdown: "# 文章\n\n正文内容",
+    origin: "ORIGINAL",
     publishedAt: null,
     readingMinutes: 1,
     slug: "article",
     status: "DRAFT",
+    source: null,
     tags: [
       {
         name: "Agent",

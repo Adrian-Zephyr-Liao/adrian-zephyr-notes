@@ -102,9 +102,17 @@ class StaticArticleRepository implements ArticleRepository {
 
   constructor(private readonly articles: Array<Article | null>) {}
 
+  async findPublishedCategoryBySlug() {
+    return null;
+  }
+
   async findPublishedBySlug(slug: string, now: Date) {
     this.findInputs.push({ slug, now });
     return this.articles.shift() ?? null;
+  }
+
+  async findPublishedTagBySlug() {
+    return null;
   }
 
   async listPublished(filters: ListPublishedArticlesFilters) {
@@ -117,6 +125,14 @@ class StaticArticleRepository implements ArticleRepository {
         totalPages: 0,
       },
     };
+  }
+
+  async listPublishedCategories() {
+    return [];
+  }
+
+  async listPublishedTags() {
+    return { data: [], pagination: { page: 1, pageSize: 24, totalItems: 0, totalPages: 0 } };
   }
 }
 
@@ -162,7 +178,9 @@ function createArticle(overrides: Partial<Parameters<typeof Article.create>[0]> 
     title: "Markdown 语法全量展示",
     description: "文章摘要",
     markdown: "# Markdown",
+    origin: "ORIGINAL",
     status: "PUBLISHED",
+    source: null,
     category: { slug: "markdown", name: "Markdown" },
     tags: [{ slug: "gfm", name: "GFM" }],
     coverImageUrl: null,

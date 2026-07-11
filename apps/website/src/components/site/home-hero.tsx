@@ -187,7 +187,7 @@ function LatestArticleRibbon({ article }: { article: ArticleListItemResponse }) 
     >
       <p className="flex items-center gap-1.5 text-xs font-black tracking-[0.16em] text-primary uppercase">
         <Feather className="size-3.5" />
-        最新笔记
+        {article.origin === "REPOSTED" ? "最新转载" : "最新原创"}
       </p>
       <h2 className="mt-2 line-clamp-2 text-base/tight font-black tracking-normal text-foreground">
         {article.title}

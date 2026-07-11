@@ -6,6 +6,7 @@ import {
 } from "../domain/admin-article.repository";
 
 type ListAdminArticlesInput = {
+  origin?: string;
   page?: number;
   pageSize?: number;
   search?: string;
@@ -28,6 +29,7 @@ function normalizeListAdminArticlesInput(input: ListAdminArticlesInput): ListAdm
   return {
     page: normalizePositiveInteger(input.page, 1),
     pageSize: Math.min(normalizePositiveInteger(input.pageSize, 20), 50),
+    origin: normalizeOrigin(input.origin),
     search: normalizeOptionalText(input.search),
     status: normalizeStatus(input.status),
   };
@@ -48,6 +50,10 @@ function normalizeOptionalText(value: string | undefined) {
 
 function normalizeStatus(value: string | undefined) {
   return value === "ARCHIVED" || value === "DRAFT" || value === "PUBLISHED" ? value : undefined;
+}
+
+function normalizeOrigin(value: string | undefined) {
+  return value === "ORIGINAL" || value === "REPOSTED" ? value : undefined;
 }
 
 export { ListAdminArticlesUseCase, normalizeListAdminArticlesInput };

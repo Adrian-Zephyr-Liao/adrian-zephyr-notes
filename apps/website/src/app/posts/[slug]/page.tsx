@@ -6,12 +6,14 @@ import {
   CalendarDays,
   ChevronLeft,
   Clock3,
+  ExternalLink,
   Copyright,
   FileText,
   FolderOpen,
   Hash,
   History,
   ShieldCheck,
+  Repeat2,
   Tag,
 } from "lucide-react";
 
@@ -73,18 +75,38 @@ async function PostPage({ params }: PostPageProps) {
             </Link>
             <div className="grid gap-5">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className="gap-1.5">
-                  <FolderOpen className="size-3" />
-                  {post.category?.name ?? "未分类"}
+                {post.category ? (
+                  <Badge asChild variant="secondary" className="gap-1.5">
+                    <Link href={`/categories/${post.category.slug}`}>
+                      <FolderOpen className="size-3" />
+                      {post.category.name}
+                    </Link>
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="gap-1.5">
+                    <FolderOpen className="size-3" />
+                    未分类
+                  </Badge>
+                )}
+                <Badge variant="outline" className="gap-1.5 bg-white/40 dark:bg-white/5">
+                  {post.origin === "REPOSTED" ? (
+                    <Repeat2 className="size-3" />
+                  ) : (
+                    <ShieldCheck className="size-3" />
+                  )}
+                  {post.origin === "REPOSTED" ? "转载" : "原创"}
                 </Badge>
                 {post.tags.map((tag) => (
                   <Badge
                     key={tag.slug}
+                    asChild
                     variant="outline"
                     className="gap-1.5 bg-white/40 dark:bg-white/5"
                   >
-                    <Tag className="size-3" />
-                    {tag.name}
+                    <Link href={`/tags/${tag.slug}`}>
+                      <Tag className="size-3" />
+                      {tag.name}
+                    </Link>
                   </Badge>
                 ))}
               </div>
@@ -126,6 +148,23 @@ async function PostPage({ params }: PostPageProps) {
               tone="strong"
               className="min-w-0 rounded-2xl px-4 py-5 sm:rounded-3xl sm:px-8 sm:py-7 lg:px-10"
             >
+              {post.origin === "REPOSTED" && post.source ? (
+                <aside className="mb-6 grid gap-1 border-l-2 border-primary pl-4 text-sm text-muted-foreground">
+                  <p className="font-semibold text-foreground">
+                    本文转载自 {post.source.name}
+                    {post.source.author ? ` · 原作者 ${post.source.author}` : ""}
+                  </p>
+                  <a
+                    className="inline-flex w-fit items-center gap-1.5 text-primary hover:underline"
+                    href={post.source.url}
+                    rel="nofollow noreferrer"
+                    target="_blank"
+                  >
+                    查看原文
+                    <ExternalLink className="size-3.5" />
+                  </a>
+                </aside>
+              ) : null}
               {post.aiSummary ? <ArticleAiSummaryCard summary={post.aiSummary} /> : null}
               <MarkdownRenderer content={post.markdown} />
               <ArticleComments slug={post.slug} />
@@ -138,15 +177,23 @@ async function PostPage({ params }: PostPageProps) {
                         <Copyright className="size-5" />
                       </span>
                       <div>
-                        <div className="font-semibold text-foreground">版权声明</div>
+                        <div className="font-semibold text-foreground">
+                          {post.origin === "REPOSTED" ? "转载说明" : "版权声明"}
+                        </div>
                         <p className="text-sm text-muted-foreground">
-                          本文采用 CC BY-NC-SA 4.0 协议，转载请注明作者与链接。
+                          {post.origin === "REPOSTED"
+                            ? "本文版权归原作者及原发布方所有，转载信息以上方来源为准。"
+                            : "本文采用 CC BY-NC-SA 4.0 协议，转载请注明作者与链接。"}
                         </p>
                       </div>
                     </div>
                     <Badge className="w-fit gap-1.5" variant="secondary">
-                      <ShieldCheck className="size-3" />
-                      原创
+                      {post.origin === "REPOSTED" ? (
+                        <Repeat2 className="size-3" />
+                      ) : (
+                        <ShieldCheck className="size-3" />
+                      )}
+                      {post.origin === "REPOSTED" ? "转载" : "原创"}
                     </Badge>
                   </div>
                 </GlassPanel>

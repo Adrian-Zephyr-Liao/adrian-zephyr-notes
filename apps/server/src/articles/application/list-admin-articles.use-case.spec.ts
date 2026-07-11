@@ -14,6 +14,7 @@ describe("ListAdminArticlesUseCase", () => {
       page: 0,
       pageSize: 500,
       search: "  markdown  ",
+      origin: "REPOSTED",
       status: "PUBLISHED",
     });
 
@@ -21,6 +22,7 @@ describe("ListAdminArticlesUseCase", () => {
       page: 1,
       pageSize: 50,
       search: "markdown",
+      origin: "REPOSTED",
       status: "PUBLISHED",
     });
   });
@@ -36,6 +38,7 @@ describe("normalizeListAdminArticlesInput", () => {
       page: 1,
       pageSize: 20,
       search: undefined,
+      origin: undefined,
       status: undefined,
     });
   });

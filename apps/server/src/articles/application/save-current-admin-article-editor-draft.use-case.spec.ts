@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AdminArticleRepository } from "../domain/admin-article.repository";
 import type { AdminArticleEditorDraftRepository } from "../domain/admin-article-editor-draft.repository";
-import { AdminArticleNotFoundError } from "./admin-article.errors";
+import { AdminArticleNotFoundError, AdminArticleValidationError } from "./admin-article.errors";
 import { SaveCurrentAdminArticleEditorDraftUseCase } from "./save-current-admin-article-editor-draft.use-case";
 
 describe("SaveCurrentAdminArticleEditorDraftUseCase", () => {
@@ -22,6 +22,10 @@ describe("SaveCurrentAdminArticleEditorDraftUseCase", () => {
         description: "",
         markdown: "# Draft",
         status: "DRAFT",
+        origin: "REPOSTED",
+        sourceAuthor: "Original Author",
+        sourceName: "Source Site",
+        sourceUrl: "https://example.com/original",
         categorySlug: "",
         tagSlugs: [],
         coverImageUrl: "",
@@ -55,12 +59,47 @@ describe("SaveCurrentAdminArticleEditorDraftUseCase", () => {
           description: "",
           markdown: "# Draft",
           status: "DRAFT",
+          origin: "ORIGINAL",
+          sourceAuthor: "",
+          sourceName: "",
+          sourceUrl: "",
           categorySlug: "",
           tagSlugs: [],
           coverImageUrl: "",
         },
       }),
     ).rejects.toBeInstanceOf(AdminArticleNotFoundError);
+    expect(draftRepository.saveCurrent).not.toHaveBeenCalled();
+  });
+
+  it("rejects stale taxonomy slugs before saving a draft", async () => {
+    const draftRepository = createDraftRepositoryDouble();
+    const articleRepository = createArticleRepositoryDouble();
+    const useCase = new SaveCurrentAdminArticleEditorDraftUseCase(
+      draftRepository,
+      articleRepository,
+    );
+
+    await expect(
+      useCase.execute({
+        ownerUserId: "admin-1",
+        articleId: null,
+        clientSavedAt: "2026-07-03T10:00:00.000Z",
+        values: {
+          title: "Stale draft",
+          description: "",
+          markdown: "# Draft",
+          status: "DRAFT",
+          origin: "ORIGINAL",
+          sourceAuthor: "",
+          sourceName: "",
+          sourceUrl: "",
+          categorySlug: "removed-category",
+          tagSlugs: ["removed-tag"],
+          coverImageUrl: "",
+        },
+      }),
+    ).rejects.toBeInstanceOf(AdminArticleValidationError);
     expect(draftRepository.saveCurrent).not.toHaveBeenCalled();
   });
 });
@@ -86,9 +125,10 @@ function createArticleRepositoryDouble(article: unknown = { id: "article-1" }) {
     delete: vi.fn(),
     findById: vi.fn().mockResolvedValue(article),
     list: vi.fn(),
-    listTaxonomyOptions: vi.fn(),
+    listTaxonomyOptions: vi.fn().mockResolvedValue({ categories: [], tags: [] }),
     update: vi.fn(),
   } as unknown as AdminArticleRepository & {
     findById: ReturnType<typeof vi.fn>;
+    listTaxonomyOptions: ReturnType<typeof vi.fn>;
   };
 }

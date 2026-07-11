@@ -1,10 +1,16 @@
-import type { ArticleCategorySummary, ArticleTagSummary } from "../public/articles.js";
+import type {
+  ArticleCategorySummary,
+  ArticleOrigin,
+  ArticleSource,
+  ArticleTagSummary,
+} from "../public/articles.js";
 import type { PaginatedResponse } from "../public/pagination.js";
 
 type AdminArticleStatus = "ARCHIVED" | "DRAFT" | "PUBLISHED";
 type AdminArticleAiSummaryStatus = "FAILED" | "GENERATING" | "PENDING" | "READY" | "UNQUEUED";
 
 type AdminArticleListQuery = {
+  origin?: ArticleOrigin | "ALL";
   page?: number;
   pageSize?: number;
   q?: string;
@@ -16,6 +22,8 @@ type AdminArticleListItemResponse = {
   slug: string;
   title: string;
   description: string;
+  origin: ArticleOrigin;
+  source: ArticleSource | null;
   status: AdminArticleStatus;
   category: ArticleCategorySummary | null;
   tags: ArticleTagSummary[];
@@ -43,6 +51,56 @@ type AdminArticleTaxonomyOptionsResponse = {
   tags: AdminArticleTaxonomyOption[];
 };
 
+type AdminArticleCategoryListQuery = {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+};
+
+type AdminArticleCategoryResponse = {
+  articleCount: number;
+  createdAt: string;
+  description: string | null;
+  id: string;
+  name: string;
+  slug: string;
+  updatedAt: string;
+};
+
+type AdminArticleCategoryListResponse = PaginatedResponse<AdminArticleCategoryResponse>;
+
+type CreateAdminArticleCategoryRequest = {
+  description?: string | null;
+  name: string;
+  slug: string;
+};
+
+type UpdateAdminArticleCategoryRequest = {
+  description?: string | null;
+  name?: string;
+  slug?: string;
+};
+
+type AdminArticleTagListQuery = {
+  page?: number;
+  pageSize?: number;
+  q?: string;
+};
+
+type AdminArticleTagResponse = {
+  articleCount: number;
+  createdAt: string;
+  id: string;
+  name: string;
+  slug: string;
+  updatedAt: string;
+};
+
+type AdminArticleTagListResponse = PaginatedResponse<AdminArticleTagResponse>;
+type CreateAdminArticleTagRequest = { name: string; slug: string };
+type UpdateAdminArticleTagRequest = { name?: string; slug?: string };
+type MergeAdminArticleTagRequest = { targetTagId: string };
+
 type AdminArticleEditorDraftValues = {
   title: string;
   description: string;
@@ -51,6 +109,10 @@ type AdminArticleEditorDraftValues = {
   categorySlug: string;
   tagSlugs: string[];
   coverImageUrl: string;
+  origin: ArticleOrigin;
+  sourceAuthor: string;
+  sourceName: string;
+  sourceUrl: string;
 };
 
 type AdminArticleEditorDraftResponse = {
@@ -76,6 +138,10 @@ type UpdateAdminArticleRequest = {
   categorySlug?: string | null;
   tagSlugs?: string[];
   coverImageUrl?: string | null;
+  origin?: ArticleOrigin;
+  sourceAuthor?: string | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
 };
 
 type CreateAdminArticleRequest = {
@@ -86,12 +152,19 @@ type CreateAdminArticleRequest = {
   categorySlug?: string | null;
   tagSlugs?: string[];
   coverImageUrl?: string | null;
+  origin?: ArticleOrigin;
+  sourceAuthor?: string | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
 };
 
 type AdminArticleListResponse = PaginatedResponse<AdminArticleListItemResponse>;
 
 export type {
   AdminArticleAiSummaryStatus,
+  AdminArticleCategoryListQuery,
+  AdminArticleCategoryListResponse,
+  AdminArticleCategoryResponse,
   AdminArticleDetailResponse,
   AdminArticleEditorDraftResponse,
   AdminArticleEditorDraftValues,
@@ -101,7 +174,15 @@ export type {
   AdminArticleStatus,
   AdminArticleTaxonomyOption,
   AdminArticleTaxonomyOptionsResponse,
+  AdminArticleTagListQuery,
+  AdminArticleTagListResponse,
+  AdminArticleTagResponse,
   CreateAdminArticleRequest,
+  CreateAdminArticleCategoryRequest,
+  CreateAdminArticleTagRequest,
+  MergeAdminArticleTagRequest,
   SaveAdminArticleEditorDraftRequest,
   UpdateAdminArticleRequest,
+  UpdateAdminArticleCategoryRequest,
+  UpdateAdminArticleTagRequest,
 };

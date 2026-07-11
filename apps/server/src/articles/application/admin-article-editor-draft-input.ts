@@ -16,6 +16,10 @@ type SaveAdminArticleEditorDraftInput = {
     description: string;
     markdown: string;
     status: string;
+    origin?: string;
+    sourceAuthor?: string;
+    sourceName?: string;
+    sourceUrl?: string;
     tagSlugs: string[];
     title: string;
   };
@@ -44,6 +48,10 @@ function normalizeDraftValues(
     coverImageUrl: normalizeOptionalText(values.coverImageUrl) ?? "",
     description: values.description.trim(),
     markdown: values.markdown,
+    origin: normalizeArticleOrigin(values.origin),
+    sourceAuthor: normalizeOptionalText(values.sourceAuthor) ?? "",
+    sourceName: normalizeOptionalText(values.sourceName) ?? "",
+    sourceUrl: normalizeOptionalText(values.sourceUrl) ?? "",
     status: normalizeArticleStatus(values.status),
     tagSlugs: normalizeSlugList(values.tagSlugs),
     title: values.title.trim(),
@@ -56,6 +64,18 @@ function normalizeArticleStatus(value: string): ArticleStatus {
   }
 
   throw new AdminArticleValidationError("Unsupported draft article status.");
+}
+
+function normalizeArticleOrigin(value: string | undefined) {
+  if (value === undefined) {
+    return "ORIGINAL";
+  }
+
+  if (value === "ORIGINAL" || value === "REPOSTED") {
+    return value;
+  }
+
+  throw new AdminArticleValidationError("Unsupported draft article origin.");
 }
 
 function normalizeOptionalDate(value: string | null | undefined, fieldName: string) {

@@ -1,10 +1,15 @@
 import type { ArticleStatus } from "./article-status";
+import type { ArticleOrigin } from "./article.entity";
 
 type AdminArticleEditorDraftValues = {
   title: string;
   description: string;
   markdown: string;
   status: ArticleStatus;
+  origin: ArticleOrigin;
+  sourceAuthor: string;
+  sourceName: string;
+  sourceUrl: string;
   categorySlug: string;
   tagSlugs: string[];
   coverImageUrl: string;

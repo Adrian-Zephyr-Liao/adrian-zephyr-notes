@@ -27,6 +27,22 @@ class AdminArticleEditorDraftValuesDto implements AdminArticleEditorDraftValues 
 
   @IsString()
   coverImageUrl!: string;
+
+  @IsOptional()
+  @IsIn(["ORIGINAL", "REPOSTED"])
+  origin!: AdminArticleEditorDraftValues["origin"];
+
+  @IsOptional()
+  @IsString()
+  sourceName!: string;
+
+  @IsOptional()
+  @IsString()
+  sourceAuthor!: string;
+
+  @IsOptional()
+  @IsString()
+  sourceUrl!: string;
 }
 
 class SaveAdminArticleEditorDraftDto implements SaveAdminArticleEditorDraftRequest {

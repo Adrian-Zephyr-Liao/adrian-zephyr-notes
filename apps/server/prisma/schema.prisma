@@ -12,6 +12,11 @@ enum ArticleStatus {
   ARCHIVED
 }
 
+enum ArticleOrigin {
+  ORIGINAL
+  REPOSTED
+}
+
 enum ArticleCommentStatus {
   VISIBLE
   HIDDEN
@@ -113,6 +118,10 @@ model Article {
   description    String
   markdown       String
   status         ArticleStatus
+  origin         ArticleOrigin     @default(ORIGINAL)
+  sourceName     String?           @map("source_name")
+  sourceAuthor   String?           @map("source_author")
+  sourceUrl      String?           @map("source_url")
   categoryId     String?           @map("category_id") @db.Uuid
   coverImageUrl  String?           @map("cover_image_url")
   wordCount      Int               @map("word_count")
@@ -128,6 +137,8 @@ model Article {
   editorDrafts   AdminArticleEditorDraft[]
 
   @@index([status, publishedAt(sort: Desc)])
+  @@index([origin, status, publishedAt(sort: Desc)])
+  @@index([categoryId])
   @@map("articles")
 }
 
@@ -183,6 +194,10 @@ model AdminArticleEditorDraft {
   description          String
   markdown             String
   status               ArticleStatus @default(DRAFT)
+  origin               ArticleOrigin @default(ORIGINAL)
+  sourceName           String?       @map("source_name")
+  sourceAuthor         String?       @map("source_author")
+  sourceUrl            String?       @map("source_url")
   categorySlug         String?       @map("category_slug")
   tagSlugs             String[]      @default([]) @map("tag_slugs")
   coverImageUrl        String?       @map("cover_image_url")
@@ -196,6 +211,8 @@ model AdminArticleEditorDraft {
   @@unique([ownerUserId, scope])
   @@index([ownerUserId, updatedAt(sort: Desc)])
   @@index([articleId])
+  @@index([categorySlug])
+  @@index([tagSlugs], type: Gin)
   @@map("admin_article_editor_drafts")
 }
 
@@ -296,7 +313,7 @@ model ArticleCategory {
 model ArticleTag {
   id        String           @id @default(uuid()) @db.Uuid
   slug      String           @unique
-  name      String           @unique
+  name      String
   createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
   articles  ArticleTagLink[]
@@ -308,9 +325,10 @@ model ArticleTagLink {
   articleId String     @map("article_id") @db.Uuid
   tagId     String     @map("tag_id") @db.Uuid
   article   Article    @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  tag       ArticleTag @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tag       ArticleTag @relation(fields: [tagId], references: [id], onDelete: Restrict)
 
   @@id([articleId, tagId])
+  @@index([tagId])
   @@map("article_tag_links")
 }
 

@@ -63,6 +63,9 @@ export type {
 } from "./admin/audit.js";
 export type {
   AdminArticleAiSummaryStatus,
+  AdminArticleCategoryListQuery,
+  AdminArticleCategoryListResponse,
+  AdminArticleCategoryResponse,
   AdminArticleDetailResponse,
   AdminArticleEditorDraftResponse,
   AdminArticleEditorDraftValues,
@@ -72,9 +75,17 @@ export type {
   AdminArticleStatus,
   AdminArticleTaxonomyOption,
   AdminArticleTaxonomyOptionsResponse,
+  AdminArticleTagListQuery,
+  AdminArticleTagListResponse,
+  AdminArticleTagResponse,
   CreateAdminArticleRequest,
+  CreateAdminArticleCategoryRequest,
+  CreateAdminArticleTagRequest,
+  MergeAdminArticleTagRequest,
   SaveAdminArticleEditorDraftRequest,
   UpdateAdminArticleRequest,
+  UpdateAdminArticleCategoryRequest,
+  UpdateAdminArticleTagRequest,
 } from "./admin/articles.js";
 export type {
   AdminArticleCommentArticleResponse,
@@ -101,13 +112,20 @@ export type {
   UpdateAdminSiteSettingsRequest,
 } from "./admin/site-config.js";
 export type {
+  ArticleCategoryDetailResponse,
+  ArticleCategoryListResponse,
   ArticleCategorySummary,
   ArticleAiSummaryResponse,
   ArticleDetailResponse,
   ArticleListItemResponse,
   ArticleListQuery,
   ArticleListResponse,
+  ArticleOrigin,
+  ArticleSource,
   ArticleTagSummary,
+  ArticleTagDetailResponse,
+  ArticleTagListQuery,
+  ArticleTagListResponse,
 } from "./public/articles.js";
 export type { AuthUserResponse } from "./public/auth.js";
 export type {

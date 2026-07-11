@@ -6,6 +6,7 @@ import {
   Dice5,
   Gamepad2,
   Home,
+  FolderOpen,
   Lightbulb,
   Link2,
   MessageCircle,
@@ -57,6 +58,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/#articles", label: "最新文章", icon: Home },
       { href: "/archives", label: "文章归档", icon: Archive },
+      { href: "/categories", label: "分类目录", icon: FolderOpen },
       { href: "/tags", label: "标签浏览", icon: Tags },
     ],
   },
@@ -99,6 +101,6 @@ const navGroups: NavGroup[] = [
   },
 ];
 
-const desktopDropdownGroups = navGroups.slice(1);
+const desktopDropdownGroups = navGroups;
 
 export { desktopDropdownGroups, navGroups, portalLinks };

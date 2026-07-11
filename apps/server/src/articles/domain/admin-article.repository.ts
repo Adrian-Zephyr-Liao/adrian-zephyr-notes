@@ -1,6 +1,8 @@
 import type { ArticleStatus } from "./article-status";
+import type { ArticleOrigin, ArticleSource } from "./article.entity";
 
 type ListAdminArticlesFilters = {
+  origin?: ArticleOrigin;
   page: number;
   pageSize: number;
   search?: string;
@@ -24,6 +26,8 @@ type AdminArticleListItem = {
   slug: string;
   title: string;
   description: string;
+  origin: ArticleOrigin;
+  source: ArticleSource | null;
   status: ArticleStatus;
   category: AdminArticleCategory | null;
   tags: AdminArticleTag[];
@@ -68,6 +72,10 @@ type UpdateAdminArticleRepositoryInput = {
   coverImageUrl?: string | null;
   wordCount?: number;
   readingMinutes?: number;
+  origin?: ArticleOrigin;
+  sourceAuthor?: string | null;
+  sourceName?: string | null;
+  sourceUrl?: string | null;
 };
 
 type CreateAdminArticleRepositoryInput = {
@@ -82,6 +90,10 @@ type CreateAdminArticleRepositoryInput = {
   coverImageUrl: string | null;
   wordCount: number;
   readingMinutes: number;
+  origin: ArticleOrigin;
+  sourceAuthor: string | null;
+  sourceName: string | null;
+  sourceUrl: string | null;
 };
 
 interface AdminArticleRepository {

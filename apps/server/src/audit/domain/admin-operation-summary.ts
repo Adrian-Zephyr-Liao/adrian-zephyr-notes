@@ -74,6 +74,23 @@ function createAdminOperationSummary(input: AdminOperationSummaryInput) {
     return `删除文章 ${toArticleReference(metadata, input.resourceId)}`;
   }
 
+  if (input.action === "ARTICLE_CATEGORY_CREATED") {
+    return "创建文章分类";
+  }
+
+  if (input.action === "ARTICLE_CATEGORY_UPDATED") {
+    return "更新文章分类";
+  }
+
+  if (input.action === "ARTICLE_CATEGORY_DELETED") {
+    return "删除文章分类";
+  }
+
+  if (input.action === "ARTICLE_TAG_CREATED") return "创建文章标签";
+  if (input.action === "ARTICLE_TAG_UPDATED") return "更新文章标签";
+  if (input.action === "ARTICLE_TAG_DELETED") return "删除文章标签";
+  if (input.action === "ARTICLE_TAG_MERGED") return "合并文章标签";
+
   if (input.action === "SITE_ANNOUNCEMENT_UPDATED") {
     return `更新站点公告 ${toDisplayText(metadata.key) || toShortReference(input.resourceId)}`;
   }

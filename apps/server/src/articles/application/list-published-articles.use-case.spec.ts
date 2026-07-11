@@ -43,7 +43,15 @@ describe("ListPublishedArticlesUseCase", () => {
 class CapturingArticleRepository implements ArticleRepository {
   lastFilters: ListPublishedArticlesFilters | null = null;
 
+  async findPublishedCategoryBySlug() {
+    return null;
+  }
+
   async findPublishedBySlug() {
+    return null;
+  }
+
+  async findPublishedTagBySlug() {
     return null;
   }
 
@@ -58,5 +66,13 @@ class CapturingArticleRepository implements ArticleRepository {
         totalPages: 0,
       },
     };
+  }
+
+  async listPublishedCategories() {
+    return [];
+  }
+
+  async listPublishedTags() {
+    return { data: [], pagination: { page: 1, pageSize: 24, totalItems: 0, totalPages: 0 } };
   }
 }

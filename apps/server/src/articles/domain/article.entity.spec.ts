@@ -35,6 +35,15 @@ describe("Article", () => {
       "Article slug must be 3-80 lowercase URL-safe characters.",
     );
   });
+
+  it("requires attribution for published reposts", () => {
+    expect(() =>
+      createArticle({
+        origin: "REPOSTED",
+        source: null,
+      }),
+    ).toThrow("Reposted articles require source attribution.");
+  });
 });
 
 function createArticle(overrides: Partial<Parameters<typeof Article.create>[0]> = {}) {
@@ -44,7 +53,9 @@ function createArticle(overrides: Partial<Parameters<typeof Article.create>[0]> 
     title: "Markdown 语法全量展示",
     description: "文章摘要",
     markdown: "# Markdown",
+    origin: "ORIGINAL",
     status: "PUBLISHED",
+    source: null,
     category: { slug: "markdown", name: "Markdown" },
     tags: [{ slug: "gfm", name: "GFM" }],
     coverImageUrl: null,

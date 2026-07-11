@@ -8,6 +8,7 @@ import {
   type AdminArticleRepository,
 } from "../domain/admin-article.repository";
 import { AdminArticleNotFoundError } from "./admin-article.errors";
+import { assertAdminArticleTaxonomyInputExists } from "./admin-article-input";
 import {
   normalizeSaveAdminArticleEditorDraftInput,
   type SaveAdminArticleEditorDraftInput,
@@ -24,6 +25,13 @@ class SaveCurrentAdminArticleEditorDraftUseCase {
 
   async execute(input: SaveAdminArticleEditorDraftInput) {
     const saveInput = normalizeSaveAdminArticleEditorDraftInput(input);
+
+    if (saveInput.values.categorySlug || saveInput.values.tagSlugs.length > 0) {
+      await assertAdminArticleTaxonomyInputExists(this.adminArticleRepository, {
+        categorySlug: saveInput.values.categorySlug || null,
+        tagSlugs: saveInput.values.tagSlugs,
+      });
+    }
 
     if (saveInput.articleId) {
       const article = await this.adminArticleRepository.findById(saveInput.articleId);

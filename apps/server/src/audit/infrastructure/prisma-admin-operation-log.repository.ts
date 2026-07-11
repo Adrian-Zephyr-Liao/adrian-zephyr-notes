@@ -127,6 +127,13 @@ function toAdminOperationLogAction(value: string): AdminOperationLog["action"] {
     value === "ADMIN_AGENT_TASK_RESUMED" ||
     value === "ADMIN_AGENT_TASK_STARTED" ||
     value === "ARTICLE_UPDATED" ||
+    value === "ARTICLE_CATEGORY_CREATED" ||
+    value === "ARTICLE_CATEGORY_DELETED" ||
+    value === "ARTICLE_CATEGORY_UPDATED" ||
+    value === "ARTICLE_TAG_CREATED" ||
+    value === "ARTICLE_TAG_DELETED" ||
+    value === "ARTICLE_TAG_MERGED" ||
+    value === "ARTICLE_TAG_UPDATED" ||
     value === "ARTICLE_CREATED" ||
     value === "ARTICLE_DELETED" ||
     value === "COMMENT_STATUS_UPDATED" ||

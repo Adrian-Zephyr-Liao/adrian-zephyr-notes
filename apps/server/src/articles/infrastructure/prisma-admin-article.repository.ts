@@ -42,6 +42,10 @@ class PrismaAdminArticleRepository implements AdminArticleRepository {
           title: input.title,
           description: input.description,
           markdown: input.markdown,
+          origin: input.origin,
+          sourceAuthor: input.sourceAuthor,
+          sourceName: input.sourceName,
+          sourceUrl: input.sourceUrl,
           status: input.status,
           publishedAt: input.publishedAt,
           coverImageUrl: input.coverImageUrl,
@@ -227,6 +231,10 @@ function buildAdminArticleWhere(filters: ListAdminArticlesFilters): Prisma.Artic
     where.status = filters.status;
   }
 
+  if (filters.origin) {
+    where.origin = filters.origin;
+  }
+
   if (filters.search) {
     where.OR = [
       { title: { contains: filters.search, mode: "insensitive" } },
@@ -267,6 +275,22 @@ function buildArticleUpdateData(
     data.coverImageUrl = input.coverImageUrl;
   }
 
+  if (input.origin !== undefined) {
+    data.origin = input.origin;
+  }
+
+  if (input.sourceAuthor !== undefined) {
+    data.sourceAuthor = input.sourceAuthor;
+  }
+
+  if (input.sourceName !== undefined) {
+    data.sourceName = input.sourceName;
+  }
+
+  if (input.sourceUrl !== undefined) {
+    data.sourceUrl = input.sourceUrl;
+  }
+
   if (input.wordCount !== undefined) {
     data.wordCount = input.wordCount;
   }
@@ -296,6 +320,15 @@ function toAdminArticleListItemResponse(record: AdminArticleRecord): AdminArticl
     slug: record.slug,
     title: record.title,
     description: record.description,
+    origin: record.origin,
+    source:
+      record.origin === "REPOSTED" && record.sourceName && record.sourceUrl
+        ? {
+            author: record.sourceAuthor,
+            name: record.sourceName,
+            url: record.sourceUrl,
+          }
+        : null,
     status: record.status,
     category: record.category
       ? {

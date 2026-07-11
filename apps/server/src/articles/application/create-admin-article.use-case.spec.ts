@@ -86,6 +86,64 @@ describe("CreateAdminArticleUseCase", () => {
     ).rejects.toBeInstanceOf(AdminArticleValidationError);
     expect(repository.create).not.toHaveBeenCalled();
   });
+
+  it("normalizes repost attribution before publishing", async () => {
+    const repository = createRepositoryDouble();
+    const useCase = new CreateAdminArticleUseCase(repository, createQueueDouble());
+
+    await useCase.execute({
+      title: "Reposted Article",
+      description: "Useful description",
+      markdown: "# Reposted",
+      origin: "REPOSTED",
+      sourceAuthor: "  Original Author  ",
+      sourceName: "  Source Site  ",
+      sourceUrl: "  https://example.com/original  ",
+      status: "PUBLISHED",
+    });
+
+    expect(repository.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        origin: "REPOSTED",
+        sourceAuthor: "Original Author",
+        sourceName: "Source Site",
+        sourceUrl: "https://example.com/original",
+      }),
+    );
+  });
+
+  it("rejects repost publication without complete attribution", async () => {
+    const repository = createRepositoryDouble();
+    const useCase = new CreateAdminArticleUseCase(repository, createQueueDouble());
+
+    await expect(
+      useCase.execute({
+        title: "Reposted Article",
+        description: "Useful description",
+        markdown: "# Reposted",
+        origin: "REPOSTED",
+        sourceName: "Source Site",
+        sourceUrl: "",
+        status: "PUBLISHED",
+      }),
+    ).rejects.toBeInstanceOf(AdminArticleValidationError);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
+
+  it("rejects more than five article tags", async () => {
+    const repository = createRepositoryDouble();
+    const useCase = new CreateAdminArticleUseCase(repository, createQueueDouble());
+
+    await expect(
+      useCase.execute({
+        title: "Tagged Article",
+        description: "Useful description",
+        markdown: "# Tagged",
+        tagSlugs: ["one", "two", "three", "four", "five", "six"],
+      }),
+    ).rejects.toBeInstanceOf(AdminArticleValidationError);
+    expect(repository.create).not.toHaveBeenCalled();
+  });
 });
 
 function createRepositoryDouble() {
@@ -124,10 +182,18 @@ function createArticle(input: CreateAdminArticleRepositoryInput): AdminArticleDe
     description: input.description,
     id: "created-article",
     markdown: input.markdown,
+    origin: input.origin,
     publishedAt: input.publishedAt,
     readingMinutes: input.readingMinutes,
     slug: input.slug,
     status: input.status,
+    source: input.sourceUrl
+      ? {
+          author: input.sourceAuthor,
+          name: input.sourceName ?? "",
+          url: input.sourceUrl,
+        }
+      : null,
     tags: input.tagSlugs.map((slug) => ({ slug, name: slug })),
     title: input.title,
     updatedAt: new Date("2026-07-03T00:00:00.000Z"),
