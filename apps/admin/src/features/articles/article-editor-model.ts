@@ -10,6 +10,10 @@ const emptyArticleEditorValues: ArticleEditorValues = {
   coverImageUrl: "",
   description: "",
   markdown: "# 新文章\n\n从这里开始写。",
+  origin: "ORIGINAL",
+  sourceAuthor: "",
+  sourceName: "",
+  sourceUrl: "",
   status: "DRAFT",
   tagSlugs: [],
   title: "",
@@ -28,6 +32,10 @@ function toEditorValues(article: AdminArticleDetailResponse): ArticleEditorValue
     coverImageUrl: article.coverImageUrl ?? "",
     description: article.description,
     markdown: article.markdown,
+    origin: article.origin,
+    sourceAuthor: article.source?.author ?? "",
+    sourceName: article.source?.name ?? "",
+    sourceUrl: article.source?.url ?? "",
     status: article.status,
     tagSlugs: article.tags.map((tag) => tag.slug),
     title: article.title,
@@ -40,6 +48,10 @@ function toArticleMutationPayload(values: ArticleEditorValues): CreateAdminArtic
     coverImageUrl: normalizeNullableText(values.coverImageUrl),
     description: values.description.trim(),
     markdown: values.markdown,
+    origin: values.origin,
+    sourceAuthor: normalizeNullableText(values.sourceAuthor),
+    sourceName: normalizeNullableText(values.sourceName),
+    sourceUrl: normalizeNullableText(values.sourceUrl),
     status: values.status,
     tagSlugs: values.tagSlugs,
     title: values.title,
@@ -57,6 +69,14 @@ function getArticleEditorValidationMessage(values: ArticleEditorValues) {
 
   if (values.status === "PUBLISHED" && !values.description.trim()) {
     return "发布文章前需要填写 SEO 描述。";
+  }
+
+  if (
+    values.status === "PUBLISHED" &&
+    values.origin === "REPOSTED" &&
+    (!values.sourceName.trim() || !isHttpUrl(values.sourceUrl))
+  ) {
+    return "发布转载文章前需要填写来源名称和有效的原文链接。";
   }
 
   return null;
@@ -84,6 +104,15 @@ function getStatusConfirmationText(nextStatus: AdminArticleStatus) {
 function normalizeNullableText(value: string) {
   const normalized = value.trim();
   return normalized ? normalized : null;
+}
+
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
 }
 
 function createDefaultArticleTitle() {

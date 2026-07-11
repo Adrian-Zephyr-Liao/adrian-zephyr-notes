@@ -1,10 +1,20 @@
 import { MarkdownPreview } from "@adrian-zephyr-notes/markdown";
 import type {
+  ArticleOrigin,
   AdminArticleStatus,
   AdminArticleTaxonomyOptionsResponse,
 } from "@adrian-zephyr-notes/contracts";
-import { ChevronDown, Columns2, Eye, Loader2, PencilLine, SlidersHorizontal } from "lucide-react";
+import {
+  ChevronDown,
+  Columns2,
+  Eye,
+  Loader2,
+  PencilLine,
+  Search,
+  SlidersHorizontal,
+} from "lucide-react";
 import type { ReactNode } from "react";
+import { useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
@@ -19,6 +29,10 @@ type ArticleEditorValues = {
   coverImageUrl: string;
   description: string;
   markdown: string;
+  origin: ArticleOrigin;
+  sourceAuthor: string;
+  sourceName: string;
+  sourceUrl: string;
   status: AdminArticleStatus;
   tagSlugs: string[];
   title: string;
@@ -114,7 +128,7 @@ function ArticleEditorFields({
 }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-3">
-      <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1fr)_180px]">
+      <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1fr)_160px_160px]">
         <Field label="标题">
           <Input
             maxLength={160}
@@ -122,6 +136,24 @@ function ArticleEditorFields({
             value={values.title}
             onChange={(event) => onChange({ ...values, title: event.target.value })}
           />
+        </Field>
+        <Field label="文章来源">
+          <Select
+            value={values.origin}
+            onChange={(event) => {
+              const origin = event.target.value as ArticleOrigin;
+              onChange({
+                ...values,
+                origin,
+                ...(origin === "ORIGINAL"
+                  ? { sourceAuthor: "", sourceName: "", sourceUrl: "" }
+                  : {}),
+              });
+            }}
+          >
+            <option value="ORIGINAL">原创</option>
+            <option value="REPOSTED">转载</option>
+          </Select>
         </Field>
         <Field label="状态">
           <Select
@@ -171,6 +203,15 @@ function PublishSettingsPanel({
   taxonomyOptions: AdminArticleTaxonomyOptionsResponse;
   values: ArticleEditorValues;
 }) {
+  const [tagQuery, setTagQuery] = useState("");
+  const normalizedTagQuery = tagQuery.trim().toLocaleLowerCase("zh-CN");
+  const visibleTags = taxonomyOptions.tags.filter(
+    (tag) =>
+      !normalizedTagQuery ||
+      tag.name.toLocaleLowerCase("zh-CN").includes(normalizedTagQuery) ||
+      tag.slug.toLocaleLowerCase("zh-CN").includes(normalizedTagQuery),
+  );
+
   return (
     <details className="group shrink-0 rounded-xl border border-border/70 bg-muted/20">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-foreground transition outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/45 [&::-webkit-details-marker]:hidden">
@@ -184,6 +225,37 @@ function PublishSettingsPanel({
         <ChevronDown className="size-4 text-muted-foreground transition group-open:rotate-180" />
       </summary>
       <div className="grid gap-3 border-t border-border/70 p-3">
+        {values.origin === "REPOSTED" ? (
+          <div className="grid gap-3 border-b border-border/70 pb-3">
+            <div className="grid gap-3 lg:grid-cols-2">
+              <Field label="来源名称">
+                <Input
+                  maxLength={160}
+                  placeholder="例如：作者博客、技术社区"
+                  value={values.sourceName}
+                  onChange={(event) => onChange({ ...values, sourceName: event.target.value })}
+                />
+              </Field>
+              <Field label="原作者（可选）">
+                <Input
+                  maxLength={160}
+                  placeholder="原作者或组织名称"
+                  value={values.sourceAuthor}
+                  onChange={(event) => onChange({ ...values, sourceAuthor: event.target.value })}
+                />
+              </Field>
+            </div>
+            <Field label="原文链接">
+              <Input
+                inputMode="url"
+                maxLength={2048}
+                placeholder="https://example.com/original"
+                value={values.sourceUrl}
+                onChange={(event) => onChange({ ...values, sourceUrl: event.target.value })}
+              />
+            </Field>
+          </div>
+        ) : null}
         <Field label="SEO 描述">
           <Textarea
             maxLength={500}
@@ -215,10 +287,25 @@ function PublishSettingsPanel({
             />
           </Field>
         </div>
-        <Field label="标签">
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between gap-3 text-xs font-medium text-muted-foreground">
+            <span>标签</span>
+            <span>已选 {values.tagSlugs.length} / 5</span>
+          </div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+            <Input
+              aria-label="搜索标签"
+              className="pl-8"
+              placeholder="搜索标签名称或 slug"
+              value={tagQuery}
+              onChange={(event) => setTagQuery(event.target.value)}
+            />
+          </div>
           <div className="flex flex-wrap gap-2">
-            {taxonomyOptions.tags.map((tag) => {
+            {visibleTags.map((tag) => {
               const checked = values.tagSlugs.includes(tag.slug);
+              const selectionLimitReached = !checked && values.tagSlugs.length >= 5;
 
               return (
                 <div
@@ -231,6 +318,7 @@ function PublishSettingsPanel({
                   <Checkbox
                     id={`article-tag-${tag.slug}`}
                     checked={checked}
+                    disabled={selectionLimitReached}
                     onCheckedChange={(nextChecked) =>
                       onChange({
                         ...values,
@@ -248,9 +336,11 @@ function PublishSettingsPanel({
             })}
             {taxonomyOptions.tags.length === 0 ? (
               <span className="text-sm text-muted-foreground">暂无标签。</span>
+            ) : visibleTags.length === 0 ? (
+              <span className="text-sm text-muted-foreground">没有匹配的标签。</span>
             ) : null}
           </div>
-        </Field>
+        </div>
       </div>
     </details>
   );

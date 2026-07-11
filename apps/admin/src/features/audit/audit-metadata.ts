@@ -229,6 +229,23 @@ function formatAuditSummary(log: AdminOperationLogResponse) {
     return `删除文章 ${formatMetadataValue(metadata.articleSlug) || extractTrailingSummaryValue(log.summary)}`;
   }
 
+  if (log.action === "ARTICLE_CATEGORY_CREATED") {
+    return "创建文章分类";
+  }
+
+  if (log.action === "ARTICLE_CATEGORY_UPDATED") {
+    return "更新文章分类";
+  }
+
+  if (log.action === "ARTICLE_CATEGORY_DELETED") {
+    return "删除文章分类";
+  }
+
+  if (log.action === "ARTICLE_TAG_CREATED") return "创建文章标签";
+  if (log.action === "ARTICLE_TAG_UPDATED") return "更新文章标签";
+  if (log.action === "ARTICLE_TAG_DELETED") return "删除文章标签";
+  if (log.action === "ARTICLE_TAG_MERGED") return "合并文章标签";
+
   if (log.action === "SITE_ANNOUNCEMENT_UPDATED") {
     return "更新站点公告";
   }

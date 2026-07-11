@@ -16,7 +16,9 @@ import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AgentRouteImport } from './routes/agent'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
+import { Route as ArticlesTagsRouteImport } from './routes/articles.tags'
 import { Route as ArticlesNewRouteImport } from './routes/articles.new'
+import { Route as ArticlesCategoriesRouteImport } from './routes/articles.categories'
 import { Route as ArticlesArticleIdEditRouteImport } from './routes/articles.$articleId.edit'
 
 const SiteRoute = SiteRouteImport.update({
@@ -54,9 +56,19 @@ const ArticlesIndexRoute = ArticlesIndexRouteImport.update({
   path: '/articles/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ArticlesTagsRoute = ArticlesTagsRouteImport.update({
+  id: '/articles/tags',
+  path: '/articles/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArticlesNewRoute = ArticlesNewRouteImport.update({
   id: '/articles/new',
   path: '/articles/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArticlesCategoriesRoute = ArticlesCategoriesRouteImport.update({
+  id: '/articles/categories',
+  path: '/articles/categories',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArticlesArticleIdEditRoute = ArticlesArticleIdEditRouteImport.update({
@@ -72,7 +84,9 @@ export interface FileRoutesByFullPath {
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
   '/site': typeof SiteRoute
+  '/articles/categories': typeof ArticlesCategoriesRoute
   '/articles/new': typeof ArticlesNewRoute
+  '/articles/tags': typeof ArticlesTagsRoute
   '/articles/': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
@@ -83,7 +97,9 @@ export interface FileRoutesByTo {
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
   '/site': typeof SiteRoute
+  '/articles/categories': typeof ArticlesCategoriesRoute
   '/articles/new': typeof ArticlesNewRoute
+  '/articles/tags': typeof ArticlesTagsRoute
   '/articles': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
@@ -95,7 +111,9 @@ export interface FileRoutesById {
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
   '/site': typeof SiteRoute
+  '/articles/categories': typeof ArticlesCategoriesRoute
   '/articles/new': typeof ArticlesNewRoute
+  '/articles/tags': typeof ArticlesTagsRoute
   '/articles/': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
@@ -108,7 +126,9 @@ export interface FileRouteTypes {
     | '/comments'
     | '/guestbook'
     | '/site'
+    | '/articles/categories'
     | '/articles/new'
+    | '/articles/tags'
     | '/articles/'
     | '/articles/$articleId/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -119,7 +139,9 @@ export interface FileRouteTypes {
     | '/comments'
     | '/guestbook'
     | '/site'
+    | '/articles/categories'
     | '/articles/new'
+    | '/articles/tags'
     | '/articles'
     | '/articles/$articleId/edit'
   id:
@@ -130,7 +152,9 @@ export interface FileRouteTypes {
     | '/comments'
     | '/guestbook'
     | '/site'
+    | '/articles/categories'
     | '/articles/new'
+    | '/articles/tags'
     | '/articles/'
     | '/articles/$articleId/edit'
   fileRoutesById: FileRoutesById
@@ -142,7 +166,9 @@ export interface RootRouteChildren {
   CommentsRoute: typeof CommentsRoute
   GuestbookRoute: typeof GuestbookRoute
   SiteRoute: typeof SiteRoute
+  ArticlesCategoriesRoute: typeof ArticlesCategoriesRoute
   ArticlesNewRoute: typeof ArticlesNewRoute
+  ArticlesTagsRoute: typeof ArticlesTagsRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
   ArticlesArticleIdEditRoute: typeof ArticlesArticleIdEditRoute
 }
@@ -198,11 +224,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArticlesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/articles/tags': {
+      id: '/articles/tags'
+      path: '/articles/tags'
+      fullPath: '/articles/tags'
+      preLoaderRoute: typeof ArticlesTagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/articles/new': {
       id: '/articles/new'
       path: '/articles/new'
       fullPath: '/articles/new'
       preLoaderRoute: typeof ArticlesNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/articles/categories': {
+      id: '/articles/categories'
+      path: '/articles/categories'
+      fullPath: '/articles/categories'
+      preLoaderRoute: typeof ArticlesCategoriesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/articles/$articleId/edit': {
@@ -222,7 +262,9 @@ const rootRouteChildren: RootRouteChildren = {
   CommentsRoute: CommentsRoute,
   GuestbookRoute: GuestbookRoute,
   SiteRoute: SiteRoute,
+  ArticlesCategoriesRoute: ArticlesCategoriesRoute,
   ArticlesNewRoute: ArticlesNewRoute,
+  ArticlesTagsRoute: ArticlesTagsRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
   ArticlesArticleIdEditRoute: ArticlesArticleIdEditRoute,
 }

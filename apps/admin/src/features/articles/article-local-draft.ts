@@ -1,6 +1,6 @@
 import type { ArticleEditorValues } from "./article-editor";
 
-const articleLocalDraftStorageVersion = 1;
+const articleLocalDraftStorageVersion = 2;
 const articleLocalDraftStoragePrefix = "az-notes:admin:article-draft";
 
 type ArticleLocalDraftScope = {
@@ -61,7 +61,7 @@ function readArticleLocalDraft(storage: Storage | undefined, key: string) {
 
     const parsedValue: unknown = JSON.parse(rawValue);
 
-    return isArticleLocalDraftRecord(parsedValue) ? parsedValue : null;
+    return toArticleLocalDraftRecord(parsedValue);
   } catch {
     return null;
   }
@@ -143,24 +143,47 @@ function normalizeComparableValues(values: ArticleEditorValues) {
   };
 }
 
-function isArticleLocalDraftRecord(value: unknown): value is ArticleLocalDraftRecord {
+function toArticleLocalDraftRecord(value: unknown): ArticleLocalDraftRecord | null {
   if (!value || typeof value !== "object") {
-    return false;
+    return null;
   }
 
-  const candidate = value as Partial<ArticleLocalDraftRecord>;
+  const candidate = value as Omit<Partial<ArticleLocalDraftRecord>, "version"> & {
+    version?: number;
+  };
 
-  return (
-    candidate.version === articleLocalDraftStorageVersion &&
-    typeof candidate.savedAt === "string" &&
-    (candidate.articleId === null || typeof candidate.articleId === "string") &&
-    (candidate.baseArticleUpdatedAt === null ||
-      typeof candidate.baseArticleUpdatedAt === "string") &&
-    isArticleEditorValues(candidate.values)
-  );
+  if (
+    (candidate.version !== 1 && candidate.version !== articleLocalDraftStorageVersion) ||
+    typeof candidate.savedAt !== "string" ||
+    (candidate.articleId !== null && typeof candidate.articleId !== "string") ||
+    (candidate.baseArticleUpdatedAt !== null &&
+      typeof candidate.baseArticleUpdatedAt !== "string") ||
+    !isLegacyArticleEditorValues(candidate.values)
+  ) {
+    return null;
+  }
+
+  const values = candidate.values;
+
+  return {
+    articleId: candidate.articleId,
+    baseArticleUpdatedAt: candidate.baseArticleUpdatedAt,
+    savedAt: candidate.savedAt,
+    values: {
+      ...values,
+      origin: values.origin === "REPOSTED" ? "REPOSTED" : "ORIGINAL",
+      sourceAuthor: typeof values.sourceAuthor === "string" ? values.sourceAuthor : "",
+      sourceName: typeof values.sourceName === "string" ? values.sourceName : "",
+      sourceUrl: typeof values.sourceUrl === "string" ? values.sourceUrl : "",
+    },
+    version: articleLocalDraftStorageVersion,
+  };
 }
 
-function isArticleEditorValues(value: unknown): value is ArticleEditorValues {
+function isLegacyArticleEditorValues(
+  value: unknown,
+): value is Omit<ArticleEditorValues, "origin" | "sourceAuthor" | "sourceName" | "sourceUrl"> &
+  Partial<Pick<ArticleEditorValues, "origin" | "sourceAuthor" | "sourceName" | "sourceUrl">> {
   if (!value || typeof value !== "object") {
     return false;
   }
@@ -175,7 +198,13 @@ function isArticleEditorValues(value: unknown): value is ArticleEditorValues {
     isArticleStatus(candidate.status) &&
     Array.isArray(candidate.tagSlugs) &&
     candidate.tagSlugs.every((tagSlug) => typeof tagSlug === "string") &&
-    typeof candidate.title === "string"
+    typeof candidate.title === "string" &&
+    (candidate.origin === undefined ||
+      candidate.origin === "ORIGINAL" ||
+      candidate.origin === "REPOSTED") &&
+    (candidate.sourceAuthor === undefined || typeof candidate.sourceAuthor === "string") &&
+    (candidate.sourceName === undefined || typeof candidate.sourceName === "string") &&
+    (candidate.sourceUrl === undefined || typeof candidate.sourceUrl === "string")
   );
 }
 

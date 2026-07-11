@@ -3,9 +3,10 @@ import type {
   AdminArticleAiSummaryStatus,
   AdminArticleListItemResponse,
   AdminArticleListQuery,
+  ArticleOrigin,
   AdminArticleStatus,
 } from "@adrian-zephyr-notes/contracts";
-import { FilePlus2, PencilLine, RefreshCw, Search } from "lucide-react";
+import { FilePlus2, FolderTree, PencilLine, RefreshCw, Search } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
@@ -80,10 +81,11 @@ function ArticleManagement() {
           {errorMessage}
         </div>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard label="总数" value={pageStats.totalArticles} />
-        <MetricCard label="已发布" value={pageStats.publishedOnPage} />
-        <MetricCard label="待摘要" value={pageStats.pendingSummariesOnPage} />
+        <MetricCard label="本页已发布" value={pageStats.publishedOnPage} />
+        <MetricCard label="本页原创" value={pageStats.originalOnPage} />
+        <MetricCard label="本页转载" value={pageStats.repostedOnPage} />
       </div>
       <Card className="overflow-hidden">
         <CardHeader className="border-b border-border/70">
@@ -92,12 +94,20 @@ function ArticleManagement() {
               <CardTitle>文章管理</CardTitle>
               <CardDescription>筛选文章并进入全屏写作页。</CardDescription>
             </div>
-            <Button asChild>
-              <Link to="/articles/new">
-                <FilePlus2 />
-                新建文章
-              </Link>
-            </Button>
+            <div className="flex gap-2">
+              <Button asChild variant="outline">
+                <Link to="/articles/categories">
+                  <FolderTree />
+                  分类管理
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link to="/articles/new">
+                  <FilePlus2 />
+                  新建文章
+                </Link>
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 p-4">
@@ -116,7 +126,7 @@ function ArticleManagement() {
                 }}
               />
             </div>
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] gap-2 lg:w-auto lg:grid-cols-[180px_auto_auto]">
+            <div className="grid grid-cols-2 gap-2 lg:w-auto lg:grid-cols-[160px_160px_auto_auto]">
               <Select
                 value={query.status ?? "ALL"}
                 onChange={(event) =>
@@ -131,6 +141,20 @@ function ArticleManagement() {
                 <option value="DRAFT">草稿</option>
                 <option value="PUBLISHED">已发布</option>
                 <option value="ARCHIVED">已归档</option>
+              </Select>
+              <Select
+                value={query.origin ?? "ALL"}
+                onChange={(event) =>
+                  setQuery((current) => ({
+                    ...current,
+                    origin: event.target.value as AdminArticleListQuery["origin"],
+                    page: 1,
+                  }))
+                }
+              >
+                <option value="ALL">全部来源</option>
+                <option value="ORIGINAL">原创</option>
+                <option value="REPOSTED">转载</option>
               </Select>
               <Button type="button" variant="outline" onClick={submitSearch}>
                 搜索
@@ -202,7 +226,10 @@ function ArticleList({
           >
             <div className="min-w-0">
               <div className="mb-1 flex items-start justify-between gap-2 lg:block">
-                <h3 className="line-clamp-1 text-sm font-medium">{article.title}</h3>
+                <div className="flex min-w-0 items-center gap-2">
+                  <h3 className="line-clamp-1 text-sm font-medium">{article.title}</h3>
+                  <OriginBadge origin={article.origin} />
+                </div>
                 <span className="lg:hidden">
                   <StatusBadge status={article.status} />
                 </span>
@@ -294,6 +321,14 @@ function SummaryBadge({ status }: { status: AdminArticleAiSummaryStatus }) {
   return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
 
+function OriginBadge({ origin }: { origin: ArticleOrigin }) {
+  return (
+    <Badge variant={origin === "REPOSTED" ? "warning" : "outline"}>
+      {origin === "REPOSTED" ? "转载" : "原创"}
+    </Badge>
+  );
+}
+
 const articleStatusMeta: Record<
   AdminArticleStatus,
   { label: string; variant: "outline" | "success" | "warning" }
@@ -318,9 +353,8 @@ function createArticleStats(articles: AdminArticleListItemResponse[], totalItems
   return {
     totalArticles: totalItems,
     publishedOnPage: articles.filter((article) => article.status === "PUBLISHED").length,
-    pendingSummariesOnPage: articles.filter(
-      (article) => article.aiSummaryStatus === "PENDING" || article.aiSummaryStatus === "UNQUEUED",
-    ).length,
+    originalOnPage: articles.filter((article) => article.origin === "ORIGINAL").length,
+    repostedOnPage: articles.filter((article) => article.origin === "REPOSTED").length,
   };
 }
 

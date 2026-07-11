@@ -3,6 +3,9 @@ import type { AdminUserResponse } from "@adrian-zephyr-notes/contracts";
 import {
   BookOpenText,
   Bot,
+  ChevronRight,
+  FileText,
+  FolderTree,
   LogOut,
   MessageCircle,
   Moon,
@@ -10,6 +13,7 @@ import {
   Settings2,
   ShieldCheck,
   Sun,
+  Tags,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
@@ -36,6 +40,7 @@ import { cn } from "../../lib/utils";
 type AdminSectionKey = "agent" | "articles" | "audit" | "comments" | "guestbook" | "site";
 type AdminShellProps = {
   admin: AdminUserResponse;
+  articlePage?: "categories" | "list" | "tags";
   children: ReactNode;
   onLogout: () => void;
   section: AdminSectionKey;
@@ -52,8 +57,11 @@ type AdminNavGroup = {
   label: string;
 };
 
-function AdminShell({ admin, children, onLogout, section }: AdminShellProps) {
-  const sectionMeta = adminSectionMeta[section];
+function AdminShell({ admin, articlePage, children, onLogout, section }: AdminShellProps) {
+  const sectionMeta =
+    section === "articles" && articlePage
+      ? articlePageMeta[articlePage]
+      : adminSectionMeta[section];
   const navGroups = useMemo(() => createAdminNavGroups(), []);
 
   return (
@@ -83,13 +91,43 @@ function AdminShell({ admin, children, onLogout, section }: AdminShellProps) {
                   <SidebarMenu>
                     {group.items.map((item) => (
                       <SidebarMenuItem key={item.key}>
-                        <SidebarMenuButton asChild isActive={section === item.key}>
+                        <SidebarMenuButton
+                          asChild
+                          className={cn(
+                            item.key === "articles" &&
+                              section === "articles" &&
+                              "font-medium text-primary",
+                          )}
+                          isActive={section === item.key && item.key !== "articles"}
+                        >
                           <Link to={item.to}>
                             <item.icon />
                             <span>{item.label}</span>
                             {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
                           </Link>
                         </SidebarMenuButton>
+                        {item.key === "articles" && section === "articles" ? (
+                          <ul className="mt-1 ml-4 grid gap-1 border-l border-border/70 pl-3">
+                            <ArticleSubmenuItem
+                              icon={FileText}
+                              isActive={articlePage === "list"}
+                              label="文章列表"
+                              to="/articles"
+                            />
+                            <ArticleSubmenuItem
+                              icon={FolderTree}
+                              isActive={articlePage === "categories"}
+                              label="分类管理"
+                              to="/articles/categories"
+                            />
+                            <ArticleSubmenuItem
+                              icon={Tags}
+                              isActive={articlePage === "tags"}
+                              label="标签管理"
+                              to="/articles/tags"
+                            />
+                          </ul>
+                        ) : null}
                       </SidebarMenuItem>
                     ))}
                   </SidebarMenu>
@@ -134,9 +172,22 @@ function AdminShell({ admin, children, onLogout, section }: AdminShellProps) {
           {section === "agent" ? null : (
             <header className="sticky top-0 z-20 flex min-h-20 w-full items-center justify-between gap-4 border-b border-border/70 bg-background/70 p-4 backdrop-blur-xl sm:px-6 lg:px-8">
               <div>
-                <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-                  Studio
-                </p>
+                {section === "articles" ? (
+                  <nav
+                    aria-label="面包屑"
+                    className="flex items-center gap-1 text-xs font-medium text-muted-foreground"
+                  >
+                    <Link className="transition-colors hover:text-foreground" to="/articles">
+                      文章工作台
+                    </Link>
+                    <ChevronRight className="size-3" />
+                    <span aria-current="page">{sectionMeta.title}</span>
+                  </nav>
+                ) : (
+                  <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
+                    Studio
+                  </p>
+                )}
                 <h1 className="mt-1 text-xl font-semibold tracking-normal">{sectionMeta.title}</h1>
                 <p className="mt-1 text-sm text-muted-foreground">{sectionMeta.description}</p>
               </div>
@@ -179,6 +230,51 @@ const adminSectionMeta: Record<AdminSectionKey, { description: string; title: st
     title: "站点配置",
   },
 };
+
+const articlePageMeta = {
+  categories: {
+    description: "维护文章分类名称、固定链接和内容说明",
+    title: "分类管理",
+  },
+  list: {
+    description: "筛选文章并进入全屏写作页",
+    title: "文章列表",
+  },
+  tags: {
+    description: "维护标签词表、文章引用和重复标签合并",
+    title: "标签管理",
+  },
+} satisfies Record<
+  NonNullable<AdminShellProps["articlePage"]>,
+  { description: string; title: string }
+>;
+
+function ArticleSubmenuItem({
+  icon: Icon,
+  isActive,
+  label,
+  to,
+}: {
+  icon: LucideIcon;
+  isActive: boolean;
+  label: string;
+  to: "/articles" | "/articles/categories" | "/articles/tags";
+}) {
+  return (
+    <li>
+      <Link
+        className={cn(
+          "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+          isActive && "bg-primary/8 font-medium text-primary",
+        )}
+        to={to}
+      >
+        <Icon className="size-3.5" />
+        <span>{label}</span>
+      </Link>
+    </li>
+  );
+}
 
 function createAdminNavGroups(): AdminNavGroup[] {
   return [

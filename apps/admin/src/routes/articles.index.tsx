@@ -11,7 +11,7 @@ function ArticlesRoute() {
   return (
     <AdminAuthGate returnTo="/articles">
       {(admin, onLogout) => (
-        <AdminShell admin={admin} section="articles" onLogout={onLogout}>
+        <AdminShell admin={admin} articlePage="list" section="articles" onLogout={onLogout}>
           <ArticleManagement />
         </AdminShell>
       )}
