@@ -43,6 +43,19 @@ for name in "${required_vars[@]}"; do
   fi
 done
 
+postgres_password="$(grep -E "^POSTGRES_PASSWORD=" "$ENV_FILE" | tail -n 1 | cut -d= -f2- || true)"
+if [[ ! "$postgres_password" =~ ^[A-Za-z0-9._~-]+$ ]]; then
+  echo "POSTGRES_PASSWORD may only contain URL-safe characters: A-Z a-z 0-9 . _ ~ -" >&2
+  echo "Generate one with: openssl rand -base64 48 | tr -dc 'A-Za-z0-9' | head -c 48; echo" >&2
+  exit 1
+fi
+
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config >/dev/null
-docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --build --remove-orphans
+
+for service in server website admin; do
+  echo "Building $service image..."
+  docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build "$service"
+done
+
+docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-build --remove-orphans
 docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps
