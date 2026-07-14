@@ -57,8 +57,8 @@ function GuestbookPostOffice({
           <div className="grid gap-2">
             <div className="h-2 overflow-hidden rounded-full bg-background/65">
               <div
-                className="h-full rounded-full bg-[linear-gradient(90deg,var(--primary),color-mix(in_oklch,var(--secondary),var(--primary)_32%))] transition-[width] duration-500"
-                style={{ width: `${Math.min(progress, 100)}%` }}
+                className="h-full origin-left rounded-full bg-[linear-gradient(90deg,var(--primary),color-mix(in_oklch,var(--secondary),var(--primary)_32%))] transition-transform duration-200 ease-(--ease-out-ui) will-change-transform motion-reduce:transition-none"
+                style={{ transform: `scaleX(${Math.min(progress, 100) / 100})` }}
               />
             </div>
             <div className="grid grid-cols-3 gap-2">
@@ -105,7 +105,7 @@ function PostOfficeStep({
   return (
     <div
       className={cn(
-        "flex min-w-0 items-center gap-1.5 rounded-xl border p-2 text-xs font-black transition",
+        "flex min-w-0 items-center gap-1.5 rounded-xl border p-2 text-xs font-black transition-[background-color,border-color,color] duration-150 ease-(--ease-out-ui)",
         active
           ? "border-primary/35 bg-primary/12 text-foreground"
           : "border-(--glass-border) bg-background/45 text-muted-foreground",

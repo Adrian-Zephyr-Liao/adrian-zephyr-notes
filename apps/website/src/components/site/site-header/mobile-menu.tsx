@@ -10,14 +10,14 @@ import { glassMenuSurfaceClassName } from "./styles";
 function MobileMenu() {
   return (
     <SiteHeaderDisclosure className="group/mobile relative xl:hidden" name="site-header-disclosure">
-      <summary className="flex size-9 cursor-pointer list-none items-center justify-center rounded-xl bg-white/45 text-foreground/75 transition hover:bg-white/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:bg-white/10 dark:hover:bg-white/15 [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden">
+      <summary className="flex size-9 cursor-pointer list-none items-center justify-center rounded-xl bg-white/45 text-foreground/75 transition-colors duration-150 ease-(--ease-out-ui) hover:bg-white/70 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none dark:bg-white/10 dark:hover:bg-white/15 [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden">
         <Menu className="size-4 group-open/mobile:hidden" />
         <X className="hidden size-4 group-open/mobile:block" />
         <span className="sr-only">打开移动端菜单</span>
       </summary>
       <div
         className={cn(
-          "absolute top-12 right-0 hidden w-[min(21rem,calc(100vw-1.5rem))] shadow-(--shadow-glass-strong) group-open/mobile:block",
+          "pointer-events-none invisible absolute top-12 right-0 w-[min(21rem,calc(100vw-1.5rem))] translate-y-1 opacity-0 shadow-(--shadow-glass-strong) transition-[opacity,translate,visibility] duration-150 ease-(--ease-out-ui) group-open/mobile:pointer-events-auto group-open/mobile:visible group-open/mobile:translate-y-0 group-open/mobile:opacity-100 motion-reduce:transition-none motion-reduce:group-open/mobile:translate-y-0",
           glassMenuSurfaceClassName,
         )}
       >
@@ -34,7 +34,7 @@ function MobileMenu() {
             >
               <summary className="flex cursor-pointer list-none items-center justify-between px-3 py-2.5 text-sm font-semibold focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden">
                 <span>{group.label}</span>
-                <ChevronDown className="size-4 transition group-open/mobile-section:rotate-180" />
+                <ChevronDown className="size-4 transition-transform duration-150 ease-(--ease-out-ui) group-open/mobile-section:rotate-180 motion-reduce:transition-none motion-reduce:group-open/mobile-section:rotate-0" />
               </summary>
               <div className="hidden gap-1 px-1.5 pb-1.5 group-open/mobile-section:grid">
                 {group.items.map((item) => (

@@ -7,13 +7,13 @@ import { ThemeToggle } from "./theme-toggle";
 function ConsoleSwitch() {
   return (
     <button
-      className="group/console relative hidden h-8 w-12 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-white/40 shadow-sm transition duration-200 outline-none hover:bg-white/65 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 md:flex dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15"
+      className="group/console relative hidden h-8 w-12 cursor-pointer items-center justify-center rounded-full border border-white/25 bg-white/40 shadow-sm transition-[background-color,border-color,box-shadow] duration-150 ease-(--ease-out-ui) outline-none hover:bg-white/65 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 motion-reduce:transition-none md:flex dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15"
       type="button"
       aria-label="中控台"
     >
-      <span className="absolute left-2 size-1.5 rounded-full bg-primary transition group-hover/console:translate-x-0.5" />
+      <span className="absolute left-2 size-1.5 rounded-full bg-primary transition-transform duration-150 ease-(--ease-out-ui) motion-reduce:transition-none motion-reduce:group-hover/console:translate-x-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/console:translate-x-0.5" />
       <span className="size-3.5 rounded-full border border-primary/45 bg-primary/20 shadow-[0_0_0_4px_rgba(255,255,255,0.22)]" />
-      <span className="absolute right-2 size-1.5 rounded-full bg-primary/70 transition group-hover/console:-translate-x-0.5" />
+      <span className="absolute right-2 size-1.5 rounded-full bg-primary/70 transition-transform duration-150 ease-(--ease-out-ui) motion-reduce:transition-none motion-reduce:group-hover/console:translate-x-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/console:-translate-x-0.5" />
     </button>
   );
 }

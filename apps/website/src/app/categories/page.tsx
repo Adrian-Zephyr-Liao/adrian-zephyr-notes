@@ -52,7 +52,7 @@ async function CategoriesPage() {
                       <span className="flex size-10 items-center justify-center rounded-xl bg-primary/12 text-primary">
                         <FolderOpen className="size-4" />
                       </span>
-                      <ArrowRight className="size-4 text-muted-foreground transition group-hover/category:translate-x-0.5 group-hover/category:text-primary" />
+                      <ArrowRight className="size-4 text-muted-foreground transition-[color,translate] duration-150 ease-(--ease-out-ui) motion-reduce:transition-none motion-reduce:group-hover/category:translate-x-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/category:translate-x-0.5 [@media(hover:hover)_and_(pointer:fine)]:group-hover/category:text-primary" />
                     </div>
                     <div className="grid gap-1.5">
                       <h2 className="text-xl font-black tracking-normal text-foreground">

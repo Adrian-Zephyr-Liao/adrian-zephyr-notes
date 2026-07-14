@@ -99,8 +99,8 @@ function GuestbookMessageItem({
   const authorName = getAuthorName(message.author);
 
   return (
-    <article className="group relative overflow-hidden rounded-2xl border border-(--glass-border) bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background),white_36%),color-mix(in_oklch,var(--background),var(--primary)_5%))] p-3 shadow-(--shadow-glass) transition duration-200 hover:-translate-y-0.5 hover:border-primary/35">
-      <GuestbookStampSheet className="absolute -right-9 -bottom-7 opacity-0 transition duration-200 group-hover:opacity-75 sm:opacity-35" />
+    <article className="group relative overflow-hidden rounded-2xl border border-(--glass-border) bg-[linear-gradient(135deg,color-mix(in_oklch,var(--background),white_36%),color-mix(in_oklch,var(--background),var(--primary)_5%))] p-3 shadow-(--shadow-glass) transition-[border-color,box-shadow,translate] duration-200 ease-(--ease-out-ui) hover:border-primary/35 motion-reduce:transition-none motion-reduce:hover:translate-y-0 [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5">
+      <GuestbookStampSheet className="absolute -right-9 -bottom-7 opacity-0 transition-opacity duration-200 ease-(--ease-out-ui) group-hover:opacity-75 motion-reduce:transition-none sm:opacity-35" />
       <span
         aria-hidden="true"
         className="absolute inset-x-4 top-0 h-px bg-[repeating-linear-gradient(to_right,color-mix(in_oklch,var(--primary),transparent_45%)_0_0.35rem,transparent_0.35rem_0.7rem)]"
@@ -142,7 +142,7 @@ function GuestbookMessageItem({
         </div>
         <div
           aria-hidden="true"
-          className="grid size-9 place-items-center rounded-xl border border-dashed border-primary/35 bg-primary/8 text-[0.55rem] font-black text-primary transition group-hover:rotate-3"
+          className="grid size-9 place-items-center rounded-xl border border-dashed border-primary/35 bg-primary/8 text-[0.55rem] font-black text-primary transition-transform duration-150 ease-(--ease-out-ui) motion-reduce:transition-none motion-reduce:group-hover:rotate-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:rotate-3"
         >
           AZ
         </div>

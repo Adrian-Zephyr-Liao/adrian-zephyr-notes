@@ -136,10 +136,10 @@ function RouteTransitionProgress() {
         className="pointer-events-none fixed inset-x-0 top-0 z-80 h-1 overflow-hidden bg-transparent"
       >
         <div
-          className="h-full rounded-r-full bg-primary shadow-[0_0_18px_color-mix(in_oklch,var(--primary)_65%,transparent)] transition-[width,opacity] duration-300 ease-out"
+          className="h-full origin-left rounded-r-full bg-primary shadow-[0_0_18px_color-mix(in_oklch,var(--primary)_65%,transparent)] transition-[opacity,transform] duration-300 ease-(--ease-out-ui) will-change-transform motion-reduce:transition-none"
           style={{
             opacity: visible ? 1 : 0,
-            width: `${progress}%`,
+            transform: `scaleX(${Math.min(progress, 100) / 100})`,
           }}
         />
       </div>

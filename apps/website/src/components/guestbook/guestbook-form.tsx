@@ -97,7 +97,7 @@ function GuestbookForm({
                 onChange={(event) => onGuestNicknameChange(event.target.value)}
                 maxLength={32}
                 placeholder="给自己起个名字"
-                className="h-10 min-w-0 rounded-xl border border-(--glass-border) bg-white/60 px-3 text-sm font-medium text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 dark:bg-white/8"
+                className="h-10 min-w-0 rounded-xl border border-(--glass-border) bg-white/60 px-3 text-sm font-medium text-foreground transition-[background-color,border-color,box-shadow] duration-150 ease-(--ease-out-ui) outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 motion-reduce:transition-none dark:bg-white/8"
               />
             </label>
           ) : null}
@@ -110,7 +110,7 @@ function GuestbookForm({
               minLength={1}
               maxLength={1000}
               placeholder="写给这里的一句话..."
-              className="min-h-28 w-full min-w-0 resize-none rounded-2xl border border-(--glass-border) bg-[linear-gradient(180deg,color-mix(in_oklch,white_76%,transparent),color-mix(in_oklch,white_55%,transparent)),repeating-linear-gradient(to_bottom,transparent_0_1.65rem,color-mix(in_oklch,var(--primary),transparent_84%)_1.65rem_calc(1.65rem+1px))] px-3.5 py-3 text-sm leading-6 text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 dark:bg-[linear-gradient(180deg,color-mix(in_oklch,var(--card)_80%,transparent),color-mix(in_oklch,var(--card)_62%,transparent)),repeating-linear-gradient(to_bottom,transparent_0_1.65rem,color-mix(in_oklch,var(--primary),transparent_84%)_1.65rem_calc(1.65rem+1px))]"
+              className="min-h-28 w-full min-w-0 resize-none rounded-2xl border border-(--glass-border) bg-[linear-gradient(180deg,color-mix(in_oklch,white_76%,transparent),color-mix(in_oklch,white_55%,transparent)),repeating-linear-gradient(to_bottom,transparent_0_1.65rem,color-mix(in_oklch,var(--primary),transparent_84%)_1.65rem_calc(1.65rem+1px))] px-3.5 py-3 text-sm leading-6 text-foreground transition-[background-color,border-color,box-shadow] duration-150 ease-(--ease-out-ui) outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 motion-reduce:transition-none dark:bg-[linear-gradient(180deg,color-mix(in_oklch,var(--card)_80%,transparent),color-mix(in_oklch,var(--card)_62%,transparent)),repeating-linear-gradient(to_bottom,transparent_0_1.65rem,color-mix(in_oklch,var(--primary),transparent_84%)_1.65rem_calc(1.65rem+1px))]"
             />
           </label>
 

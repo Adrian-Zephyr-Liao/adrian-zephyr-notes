@@ -65,7 +65,7 @@ function HomeHero({ articles }: { articles: ArticleListItemResponse[] }) {
   const stats = createHomeStats(articles);
 
   return (
-    <section className="mx-auto grid min-h-[calc(100vh-5rem)] w-[min(1180px,calc(100vw-1.5rem))] items-center py-8 sm:w-[min(1180px,calc(100vw-2rem))] sm:py-10">
+    <section className="mx-auto grid min-h-[calc(100svh-7rem)] w-[min(1180px,calc(100vw-1.5rem))] items-center py-6 sm:w-[min(1180px,calc(100vw-2rem))] sm:py-8">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.02fr)_minmax(22rem,0.98fr)] lg:items-stretch">
         <GlassPanel
           tone="strong"
@@ -94,7 +94,7 @@ function HomeHero({ articles }: { articles: ArticleListItemResponse[] }) {
                 {heroFeatures.map((feature) => (
                   <span
                     key={feature.label}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-(--glass-border) bg-background/50 px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm backdrop-blur dark:bg-white/5"
+                    className="inline-flex items-center gap-1.5 rounded-full border border-(--glass-border) bg-background/55 px-3 py-1.5 text-sm font-semibold text-foreground shadow-sm backdrop-blur transition-[background-color,border-color] duration-150 ease-(--ease-out-ui) hover:border-primary/30 hover:bg-background/75 motion-reduce:transition-none dark:bg-white/5"
                   >
                     <span
                       className={`flex size-6 items-center justify-center rounded-full ${feature.tone}`}
@@ -126,7 +126,7 @@ function HomeHero({ articles }: { articles: ArticleListItemResponse[] }) {
               {stats.map((stat) => (
                 <div
                   key={stat.label}
-                  className="rounded-2xl border border-(--glass-border) bg-background/45 p-3 backdrop-blur"
+                  className="rounded-2xl border border-(--glass-border) bg-background/50 p-3 shadow-sm backdrop-blur"
                 >
                   <p className="text-xs font-bold text-muted-foreground">{stat.label}</p>
                   <p className="mt-1 text-xl font-black text-foreground">{stat.value}</p>
@@ -183,7 +183,7 @@ function LatestArticleRibbon({ article }: { article: ArticleListItemResponse }) 
   return (
     <Link
       href={`/posts/${article.slug}`}
-      className="group/ribbon absolute inset-x-4 top-4 z-30 block rounded-2xl border border-(--glass-border) bg-background/72 p-3 shadow-(--shadow-glass) backdrop-blur-xl transition hover:-translate-y-0.5 hover:border-primary/35 sm:left-auto sm:w-72"
+      className="group/ribbon absolute inset-x-4 top-4 z-30 block rounded-2xl border border-(--glass-border) bg-background/72 p-3 shadow-(--shadow-glass) backdrop-blur-xl transition-[border-color,box-shadow,translate,scale] duration-200 ease-(--ease-out-ui) hover:-translate-y-0.5 hover:border-primary/35 hover:shadow-(--shadow-glass-strong) focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:left-auto sm:w-72"
     >
       <p className="flex items-center gap-1.5 text-xs font-black tracking-[0.16em] text-primary uppercase">
         <Feather className="size-3.5" />
@@ -195,7 +195,7 @@ function LatestArticleRibbon({ article }: { article: ArticleListItemResponse }) 
       <p className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
         <CalendarDays className="size-3.5 text-primary" />
         {formatArticleDate(article.publishedAt)}
-        <ArrowRight className="ml-auto size-3.5 transition group-hover/ribbon:translate-x-0.5" />
+        <ArrowRight className="transition-translate ml-auto size-3.5 duration-150 ease-(--ease-out-ui) motion-reduce:transition-none motion-reduce:group-hover/ribbon:translate-x-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/ribbon:translate-x-0.5" />
       </p>
     </Link>
   );
@@ -227,7 +227,7 @@ function ReadingRail({ latestArticle }: { latestArticle: ArticleListItemResponse
           <Link
             key={item.label}
             href={item.href}
-            className="relative grid gap-2 rounded-2xl bg-background/40 p-3 transition hover:bg-background/65 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            className="relative grid gap-2 rounded-2xl bg-background/45 p-3 transition-[background-color,box-shadow,scale] duration-150 ease-(--ease-out-ui) hover:bg-background/70 hover:shadow-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100"
           >
             {index < railItems.length - 1 ? (
               <span

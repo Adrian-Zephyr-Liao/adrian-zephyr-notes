@@ -98,8 +98,8 @@ function ArticleNoticeCarousel({ announcements }: ArticleNoticeCarouselProps) {
               onClick={() => setActiveIndex(index)}
               style={index === activeIndex ? activeNoticeDotStyle : undefined}
               className={cn(
-                "size-2.5 cursor-pointer rounded-full bg-foreground/16 transition focus-visible:ring-3 focus-visible:ring-(--notice-status-color) focus-visible:outline-none dark:bg-white/18",
-                index === activeIndex && "w-6",
+                "h-2.5 w-6 origin-center cursor-pointer rounded-full bg-foreground/16 transition-[background-color,opacity,scale] duration-150 ease-(--ease-out-ui) focus-visible:ring-3 focus-visible:ring-(--notice-status-color) focus-visible:outline-none motion-reduce:transition-none dark:bg-white/18",
+                index === activeIndex ? "scale-x-100 opacity-100" : "scale-x-[0.42] opacity-70",
               )}
             />
           ))}
@@ -138,8 +138,8 @@ function ArticleNoticeCarousel({ announcements }: ArticleNoticeCarouselProps) {
 
         <motion.div
           key={activeSlide.title}
-          initial={shouldReduceMotion ? false : { opacity: 0, x: 14 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={shouldReduceMotion ? false : { opacity: 0, transform: "translateX(14px)" }}
+          animate={{ opacity: 1, transform: "translateX(0)" }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="grid gap-4 p-4"
         >

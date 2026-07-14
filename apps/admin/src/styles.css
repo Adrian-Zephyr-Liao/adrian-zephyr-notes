@@ -27,6 +27,8 @@
   --glass-surface: color-mix(in oklch, white 70%, transparent);
   --glass-surface-strong: color-mix(in oklch, white 86%, transparent);
   --glass-border: color-mix(in oklch, white 58%, var(--primary) 16%);
+  --ease-out-ui: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out-ui: cubic-bezier(0.77, 0, 0.175, 1);
   --scrollbar-track: color-mix(in oklch, var(--background) 80%, transparent);
   --scrollbar-thumb: color-mix(in oklch, var(--primary) 42%, var(--foreground) 8%);
   --scrollbar-thumb-hover: color-mix(in oklch, var(--primary) 62%, var(--foreground) 12%);
@@ -37,6 +39,10 @@
   --shadow-glass: 0 1px 0 rgba(255, 255, 255, 0.72) inset, 0 18px 38px rgba(16, 45, 56, 0.1);
   --shadow-glass-strong:
     0 1px 0 rgba(255, 255, 255, 0.82) inset, 0 24px 58px rgba(16, 45, 56, 0.14);
+  --shadow-sidebar:
+    1px 0 0 color-mix(in oklch, white 58%, transparent) inset,
+    -1px 0 0 color-mix(in oklch, var(--foreground) 7%, transparent) inset,
+    18px 0 44px rgba(16, 45, 56, 0.08);
 }
 
 @theme inline {
@@ -97,6 +103,19 @@
     linear-gradient(180deg, #101925 0%, #121f26 52%, #101a1f 100%);
   --shadow-glass: 0 1px 0 rgba(255, 255, 255, 0.08) inset, 0 18px 38px rgba(0, 0, 0, 0.22);
   --shadow-glass-strong: 0 1px 0 rgba(255, 255, 255, 0.1) inset, 0 24px 58px rgba(0, 0, 0, 0.28);
+  --shadow-sidebar:
+    1px 0 0 rgba(255, 255, 255, 0.08) inset, -1px 0 0 rgba(255, 255, 255, 0.06) inset,
+    20px 0 50px rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  :root,
+  .dark,
+  [data-theme="dark"] {
+    --glass-surface: var(--card);
+    --glass-surface-strong: var(--card);
+    --glass-border: var(--border);
+  }
 }
 
 html,

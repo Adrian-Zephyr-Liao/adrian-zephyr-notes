@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 import { AdminAuthGate } from "../features/auth/admin-auth-gate";
+import { ArticleWritingPageFallback } from "../features/articles/article-writing-page-fallback";
 
 export const Route = createFileRoute("/articles/$articleId/edit")({
   component: EditArticleRoute,
@@ -23,13 +24,5 @@ function EditArticleRoute() {
         </Suspense>
       )}
     </AdminAuthGate>
-  );
-}
-
-function ArticleWritingPageFallback() {
-  return (
-    <main className="grid h-dvh place-items-center bg-background text-sm text-muted-foreground">
-      正在加载写作台...
-    </main>
   );
 }

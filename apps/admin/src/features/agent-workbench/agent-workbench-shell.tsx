@@ -225,7 +225,7 @@ function LandingSuggestionButton({
 }) {
   return (
     <button
-      className="flex max-w-3xl items-center gap-4 rounded-full border border-border/50 bg-background/85 px-4 py-3 text-left shadow-sm transition hover:border-primary/35 hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex max-w-3xl items-center gap-4 rounded-full border border-border/50 bg-background/85 px-4 py-3 text-left shadow-sm transition-[background-color,border-color,box-shadow] duration-150 ease-(--ease-out-ui) hover:border-primary/35 hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
       disabled={disabled}
       type="button"
       onClick={onClick}
@@ -368,7 +368,7 @@ function PromptShortcutButton({
 }) {
   return (
     <button
-      className="grid min-h-20 place-items-center gap-1 rounded-xl border border-border/55 bg-background/80 px-2 py-3 text-sm font-medium text-foreground shadow-sm transition hover:border-primary/35 hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+      className="grid min-h-20 place-items-center gap-1 rounded-xl border border-border/55 bg-background/80 px-2 py-3 text-sm font-medium text-foreground shadow-sm transition-[background-color,border-color,box-shadow] duration-150 ease-(--ease-out-ui) hover:border-primary/35 hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
       disabled={disabled}
       type="button"
       onClick={onClick}

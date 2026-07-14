@@ -71,7 +71,7 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
           <SidebarHeader>
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-black text-primary-foreground shadow-(--shadow-glass)">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-(--shadow-glass) ring-1 ring-white/30">
                   AZ
                 </span>
                 <div className="min-w-0">
@@ -96,7 +96,7 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
                           className={cn(
                             item.key === "articles" &&
                               section === "articles" &&
-                              "font-medium text-primary",
+                              "font-medium text-foreground",
                           )}
                           isActive={section === item.key && item.key !== "articles"}
                         >
@@ -107,7 +107,7 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
                           </Link>
                         </SidebarMenuButton>
                         {item.key === "articles" && section === "articles" ? (
-                          <ul className="mt-1 ml-4 grid gap-1 border-l border-border/70 pl-3">
+                          <ul className="mt-1 ml-4 grid gap-1 border-l border-border/45 pl-3">
                             <ArticleSubmenuItem
                               icon={FileText}
                               isActive={articlePage === "list"}
@@ -141,11 +141,11 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
               {admin.avatarUrl ? (
                 <img
                   alt={admin.login}
-                  className="size-9 rounded-full ring-1 ring-border"
+                  className="size-8 rounded-full ring-1 ring-foreground/10"
                   src={admin.avatarUrl}
                 />
               ) : (
-                <span className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                <span className="flex size-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                   {admin.login.slice(0, 1).toUpperCase()}
                 </span>
               )}
@@ -170,14 +170,17 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
 
         <SidebarInset className={cn(section === "agent" && "overflow-hidden")}>
           {section === "agent" ? null : (
-            <header className="sticky top-0 z-20 flex min-h-20 w-full items-center justify-between gap-4 border-b border-border/70 bg-background/70 p-4 backdrop-blur-xl sm:px-6 lg:px-8">
+            <header className="sticky top-0 z-20 flex min-h-20 w-full items-center justify-between gap-4 border-b border-border/70 bg-(--glass-surface-strong) p-4 shadow-sm backdrop-blur-xl sm:px-6 lg:px-8">
               <div>
                 {section === "articles" ? (
                   <nav
                     aria-label="面包屑"
                     className="flex items-center gap-1 text-xs font-medium text-muted-foreground"
                   >
-                    <Link className="transition-colors hover:text-foreground" to="/articles">
+                    <Link
+                      className="transition-colors duration-150 ease-(--ease-out-ui) hover:text-foreground"
+                      to="/articles"
+                    >
                       文章工作台
                     </Link>
                     <ChevronRight className="size-3" />
@@ -264,8 +267,8 @@ function ArticleSubmenuItem({
     <li>
       <Link
         className={cn(
-          "flex items-center gap-2 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-          isActive && "bg-primary/8 font-medium text-primary",
+          "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground transition-[background-color,color,box-shadow,scale] duration-150 ease-(--ease-out-ui) hover:bg-background/55 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100",
+          isActive && "bg-background/65 font-medium text-foreground shadow-sm",
         )}
         to={to}
       >

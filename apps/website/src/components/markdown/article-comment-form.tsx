@@ -75,7 +75,7 @@ function ArticleCommentForm({
           maxLength={1000}
           placeholder={user ? (replyTarget ? "回复一下..." : "说点什么...") : "登录后可以发表评论"}
           disabled={!user || isSubmitting}
-          className="min-h-9 w-full min-w-0 resize-none rounded-3xl border border-(--glass-border) bg-white/60 px-3.5 py-2 text-sm leading-5 text-foreground transition outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/8"
+          className="min-h-9 w-full min-w-0 resize-none rounded-3xl border border-(--glass-border) bg-white/60 px-3.5 py-2 text-sm leading-5 text-foreground transition-[background-color,border-color,box-shadow] duration-150 ease-(--ease-out-ui) outline-none placeholder:text-muted-foreground focus:border-primary/40 focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none dark:bg-white/8"
         />
         <Button
           type="submit"

@@ -13,12 +13,12 @@ function PortalCard({ item }: { item: PortalLink }) {
 
   return (
     <Link
-      className="group/card grid grid-cols-[2.5rem_1fr] items-center gap-3 rounded-xl p-2.5 transition duration-200 hover:bg-white/60 dark:hover:bg-white/10 [&_svg]:pointer-events-none"
+      className="group/card grid grid-cols-[2.5rem_1fr] items-center gap-3 rounded-xl p-2.5 transition-colors duration-150 ease-(--ease-out-ui) hover:bg-white/60 dark:hover:bg-white/10 [&_svg]:pointer-events-none"
       href={item.href}
     >
       <span
         className={cn(
-          "flex size-10 items-center justify-center rounded-xl bg-linear-to-br text-white shadow-sm transition duration-200 group-hover/card:scale-105",
+          "flex size-10 items-center justify-center rounded-xl bg-linear-to-br text-white shadow-sm transition-transform duration-150 ease-(--ease-out-ui) motion-reduce:transition-none motion-reduce:group-hover/card:scale-100 [@media(hover:hover)_and_(pointer:fine)]:group-hover/card:scale-105",
           item.tone,
         )}
       >
@@ -36,12 +36,12 @@ function PortalMenu() {
   return (
     <SiteHeaderDisclosure className="group/portal relative" name="site-header-disclosure">
       <summary
-        className="flex size-9 cursor-pointer list-none items-center justify-center rounded-xl border border-white/35 bg-white/45 text-foreground/70 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:bg-white/70 hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15 [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden"
+        className="flex size-9 cursor-pointer list-none items-center justify-center rounded-xl border border-white/35 bg-white/45 text-foreground/70 shadow-sm transition-[background-color,border-color,color,box-shadow,translate] duration-150 ease-(--ease-out-ui) hover:bg-white/70 hover:text-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none motion-reduce:transition-none motion-reduce:hover:translate-y-0 dark:border-white/10 dark:bg-white/10 dark:hover:bg-white/15 [&_svg]:pointer-events-none [&::-webkit-details-marker]:hidden [@media(hover:hover)_and_(pointer:fine)]:hover:-translate-y-0.5"
         aria-label="打开站点入口"
       >
         <GripVertical className="size-4" />
       </summary>
-      <div className="pointer-events-none invisible absolute top-12 left-0 w-72 translate-y-1 opacity-0 transition duration-200 group-open/portal:pointer-events-auto group-open/portal:visible group-open/portal:translate-y-0 group-open/portal:opacity-100">
+      <div className="pointer-events-none invisible absolute top-12 left-0 w-72 translate-y-1 opacity-0 transition-[opacity,translate,visibility] duration-150 ease-(--ease-out-ui) group-open/portal:pointer-events-auto group-open/portal:visible group-open/portal:translate-y-0 group-open/portal:opacity-100 motion-reduce:transition-none motion-reduce:group-open/portal:translate-y-0">
         <div className={cn(glassMenuSurfaceClassName, "shadow-(--shadow-glass-strong)")}>
           <div className="flex items-center justify-between px-3 py-2">
             <span className="text-xs font-semibold tracking-wide text-muted-foreground">网页</span>

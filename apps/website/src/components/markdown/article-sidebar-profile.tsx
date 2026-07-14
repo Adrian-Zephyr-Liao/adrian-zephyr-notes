@@ -109,7 +109,7 @@ function SocialIconLink({ href, icon, label }: SocialLink) {
     <Link
       aria-label={label}
       href={href}
-      className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary transition hover:bg-primary/16 focus-visible:ring-3 focus-visible:ring-primary/30 focus-visible:outline-none dark:bg-white/18 dark:text-white dark:hover:bg-white/26 dark:focus-visible:ring-white/45"
+      className="flex size-10 items-center justify-center rounded-full bg-primary/10 text-primary transition-[background-color,box-shadow] duration-150 ease-(--ease-out-ui) hover:bg-primary/16 focus-visible:ring-3 focus-visible:ring-primary/30 focus-visible:outline-none motion-reduce:transition-none dark:bg-white/18 dark:text-white dark:hover:bg-white/26 dark:focus-visible:ring-white/45"
     >
       <CuteIcon name={icon} className="size-5" />
     </Link>

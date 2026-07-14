@@ -124,7 +124,12 @@ function FeaturedArticleCard({ article }: { article: ArticleListItemResponse }) 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap gap-2">
             {article.tags.slice(0, 4).map((tag) => (
-              <Badge key={tag.slug} asChild variant="outline" className="gap-1.5 bg-background/45">
+              <Badge
+                key={tag.slug}
+                asChild
+                variant="outline"
+                className="gap-1.5 bg-background/45 transition-[background-color,border-color,color] duration-150 ease-(--ease-out-ui) hover:border-primary/35 hover:bg-background/70"
+              >
                 <Link href={`/tags/${tag.slug}`}>
                   <Tag className="size-3" />
                   {tag.name}
@@ -177,7 +182,10 @@ function ArticleCard({ article, index }: { article: ArticleListItemResponse; ind
 
         <div className="grid gap-2">
           <h3 className="text-xl/tight font-black tracking-normal wrap-anywhere text-foreground">
-            <Link className="hover:text-primary" href={`/posts/${article.slug}`}>
+            <Link
+              className="transition-colors duration-150 ease-(--ease-out-ui) hover:text-primary"
+              href={`/posts/${article.slug}`}
+            >
               {article.title}
             </Link>
           </h3>
@@ -189,7 +197,7 @@ function ArticleCard({ article, index }: { article: ArticleListItemResponse; ind
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <ArticleMeta article={article} />
-        <ArrowRight className="size-4 text-muted-foreground transition group-hover/article:translate-x-0.5 group-hover/article:text-primary" />
+        <ArrowRight className="size-4 text-muted-foreground transition-[color,translate] duration-150 ease-(--ease-out-ui) motion-reduce:transition-none motion-reduce:group-hover/article:translate-x-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover/article:translate-x-0.5 [@media(hover:hover)_and_(pointer:fine)]:group-hover/article:text-primary" />
       </div>
     </GlassPanel>
   );

@@ -83,12 +83,7 @@ function ArticleWritingSurface({
   values: ArticleEditorValues;
 }) {
   if (isLoading) {
-    return (
-      <div className="flex h-full min-h-[520px] items-center justify-center gap-2 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin" />
-        正在读取文章...
-      </div>
-    );
+    return <ArticleEditorLoadingPane />;
   }
 
   if (editorMode === "preview") {
@@ -113,6 +108,34 @@ function ArticleWritingSurface({
   return (
     <div className="h-full min-h-0 overflow-hidden p-3 sm:p-4">
       <ArticleEditorFields taxonomyOptions={taxonomyOptions} values={values} onChange={onChange} />
+    </div>
+  );
+}
+
+function ArticleEditorLoadingPane() {
+  return (
+    <div
+      className="grid h-full min-h-[520px] place-items-center bg-background/25 p-4"
+      aria-busy="true"
+      aria-label="正在读取文章"
+    >
+      <div className="w-full max-w-3xl rounded-3xl border border-border/70 bg-card/80 p-5 shadow-(--shadow-glass)">
+        <div className="mb-5 flex items-center justify-between gap-4">
+          <div className="grid gap-2">
+            <div className="h-4 w-32 rounded-full bg-muted/70 motion-safe:animate-pulse motion-reduce:animate-none" />
+            <div className="h-3 w-56 rounded-full bg-muted/45 motion-safe:animate-pulse motion-reduce:animate-none" />
+          </div>
+          <span className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-background/80 px-3 py-1.5 text-xs font-medium text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin motion-reduce:animate-none" />
+            正在读取文章
+          </span>
+        </div>
+        <div className="grid gap-3">
+          <div className="h-4 w-full rounded-full bg-muted/50 motion-safe:animate-pulse motion-reduce:animate-none" />
+          <div className="h-4 w-10/12 rounded-full bg-muted/50 motion-safe:animate-pulse motion-reduce:animate-none" />
+          <div className="h-4 w-8/12 rounded-full bg-muted/50 motion-safe:animate-pulse motion-reduce:animate-none" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -214,7 +237,7 @@ function PublishSettingsPanel({
 
   return (
     <details className="group shrink-0 rounded-xl border border-border/70 bg-muted/20">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-foreground transition outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/45 [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-foreground transition-[background-color,box-shadow] duration-150 ease-(--ease-out-ui) outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/45 motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
         <span className="inline-flex min-w-0 items-center gap-2">
           <SlidersHorizontal className="size-4 text-primary" />
           <span>发布设置</span>
@@ -222,7 +245,7 @@ function PublishSettingsPanel({
             SEO、分类、封面和标签发布前再完善
           </span>
         </span>
-        <ChevronDown className="size-4 text-muted-foreground transition group-open:rotate-180" />
+        <ChevronDown className="size-4 text-muted-foreground transition-transform duration-150 ease-(--ease-out-ui) group-open:rotate-180 motion-reduce:transition-none motion-reduce:group-open:rotate-0" />
       </summary>
       <div className="grid gap-3 border-t border-border/70 p-3">
         {values.origin === "REPOSTED" ? (
