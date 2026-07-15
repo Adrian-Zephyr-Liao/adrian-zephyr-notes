@@ -2,8 +2,16 @@ import type { AdminArticleTagResponse } from "@adrian-zephyr-notes/contracts";
 import { Combine, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import {
+  ManagementBody,
+  ManagementEmpty,
+  ManagementHeader,
+  ManagementList,
+  ManagementLoading,
+  ManagementSurface,
+  ManagementToolbar,
+} from "../../components/ui/management-surface";
 import { Select } from "../../components/ui/select";
 import { ArticleTaxonomyPagination } from "./article-taxonomy-pagination";
 import {
@@ -108,20 +116,22 @@ function ArticleTagManagement() {
   }
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="border-b border-border/70">
-        <div className="flex items-center justify-between gap-3">
-          <CardTitle>文章标签</CardTitle>
-          <span className="text-sm text-muted-foreground">共 {pagination.totalItems} 个标签</span>
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-4 p-4">
+    <ManagementSurface>
+      <ManagementHeader
+        description="维护可复用标签，并合并重复条目。"
+        meta={<span className="text-xs text-muted-foreground">{pagination.totalItems} 个</span>}
+        title="文章标签"
+      />
+      <ManagementBody className="grid gap-4">
         {message ? (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
             {message}
           </p>
         ) : null}
-        <div className="grid gap-3 border-b border-border/70 pb-4 lg:grid-cols-[1fr_1fr_auto]">
+        <div className="grid gap-3 rounded-lg bg-background/24 p-3 lg:grid-cols-[1fr_1fr_auto]">
           <Input
             aria-label="标签名称"
             maxLength={80}
@@ -155,7 +165,7 @@ function ArticleTagManagement() {
           </div>
         </div>
         {mergeSource ? (
-          <div className="grid gap-3 rounded-lg border border-primary/30 bg-primary/5 p-3 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+          <div className="grid gap-3 rounded-lg bg-primary/8 p-3 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <div>
               <p className="text-xs text-muted-foreground">源标签</p>
               <p className="font-medium">
@@ -192,7 +202,7 @@ function ArticleTagManagement() {
             </div>
           </div>
         ) : null}
-        <div className="flex gap-2">
+        <ManagementToolbar className="grid-cols-[minmax(0,1fr)_auto]">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
@@ -213,13 +223,13 @@ function ArticleTagManagement() {
           >
             <RefreshCw className={isLoading ? "animate-spin" : undefined} />
           </Button>
-        </div>
+        </ManagementToolbar>
         {isLoading ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">正在加载标签...</p>
+          <ManagementLoading label="正在加载标签..." />
         ) : tags.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">暂无文章标签。</p>
+          <ManagementEmpty label="暂无文章标签。" />
         ) : (
-          <div className="divide-y divide-border/70 rounded-lg border border-border/70">
+          <ManagementList>
             {tags.map((tag) => (
               <div
                 key={tag.id}
@@ -265,15 +275,15 @@ function ArticleTagManagement() {
                 </div>
               </div>
             ))}
-          </div>
+          </ManagementList>
         )}
         <ArticleTaxonomyPagination
           page={pagination.page}
           totalPages={pagination.totalPages}
           onPageChange={(page) => void loadTags(page, searchText.trim() || undefined)}
         />
-      </CardContent>
-    </Card>
+      </ManagementBody>
+    </ManagementSurface>
   );
 }
 

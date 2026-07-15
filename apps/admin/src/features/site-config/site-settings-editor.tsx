@@ -8,15 +8,13 @@ import type {
 import { Loader2, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
+import {
+  ManagementBody,
+  ManagementHeader,
+  ManagementSurface,
+} from "../../components/ui/management-surface";
 import { Textarea } from "../../components/ui/textarea";
 import { Field } from "./site-config-field";
 
@@ -32,20 +30,18 @@ function SiteSettingsEditor({
   settings: UpdateAdminSiteSettingsRequest;
 }) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <CardTitle>首页 / 导航 / Agent</CardTitle>
-            <CardDescription>管理读者侧展示，以及后台 Agent 治理策略。</CardDescription>
-          </div>
+    <ManagementSurface>
+      <ManagementHeader
+        description="管理读者侧展示，以及后台 Agent 治理策略。"
+        title="首页 / 导航 / Agent"
+        action={
           <Button disabled={saving} type="button" onClick={onSave}>
             {saving ? <Loader2 className="animate-spin" /> : <Save />}
             保存配置
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-5">
+        }
+      />
+      <ManagementBody className="grid gap-5">
         <section className="grid gap-3">
           <h3 className="text-sm font-semibold">首页</h3>
           <div className="grid gap-3 md:grid-cols-2">
@@ -140,8 +136,8 @@ function SiteSettingsEditor({
             onChange({ ...settings, adminAgentAutomationPolicy })
           }
         />
-      </CardContent>
-    </Card>
+      </ManagementBody>
+    </ManagementSurface>
   );
 }
 
@@ -176,7 +172,7 @@ function AgentAutomationPolicySection({
   }
 
   return (
-    <section className="grid gap-3 rounded-xl border border-border/70 bg-background/65 p-4">
+    <section className="grid gap-3 rounded-lg bg-background/24 p-4">
       <div className="flex items-start gap-3">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/12 text-primary">
           <ShieldCheck aria-hidden="true" className="size-4" />
@@ -191,7 +187,7 @@ function AgentAutomationPolicySection({
 
       <div className="grid gap-3 md:grid-cols-2">
         <Field label="自动执行">
-          <div className="flex min-h-10 items-center gap-2 rounded-md border border-border/70 bg-muted/35 px-3 text-sm text-muted-foreground">
+          <div className="flex min-h-10 items-center gap-2 rounded-md bg-muted/35 px-3 text-sm text-muted-foreground">
             <Checkbox aria-label="自动执行未开放" checked={false} disabled />
             <span>未开放，候选仍需管理员确认</span>
           </div>
@@ -360,7 +356,7 @@ function EditableLinkItemFrame({
   onRemove: () => void;
 }) {
   return (
-    <div className="rounded-xl border border-border/70 bg-background/65 p-3">
+    <div className="rounded-lg bg-background/24 p-3">
       <div className="grid gap-3 md:grid-cols-3">{children}</div>
       <div className="mt-2 flex justify-end">
         <Button

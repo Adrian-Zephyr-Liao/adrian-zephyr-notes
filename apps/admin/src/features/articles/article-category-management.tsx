@@ -2,8 +2,16 @@ import type { AdminArticleCategoryResponse } from "@adrian-zephyr-notes/contract
 import { Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import {
+  ManagementBody,
+  ManagementEmpty,
+  ManagementHeader,
+  ManagementList,
+  ManagementLoading,
+  ManagementSurface,
+  ManagementToolbar,
+} from "../../components/ui/management-surface";
 import { Textarea } from "../../components/ui/textarea";
 import {
   AdminApiError,
@@ -97,20 +105,22 @@ function ArticleCategoryManagement() {
   }
 
   return (
-    <Card className="overflow-hidden">
-      <CardHeader className="border-b border-border/70">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle>文章分类</CardTitle>
-          <span className="text-sm text-muted-foreground">共 {pagination.totalItems} 个分类</span>
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-4 p-4">
+    <ManagementSurface>
+      <ManagementHeader
+        description="用稳定的分类结构组织文章主题。"
+        meta={<span className="text-xs text-muted-foreground">{pagination.totalItems} 个</span>}
+        title="文章分类"
+      />
+      <ManagementBody className="grid gap-4">
         {message ? (
-          <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
             {message}
           </p>
         ) : null}
-        <div className="grid gap-3 border-b border-border/70 pb-4 lg:grid-cols-[1fr_1fr_1.5fr_auto]">
+        <div className="grid gap-3 rounded-lg bg-background/24 p-3 lg:grid-cols-[1fr_1fr_1.5fr_auto]">
           <Input
             aria-label="分类名称"
             maxLength={80}
@@ -155,7 +165,7 @@ function ArticleCategoryManagement() {
             </Button>
           </div>
         </div>
-        <div className="flex gap-2">
+        <ManagementToolbar className="grid-cols-[minmax(0,1fr)_auto]">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
@@ -177,7 +187,7 @@ function ArticleCategoryManagement() {
           >
             <RefreshCw className={isLoading ? "animate-spin" : undefined} />
           </Button>
-        </div>
+        </ManagementToolbar>
         <CategoryRows
           categories={categories}
           isLoading={isLoading}
@@ -189,8 +199,8 @@ function ArticleCategoryManagement() {
           totalPages={pagination.totalPages}
           onPageChange={(page) => void loadCategories(page, searchText.trim() || undefined)}
         />
-      </CardContent>
-    </Card>
+      </ManagementBody>
+    </ManagementSurface>
   );
 }
 
@@ -205,13 +215,11 @@ function CategoryRows({
   onDelete: (category: AdminArticleCategoryResponse) => Promise<void>;
   onEdit: (category: AdminArticleCategoryResponse) => void;
 }) {
-  if (isLoading)
-    return <p className="py-8 text-center text-sm text-muted-foreground">正在加载分类...</p>;
-  if (categories.length === 0)
-    return <p className="py-8 text-center text-sm text-muted-foreground">暂无文章分类。</p>;
+  if (isLoading) return <ManagementLoading label="正在加载分类..." />;
+  if (categories.length === 0) return <ManagementEmpty label="暂无文章分类。" />;
 
   return (
-    <div className="divide-y divide-border/70 rounded-lg border border-border/70">
+    <ManagementList>
       {categories.map((category) => (
         <div
           key={category.id}
@@ -245,7 +253,7 @@ function CategoryRows({
           </div>
         </div>
       ))}
-    </div>
+    </ManagementList>
   );
 }
 

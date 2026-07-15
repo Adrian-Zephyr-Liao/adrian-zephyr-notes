@@ -5,15 +5,15 @@ import type {
 import { Loader2, RefreshCw, Save } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
+import {
+  ManagementBody,
+  ManagementHeader,
+  ManagementList,
+  ManagementLoading,
+  ManagementSurface,
+} from "../../components/ui/management-surface";
 import { Textarea } from "../../components/ui/textarea";
 import { Field } from "./site-config-field";
 
@@ -45,51 +45,44 @@ function SiteAnnouncementsPanel({
   savingAnnouncementId,
 }: SiteAnnouncementsPanelProps) {
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <CardTitle>公告</CardTitle>
-            <CardDescription>控制读者侧公告轮播内容。</CardDescription>
-          </div>
+    <ManagementSurface>
+      <ManagementHeader
+        description="控制读者侧公告轮播内容。"
+        meta={<Badge variant="outline">{announcements.length} 条</Badge>}
+        title="公告"
+        action={
           <Button type="button" variant="outline" onClick={onRefresh}>
             <RefreshCw className={isLoading ? "animate-spin" : undefined} />
             刷新
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-3">
-        {isLoading ? (
-          <div className="flex items-center gap-2 rounded-lg border border-border/70 p-3 text-sm text-muted-foreground">
-            <Loader2 className="size-4 animate-spin" />
-            正在加载站点配置...
-          </div>
-        ) : null}
-        {announcements.map((announcement) => (
-          <article
-            key={announcement.id}
-            className="rounded-xl border border-border/70 bg-background/65 p-4"
-          >
-            {editingAnnouncementId === announcement.id ? (
-              <AnnouncementEditor
-                draft={draft}
-                saving={savingAnnouncementId === announcement.id}
-                onCancel={onCancelEdit}
-                onChange={onChangeDraft}
-                onSave={() => onSave(announcement)}
-              />
-            ) : (
-              <AnnouncementSummary
-                announcement={announcement}
-                saving={savingAnnouncementId === announcement.id}
-                onStartEdit={() => onStartEdit(announcement)}
-                onToggle={() => onToggle(announcement)}
-              />
-            )}
-          </article>
-        ))}
-      </CardContent>
-    </Card>
+        }
+      />
+      <ManagementBody>
+        <ManagementList>
+          {isLoading ? <ManagementLoading label="正在加载站点配置..." /> : null}
+          {announcements.map((announcement) => (
+            <article className="p-4 transition-colors hover:bg-background/28" key={announcement.id}>
+              {editingAnnouncementId === announcement.id ? (
+                <AnnouncementEditor
+                  draft={draft}
+                  saving={savingAnnouncementId === announcement.id}
+                  onCancel={onCancelEdit}
+                  onChange={onChangeDraft}
+                  onSave={() => onSave(announcement)}
+                />
+              ) : (
+                <AnnouncementSummary
+                  announcement={announcement}
+                  saving={savingAnnouncementId === announcement.id}
+                  onStartEdit={() => onStartEdit(announcement)}
+                  onToggle={() => onToggle(announcement)}
+                />
+              )}
+            </article>
+          ))}
+        </ManagementList>
+      </ManagementBody>
+    </ManagementSurface>
   );
 }
 

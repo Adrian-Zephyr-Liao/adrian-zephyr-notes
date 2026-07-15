@@ -6,6 +6,7 @@ import {
   ChevronRight,
   FileText,
   FolderTree,
+  Gauge,
   LogOut,
   MessageCircle,
   Moon,
@@ -37,7 +38,14 @@ import {
 import { logoutAdmin } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
 
-type AdminSectionKey = "agent" | "articles" | "audit" | "comments" | "guestbook" | "site";
+type AdminSectionKey =
+  | "agent"
+  | "articles"
+  | "audit"
+  | "comments"
+  | "guestbook"
+  | "overview"
+  | "site";
 type AdminShellProps = {
   admin: AdminUserResponse;
   articlePage?: "categories" | "list" | "tags";
@@ -50,7 +58,7 @@ type AdminNavItem = {
   icon: LucideIcon;
   key: AdminSectionKey;
   label: string;
-  to: "/agent" | "/articles" | "/audit" | "/comments" | "/guestbook" | "/site";
+  to: "/" | "/agent" | "/articles" | "/audit" | "/comments" | "/guestbook" | "/site";
 };
 type AdminNavGroup = {
   items: AdminNavItem[];
@@ -66,19 +74,25 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
 
   return (
     <main className="min-h-dvh bg-(--gradient-soft) text-foreground">
+      <a
+        className="fixed top-3 left-3 z-50 -translate-y-20 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground shadow-(--shadow-glass-strong) transition-transform focus:translate-y-0 motion-reduce:transition-none"
+        href="#admin-content"
+      >
+        跳到主要内容
+      </a>
       <SidebarProvider>
         <Sidebar>
           <SidebarHeader>
             <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-(--shadow-glass) ring-1 ring-white/30">
+              <Link className="flex min-w-0 items-center gap-3" to="/">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground shadow-(--shadow-glass) ring-1 ring-white/25">
                   AZ
                 </span>
                 <div className="min-w-0">
                   <p className="truncate font-semibold">AZ Notes</p>
                   <p className="truncate text-xs text-muted-foreground">Content Studio</p>
                 </div>
-              </div>
+              </Link>
               <ThemeToggle />
             </div>
           </SidebarHeader>
@@ -91,15 +105,7 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
                   <SidebarMenu>
                     {group.items.map((item) => (
                       <SidebarMenuItem key={item.key}>
-                        <SidebarMenuButton
-                          asChild
-                          className={cn(
-                            item.key === "articles" &&
-                              section === "articles" &&
-                              "font-medium text-foreground",
-                          )}
-                          isActive={section === item.key && item.key !== "articles"}
-                        >
+                        <SidebarMenuButton asChild isActive={section === item.key}>
                           <Link to={item.to}>
                             <item.icon />
                             <span>{item.label}</span>
@@ -107,7 +113,7 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
                           </Link>
                         </SidebarMenuButton>
                         {item.key === "articles" && section === "articles" ? (
-                          <ul className="mt-1 ml-4 grid gap-1 border-l border-border/45 pl-3">
+                          <ul className="mt-2 flex gap-1 border-l-0 pl-0 lg:mt-1 lg:ml-4 lg:grid lg:border-l lg:border-border/55 lg:pl-3">
                             <ArticleSubmenuItem
                               icon={FileText}
                               isActive={articlePage === "list"}
@@ -170,12 +176,12 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
 
         <SidebarInset className={cn(section === "agent" && "overflow-hidden")}>
           {section === "agent" ? null : (
-            <header className="sticky top-0 z-20 flex min-h-20 w-full items-center justify-between gap-4 border-b border-border/70 bg-(--glass-surface-strong) p-4 shadow-sm backdrop-blur-xl sm:px-6 lg:px-8">
+            <header className="sticky top-0 z-20 flex min-h-20 w-full items-center border-b border-(--glass-border) bg-(--glass-surface-strong) px-4 py-3 shadow-(--shadow-glass) backdrop-blur-2xl sm:px-6 lg:px-8 dark:border-transparent">
               <div>
                 {section === "articles" ? (
                   <nav
                     aria-label="面包屑"
-                    className="flex items-center gap-1 text-xs font-medium text-muted-foreground"
+                    className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
                   >
                     <Link
                       className="transition-colors duration-150 ease-(--ease-out-ui) hover:text-foreground"
@@ -186,18 +192,18 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
                     <ChevronRight className="size-3" />
                     <span aria-current="page">{sectionMeta.title}</span>
                   </nav>
-                ) : (
-                  <p className="text-xs font-medium tracking-[0.16em] text-muted-foreground uppercase">
-                    Studio
-                  </p>
-                )}
+                ) : null}
                 <h1 className="mt-1 text-xl font-semibold tracking-normal">{sectionMeta.title}</h1>
-                <p className="mt-1 text-sm text-muted-foreground">{sectionMeta.description}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">{sectionMeta.description}</p>
               </div>
             </header>
           )}
           <div
-            className={cn("w-full p-3 sm:p-5 lg:p-6", section === "agent" && "p-2 sm:p-3 lg:p-4")}
+            id="admin-content"
+            className={cn(
+              "mx-auto w-full max-w-[1600px] p-3 sm:p-5 lg:p-7",
+              section === "agent" && "max-w-none p-2 sm:p-3 lg:p-4",
+            )}
           >
             {children}
           </div>
@@ -209,42 +215,46 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
 
 const adminSectionMeta: Record<AdminSectionKey, { description: string; title: string }> = {
   agent: {
-    description: "把评论、文章、留言、站点配置和审计入口收束到 Agent 对话中",
+    description: "用对话与可确认任务协助内容运营。",
     title: "Agent 工作台",
   },
   articles: {
-    description: "以写作流为中心管理 Markdown、发布状态和 AI 摘要",
+    description: "管理文章、分类、标签与发布进度。",
     title: "文章工作台",
   },
   audit: {
-    description: "查看管理员写操作记录和来源上下文",
+    description: "追踪后台写操作与治理记录。",
     title: "审计日志",
   },
   comments: {
-    description: "查看评论上下文，处理隐藏与恢复",
+    description: "结合文章和回复上下文处理评论。",
     title: "评论治理",
   },
   guestbook: {
-    description: "审核留言、置顶重点反馈，并支持软删除与恢复",
+    description: "管理留言可见性、置顶和软删除。",
     title: "留言板治理",
   },
+  overview: {
+    description: "聚合内容进度、互动治理和系统动态。",
+    title: "运营工作台",
+  },
   site: {
-    description: "管理公告、导航、社交链接和首页配置",
+    description: "维护读者侧展示与 Agent 治理策略。",
     title: "站点配置",
   },
 };
 
 const articlePageMeta = {
   categories: {
-    description: "维护文章分类名称、固定链接和内容说明",
+    description: "维护文章分类及其用途说明。",
     title: "分类管理",
   },
   list: {
-    description: "筛选文章并进入全屏写作页",
+    description: "检索、筛选并维护全部文章。",
     title: "文章列表",
   },
   tags: {
-    description: "维护标签词表、文章引用和重复标签合并",
+    description: "规范标签并合并重复条目。",
     title: "标签管理",
   },
 } satisfies Record<
@@ -267,8 +277,8 @@ function ArticleSubmenuItem({
     <li>
       <Link
         className={cn(
-          "flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs text-muted-foreground transition-[background-color,color,box-shadow,scale] duration-150 ease-(--ease-out-ui) hover:bg-background/55 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100",
-          isActive && "bg-background/65 font-medium text-foreground shadow-sm",
+          "flex min-h-9 items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs whitespace-nowrap text-muted-foreground transition-[background-color,color,box-shadow,scale] duration-200 ease-(--ease-out-ui) hover:bg-background/45 hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/45 focus-visible:outline-none active:scale-[0.99] motion-reduce:transition-none motion-reduce:active:scale-100",
+          isActive && "bg-primary/10 font-medium text-foreground",
         )}
         to={to}
       >
@@ -282,24 +292,35 @@ function ArticleSubmenuItem({
 function createAdminNavGroups(): AdminNavGroup[] {
   return [
     {
-      label: "Write",
+      label: "总览",
       items: [
         {
-          icon: Bot,
-          key: "agent",
-          label: "Agent 工作台",
-          to: "/agent",
+          icon: Gauge,
+          key: "overview",
+          label: "运营工作台",
+          to: "/",
         },
+      ],
+    },
+    {
+      label: "创作",
+      items: [
         {
           icon: NotebookPen,
           key: "articles",
           label: "文章",
           to: "/articles",
         },
+        {
+          icon: Bot,
+          key: "agent",
+          label: "Agent 助手",
+          to: "/agent",
+        },
       ],
     },
     {
-      label: "Discuss",
+      label: "互动",
       items: [
         {
           icon: MessageCircle,
@@ -316,7 +337,7 @@ function createAdminNavGroups(): AdminNavGroup[] {
       ],
     },
     {
-      label: "Operate",
+      label: "系统",
       items: [
         {
           icon: Settings2,

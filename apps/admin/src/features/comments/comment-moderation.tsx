@@ -7,14 +7,17 @@ import { Eye, EyeOff, Loader2, RefreshCw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import {
+  ManagementBody,
+  ManagementEmpty,
+  ManagementHeader,
+  ManagementList,
+  ManagementLoading,
+  ManagementPagination,
+  ManagementSurface,
+  ManagementToolbar,
+} from "../../components/ui/management-surface";
 import { Select } from "../../components/ui/select";
 import { listAdminArticleComments, updateAdminArticleComment } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
@@ -105,14 +108,22 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
     }
   }
 
+  function submitSearch() {
+    setQuery((current) => ({
+      ...current,
+      commentId: undefined,
+      page: 1,
+      q: searchText.trim() || undefined,
+    }));
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <CardTitle>评论治理</CardTitle>
-            <CardDescription>在处理前先看文章、用户和回复上下文。</CardDescription>
-          </div>
+    <ManagementSurface>
+      <ManagementHeader
+        description="在处理前先看文章、用户和回复上下文。"
+        meta={<Badge variant="outline">{pagination.totalItems} 条</Badge>}
+        title="评论治理"
+        action={
           <Button
             type="button"
             variant="outline"
@@ -121,17 +132,20 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
             <RefreshCw className={cn(isLoading && "animate-spin")} />
             刷新
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        }
+      />
+      <ManagementBody>
         {errorMessage ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
             {errorMessage}
           </div>
         ) : null}
         {isFocusedMode ? (
           <div
-            className="flex flex-col gap-2 rounded-lg border border-primary/25 bg-primary/10 px-3 py-2 text-sm text-primary sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary sm:flex-row sm:items-center sm:justify-between"
             role="status"
           >
             <span>已定位到 Agent 风险卡片关联的评论。</span>
@@ -152,7 +166,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
             </Button>
           </div>
         ) : null}
-        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px]">
+        <ManagementToolbar className="md:grid-cols-[minmax(0,1fr)_180px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
@@ -162,12 +176,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
               onChange={(event) => setSearchText(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
-                  setQuery((current) => ({
-                    ...current,
-                    commentId: undefined,
-                    page: 1,
-                    q: searchText.trim() || undefined,
-                  }));
+                  submitSearch();
                 }
               }}
             />
@@ -187,22 +196,21 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
             <option value="VISIBLE">可见</option>
             <option value="HIDDEN">已隐藏</option>
           </Select>
-        </div>
-        <div className="grid gap-3">
-          {isLoading ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border/70 p-3 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              正在加载评论...
-            </div>
-          ) : null}
+          <Button aria-label="搜索评论" title="搜索评论" type="button" onClick={submitSearch}>
+            <Search />
+            <span className="md:sr-only">搜索</span>
+          </Button>
+        </ManagementToolbar>
+        <ManagementList>
+          {isLoading ? <ManagementLoading label="正在加载评论..." /> : null}
           {comments.map((comment) => (
             <article
               key={comment.id}
               aria-current={comment.id === query.commentId ? "true" : undefined}
               className={cn(
-                "rounded-xl border border-border/70 bg-background/65 p-4",
+                "p-4 transition-colors hover:bg-background/28",
                 comment.id === query.commentId &&
-                  "border-primary/45 bg-primary/10 ring-2 ring-primary/20",
+                  "bg-primary/10 shadow-[inset_3px_0_0_color-mix(in_oklch,var(--primary)_65%,transparent)]",
               )}
             >
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
@@ -219,7 +227,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
                   </div>
                   <p className="text-sm/6 whitespace-pre-wrap">{comment.body}</p>
                   {comment.parent ? (
-                    <div className="rounded-lg border border-border/70 bg-muted/45 p-3">
+                    <div className="rounded-lg bg-muted/35 p-3">
                       <p className="text-xs text-muted-foreground">
                         回复上下文 · @{comment.parent.author.login}
                       </p>
@@ -291,18 +299,16 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
             </article>
           ))}
           {!isLoading && comments.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-              没有符合条件的评论。
-            </div>
+            <ManagementEmpty label="没有符合条件的评论。" />
           ) : null}
-        </div>
-        <PaginationControls
+        </ManagementList>
+        <ManagementPagination
           page={pagination.page}
           totalPages={pagination.totalPages}
           onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
         />
-      </CardContent>
-    </Card>
+      </ManagementBody>
+    </ManagementSurface>
   );
 }
 
@@ -311,44 +317,6 @@ function StatusBadge({ status }: { status: AdminArticleCommentStatus }) {
     <Badge variant={status === "VISIBLE" ? "success" : "outline"}>
       {status === "VISIBLE" ? "可见" : "已隐藏"}
     </Badge>
-  );
-}
-
-function PaginationControls({
-  onPageChange,
-  page,
-  totalPages,
-}: {
-  onPageChange: (page: number) => void;
-  page: number;
-  totalPages: number;
-}) {
-  return (
-    <div className="flex items-center justify-between text-xs text-muted-foreground">
-      <span>
-        第 {page} / {Math.max(totalPages, 1)} 页
-      </span>
-      <div className="flex gap-2">
-        <Button
-          disabled={page <= 1}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => onPageChange(page - 1)}
-        >
-          上一页
-        </Button>
-        <Button
-          disabled={page >= totalPages}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => onPageChange(page + 1)}
-        >
-          下一页
-        </Button>
-      </div>
-    </div>
   );
 }
 

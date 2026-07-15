@@ -3,18 +3,21 @@ import type {
   AdminOperationLogListQuery,
   AdminOperationLogResponse,
 } from "@adrian-zephyr-notes/contracts";
-import { Loader2, RefreshCw, Search } from "lucide-react";
+import { RefreshCw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import {
+  ManagementBody,
+  ManagementEmpty,
+  ManagementHeader,
+  ManagementList,
+  ManagementLoading,
+  ManagementPagination,
+  ManagementSurface,
+  ManagementToolbar,
+} from "../../components/ui/management-surface";
 import { Select } from "../../components/ui/select";
 import { listAdminOperationLogs } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
@@ -57,14 +60,21 @@ function AuditLogManagement() {
       .finally(() => setIsLoading(false));
   }, [query]);
 
+  function submitSearch() {
+    setQuery((current) => ({
+      ...current,
+      page: 1,
+      q: searchText.trim() || undefined,
+    }));
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <CardTitle>审计日志</CardTitle>
-            <CardDescription>记录管理员对内容和配置的写操作。</CardDescription>
-          </div>
+    <ManagementSurface>
+      <ManagementHeader
+        description="记录管理员对内容、治理和站点配置的写操作。"
+        meta={<Badge variant="outline">{pagination.totalItems} 条</Badge>}
+        title="审计日志"
+        action={
           <Button
             type="button"
             variant="outline"
@@ -73,15 +83,18 @@ function AuditLogManagement() {
             <RefreshCw className={cn(isLoading && "animate-spin")} />
             刷新
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        }
+      />
+      <ManagementBody>
         {errorMessage ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
             {errorMessage}
           </div>
         ) : null}
-        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_220px]">
+        <ManagementToolbar className="md:grid-cols-[minmax(0,1fr)_220px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
@@ -91,11 +104,7 @@ function AuditLogManagement() {
               onChange={(event) => setSearchText(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
-                  setQuery((current) => ({
-                    ...current,
-                    page: 1,
-                    q: searchText.trim() || undefined,
-                  }));
+                  submitSearch();
                 }
               }}
             />
@@ -117,30 +126,25 @@ function AuditLogManagement() {
               </option>
             ))}
           </Select>
-        </div>
-        <div className="grid gap-3">
-          {isLoading ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border/70 p-3 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              正在加载日志...
-            </div>
-          ) : null}
+          <Button aria-label="搜索日志" title="搜索日志" type="button" onClick={submitSearch}>
+            <Search />
+            <span className="md:sr-only">搜索</span>
+          </Button>
+        </ManagementToolbar>
+        <ManagementList>
+          {isLoading ? <ManagementLoading label="正在加载日志..." /> : null}
           {logs.map((log) => (
             <AuditLogItem key={log.id} log={log} />
           ))}
-          {!isLoading && logs.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-              暂无审计日志。
-            </div>
-          ) : null}
-        </div>
-        <PaginationControls
+          {!isLoading && logs.length === 0 ? <ManagementEmpty label="暂无审计日志。" /> : null}
+        </ManagementList>
+        <ManagementPagination
           page={pagination.page}
           totalPages={pagination.totalPages}
           onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
         />
-      </CardContent>
-    </Card>
+      </ManagementBody>
+    </ManagementSurface>
   );
 }
 
@@ -148,7 +152,7 @@ function AuditLogItem({ log }: { log: AdminOperationLogResponse }) {
   const actionMeta = getAuditActionMeta(log.action);
 
   return (
-    <article className="rounded-xl border border-border/70 bg-background/65 p-4">
+    <article className="p-4 transition-colors hover:bg-background/28">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -176,7 +180,7 @@ function AuditMetadataPanel({ log }: { log: AdminOperationLogResponse }) {
   }
 
   return (
-    <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+    <div className="mt-3 rounded-lg bg-muted/25 p-3">
       <dl className="grid gap-2 sm:grid-cols-2">
         {entries.map((entry) => (
           <div key={entry.key} className="min-w-0">
@@ -187,44 +191,6 @@ function AuditMetadataPanel({ log }: { log: AdminOperationLogResponse }) {
           </div>
         ))}
       </dl>
-    </div>
-  );
-}
-
-function PaginationControls({
-  onPageChange,
-  page,
-  totalPages,
-}: {
-  onPageChange: (page: number) => void;
-  page: number;
-  totalPages: number;
-}) {
-  return (
-    <div className="flex items-center justify-between text-xs text-muted-foreground">
-      <span>
-        第 {page} / {Math.max(totalPages, 1)} 页
-      </span>
-      <div className="flex gap-2">
-        <Button
-          disabled={page <= 1}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => onPageChange(page - 1)}
-        >
-          上一页
-        </Button>
-        <Button
-          disabled={page >= totalPages}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => onPageChange(page + 1)}
-        >
-          下一页
-        </Button>
-      </div>
     </div>
   );
 }

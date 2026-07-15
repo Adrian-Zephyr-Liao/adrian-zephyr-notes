@@ -6,17 +6,24 @@ import type {
   ArticleOrigin,
   AdminArticleStatus,
 } from "@adrian-zephyr-notes/contracts";
-import { FilePlus2, FolderTree, PencilLine, RefreshCw, Search } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  FilePlus2,
+  FileText,
+  FolderTree,
+  PenTool,
+  PencilLine,
+  RefreshCw,
+  Repeat2,
+  Search,
+} from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { Select } from "../../components/ui/select";
 import { listAdminArticles } from "../../lib/admin-api";
@@ -75,26 +82,41 @@ function ArticleManagement() {
   }
 
   return (
-    <div className="grid w-full min-w-0 gap-4">
+    <div className="grid w-full min-w-0 gap-5">
       {errorMessage ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+        <div
+          className="rounded-lg border border-destructive/35 bg-destructive/10 px-3 py-2 text-sm text-destructive backdrop-blur-md"
+          role="alert"
+        >
           {errorMessage}
         </div>
       ) : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard label="总数" value={pageStats.totalArticles} />
-        <MetricCard label="本页已发布" value={pageStats.publishedOnPage} />
-        <MetricCard label="本页原创" value={pageStats.originalOnPage} />
-        <MetricCard label="本页转载" value={pageStats.repostedOnPage} />
+        <MetricCard
+          icon={FileText}
+          label="全部文章"
+          tone="primary"
+          value={pageStats.totalArticles}
+        />
+        <MetricCard
+          icon={CheckCircle2}
+          label="本页已发布"
+          tone="success"
+          value={pageStats.publishedOnPage}
+        />
+        <MetricCard
+          icon={PenTool}
+          label="本页原创"
+          tone="neutral"
+          value={pageStats.originalOnPage}
+        />
+        <MetricCard icon={Repeat2} label="本页转载" tone="warm" value={pageStats.repostedOnPage} />
       </div>
       <Card className="overflow-hidden">
-        <CardHeader className="border-b border-border/70">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <CardTitle>文章管理</CardTitle>
-              <CardDescription>筛选文章并进入全屏写作页。</CardDescription>
-            </div>
-            <div className="flex gap-2">
+        <CardHeader className="border-b border-(--glass-border) bg-background/14 dark:border-transparent">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <CardTitle>文章管理</CardTitle>
+            <div className="flex flex-wrap gap-2">
               <Button asChild variant="outline">
                 <Link to="/articles/categories">
                   <FolderTree />
@@ -110,24 +132,30 @@ function ArticleManagement() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4 p-4">
-          <div className="flex flex-col gap-2 lg:flex-row">
-            <div className="relative min-w-0 flex-1">
-              <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-              <Input
-                className="pl-8"
-                placeholder="搜索标题 / slug"
-                value={searchText}
-                onChange={(event) => setSearchText(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter") {
-                    submitSearch();
-                  }
-                }}
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2 lg:w-auto lg:grid-cols-[160px_160px_auto_auto]">
+        <CardContent className="space-y-4 p-3 sm:p-5">
+          <div className="grid gap-3 rounded-lg border border-(--glass-border) bg-background/18 p-3 backdrop-blur-md xl:grid-cols-[minmax(280px,1fr)_176px_176px_auto] xl:items-end dark:border-transparent">
+            <label className="grid min-w-0 gap-1.5 text-xs font-medium text-muted-foreground">
+              <span>搜索文章</span>
+              <span className="relative block">
+                <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  aria-label="搜索文章"
+                  className="pl-9"
+                  placeholder="标题或 slug"
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      submitSearch();
+                    }
+                  }}
+                />
+              </span>
+            </label>
+            <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+              <span>发布状态</span>
               <Select
+                aria-label="发布状态"
                 value={query.status ?? "ALL"}
                 onChange={(event) =>
                   setQuery((current) => ({
@@ -142,7 +170,11 @@ function ArticleManagement() {
                 <option value="PUBLISHED">已发布</option>
                 <option value="ARCHIVED">已归档</option>
               </Select>
+            </label>
+            <label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
+              <span>文章来源</span>
               <Select
+                aria-label="文章来源"
                 value={query.origin ?? "ALL"}
                 onChange={(event) =>
                   setQuery((current) => ({
@@ -156,12 +188,17 @@ function ArticleManagement() {
                 <option value="ORIGINAL">原创</option>
                 <option value="REPOSTED">转载</option>
               </Select>
-              <Button type="button" variant="outline" onClick={submitSearch}>
-                搜索
+            </label>
+            <div className="flex gap-2">
+              <Button className="flex-1 xl:flex-none" type="button" onClick={submitSearch}>
+                <Search />
+                筛选
               </Button>
               <Button
                 aria-label="刷新文章"
+                disabled={isLoadingList}
                 size="icon"
+                title="刷新文章"
                 type="button"
                 variant="outline"
                 onClick={() => void loadArticles(query)}
@@ -192,10 +229,10 @@ function ArticleList({
   if (isLoading) {
     return (
       <div className="grid gap-2" aria-busy="true" aria-label="正在加载文章">
-        {Array.from({ length: 5 }).map((_, index) => (
+        {Array.from({ length: 4 }).map((_, index) => (
           <div
             key={index}
-            className="h-20 animate-pulse rounded-lg border border-border/70 bg-muted/50"
+            className="h-20 animate-pulse rounded-lg border border-(--glass-border) bg-muted/45 motion-reduce:animate-none"
           />
         ))}
       </div>
@@ -204,30 +241,41 @@ function ArticleList({
 
   if (articles.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-        没有符合条件的文章。
+      <div className="grid min-h-48 place-items-center rounded-lg border border-dashed border-border bg-background/18 p-8 text-center text-sm text-muted-foreground">
+        <div className="grid justify-items-center gap-2">
+          <FileText className="size-5" />
+          <p>没有符合条件的文章</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="overflow-hidden rounded-lg border border-border/70">
-      <div className="hidden grid-cols-[minmax(0,1.4fr)_120px_140px_120px] gap-3 border-b border-border/70 bg-muted/45 px-4 py-2 text-xs font-medium text-muted-foreground lg:grid">
+    <div className="overflow-hidden rounded-lg border border-(--glass-border) bg-background/16 backdrop-blur-md">
+      <div className="hidden grid-cols-[minmax(0,1.4fr)_120px_140px_64px] gap-3 border-b border-(--glass-border) bg-background/28 px-4 py-2.5 text-xs font-medium text-muted-foreground lg:grid">
         <span>标题</span>
         <span>发布状态</span>
         <span>AI 摘要</span>
         <span className="text-right">操作</span>
       </div>
-      <div className="divide-y divide-border/70">
+      <div className="divide-y divide-border/55">
         {articles.map((article) => (
           <article
             key={article.id}
-            className="grid gap-3 bg-background/55 px-4 py-3 transition-colors hover:bg-muted/45 lg:grid-cols-[minmax(0,1.4fr)_120px_140px_120px] lg:items-center"
+            className="grid gap-3 bg-background/20 px-4 py-3.5 transition-colors duration-200 hover:bg-background/45 lg:grid-cols-[minmax(0,1.4fr)_120px_140px_64px] lg:items-center"
           >
             <div className="min-w-0">
               <div className="mb-1 flex items-start justify-between gap-2 lg:block">
                 <div className="flex min-w-0 items-center gap-2">
-                  <h3 className="line-clamp-1 text-sm font-medium">{article.title}</h3>
+                  <h3 className="line-clamp-1 text-sm font-medium">
+                    <Link
+                      className="rounded-sm transition-colors outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/45"
+                      params={{ articleId: article.id }}
+                      to="/articles/$articleId/edit"
+                    >
+                      {article.title}
+                    </Link>
+                  </h3>
                   <OriginBadge origin={article.origin} />
                 </div>
                 <span className="lg:hidden">
@@ -235,7 +283,9 @@ function ArticleList({
                 </span>
               </div>
               <p className="line-clamp-1 text-xs text-muted-foreground">{article.description}</p>
-              <p className="mt-1 truncate text-xs text-muted-foreground">{article.slug}</p>
+              <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground/85">
+                {article.slug}
+              </p>
             </div>
             <span className="hidden lg:block">
               <StatusBadge status={article.status} />
@@ -244,10 +294,14 @@ function ArticleList({
               <SummaryBadge status={article.aiSummaryStatus} />
             </span>
             <div className="flex justify-end">
-              <Button asChild size="sm" variant="outline">
-                <Link params={{ articleId: article.id }} to="/articles/$articleId/edit">
+              <Button asChild size="icon" variant="ghost">
+                <Link
+                  aria-label={`编辑 ${article.title}`}
+                  params={{ articleId: article.id }}
+                  title={`编辑 ${article.title}`}
+                  to="/articles/$articleId/edit"
+                >
                   <PencilLine />
-                  编辑
                 </Link>
               </Button>
             </div>
@@ -277,33 +331,64 @@ function ArticlePagination({
       <div className="flex gap-2">
         <Button
           disabled={page <= 1}
-          size="sm"
+          aria-label="上一页"
+          size="icon"
+          title="上一页"
           type="button"
           variant="outline"
           onClick={() => onPageChange(page - 1)}
         >
-          上一页
+          <ChevronLeft />
         </Button>
         <Button
           disabled={page >= normalizedTotalPages}
-          size="sm"
+          aria-label="下一页"
+          size="icon"
+          title="下一页"
           type="button"
           variant="outline"
           onClick={() => onPageChange(page + 1)}
         >
-          下一页
+          <ChevronRight />
         </Button>
       </div>
     </div>
   );
 }
 
-function MetricCard({ label, value }: { label: string; value: number }) {
+const metricToneStyles = {
+  neutral: "bg-foreground/6 text-foreground",
+  primary: "bg-primary/14 text-primary",
+  success: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+  warm: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
+} satisfies Record<string, string>;
+
+function MetricCard({
+  icon: Icon,
+  label,
+  tone,
+  value,
+}: {
+  icon: LucideIcon;
+  label: string;
+  tone: keyof typeof metricToneStyles;
+  value: number;
+}) {
   return (
     <Card>
-      <CardContent className="p-3">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className="mt-1 text-2xl font-semibold">{value}</p>
+      <CardContent className="flex items-center gap-3 p-3.5">
+        <span
+          className={cn(
+            "grid size-10 shrink-0 place-items-center rounded-lg",
+            metricToneStyles[tone],
+          )}
+        >
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs text-muted-foreground">{label}</p>
+          <p className="mt-0.5 text-2xl font-semibold tabular-nums">{value}</p>
+        </div>
       </CardContent>
     </Card>
   );

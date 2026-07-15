@@ -1,5 +1,6 @@
 node_modules/
 .codegraph/
+.codex/
 
 # Local environment files. Keep committed examples as *.env.example.
 .env

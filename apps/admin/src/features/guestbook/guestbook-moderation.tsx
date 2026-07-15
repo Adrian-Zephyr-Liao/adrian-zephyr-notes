@@ -3,18 +3,21 @@ import type {
   AdminGuestbookMessagesQuery,
   AdminGuestbookMessageStatus,
 } from "@adrian-zephyr-notes/contracts";
-import { Eye, EyeOff, Loader2, Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Eye, EyeOff, Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
+import {
+  ManagementBody,
+  ManagementEmpty,
+  ManagementHeader,
+  ManagementList,
+  ManagementLoading,
+  ManagementPagination,
+  ManagementSurface,
+  ManagementToolbar,
+} from "../../components/ui/management-surface";
 import { Select } from "../../components/ui/select";
 import { listAdminGuestbookMessages, updateAdminGuestbookMessage } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
@@ -85,14 +88,21 @@ function GuestbookModeration() {
     }
   }
 
+  function submitSearch() {
+    setQuery((current) => ({
+      ...current,
+      page: 1,
+      q: searchText.trim() || undefined,
+    }));
+  }
+
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <CardTitle>留言板治理</CardTitle>
-            <CardDescription>处理留言可见性、置顶和软删除。</CardDescription>
-          </div>
+    <ManagementSurface>
+      <ManagementHeader
+        description="处理留言可见性、置顶和软删除。"
+        meta={<Badge variant="outline">{pagination.totalItems} 条</Badge>}
+        title="留言板治理"
+        action={
           <Button
             type="button"
             variant="outline"
@@ -101,15 +111,18 @@ function GuestbookModeration() {
             <RefreshCw className={cn(isLoading && "animate-spin")} />
             刷新
           </Button>
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-4">
+        }
+      />
+      <ManagementBody>
         {errorMessage ? (
-          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <div
+            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
             {errorMessage}
           </div>
         ) : null}
-        <div className="grid gap-2 md:grid-cols-[minmax(0,1fr)_180px]">
+        <ManagementToolbar className="md:grid-cols-[minmax(0,1fr)_180px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
@@ -119,11 +132,7 @@ function GuestbookModeration() {
               onChange={(event) => setSearchText(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
-                  setQuery((current) => ({
-                    ...current,
-                    page: 1,
-                    q: searchText.trim() || undefined,
-                  }));
+                  submitSearch();
                 }
               }}
             />
@@ -143,19 +152,15 @@ function GuestbookModeration() {
             <option value="HIDDEN">已隐藏</option>
             <option value="DELETED">已删除</option>
           </Select>
-        </div>
-        <div className="grid gap-3">
-          {isLoading ? (
-            <div className="flex items-center gap-2 rounded-lg border border-border/70 p-3 text-sm text-muted-foreground">
-              <Loader2 className="size-4 animate-spin" />
-              正在加载留言...
-            </div>
-          ) : null}
+          <Button aria-label="搜索留言" title="搜索留言" type="button" onClick={submitSearch}>
+            <Search />
+            <span className="md:sr-only">搜索</span>
+          </Button>
+        </ManagementToolbar>
+        <ManagementList>
+          {isLoading ? <ManagementLoading label="正在加载留言..." /> : null}
           {messages.map((message) => (
-            <article
-              key={message.id}
-              className="rounded-xl border border-border/70 bg-background/65 p-4"
-            >
+            <article className="p-4 transition-colors hover:bg-background/28" key={message.id}>
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_230px]">
                 <div className="min-w-0 space-y-3">
                   <div className="flex flex-wrap items-center gap-2">
@@ -226,18 +231,16 @@ function GuestbookModeration() {
             </article>
           ))}
           {!isLoading && messages.length === 0 ? (
-            <div className="rounded-lg border border-dashed border-border p-5 text-center text-sm text-muted-foreground">
-              没有符合条件的留言。
-            </div>
+            <ManagementEmpty label="没有符合条件的留言。" />
           ) : null}
-        </div>
-        <PaginationControls
+        </ManagementList>
+        <ManagementPagination
           page={pagination.page}
           totalPages={pagination.totalPages}
           onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
         />
-      </CardContent>
-    </Card>
+      </ManagementBody>
+    </ManagementSurface>
   );
 }
 
@@ -289,44 +292,6 @@ function GuestbookAuthor({ message }: { message: AdminGuestbookMessageListItemRe
 function StatusBadge({ status }: { status: AdminGuestbookMessageStatus }) {
   const meta = guestbookStatusMeta[status];
   return <Badge variant={meta.variant}>{meta.label}</Badge>;
-}
-
-function PaginationControls({
-  onPageChange,
-  page,
-  totalPages,
-}: {
-  onPageChange: (page: number) => void;
-  page: number;
-  totalPages: number;
-}) {
-  return (
-    <div className="flex items-center justify-between text-xs text-muted-foreground">
-      <span>
-        第 {page} / {Math.max(totalPages, 1)} 页
-      </span>
-      <div className="flex gap-2">
-        <Button
-          disabled={page <= 1}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => onPageChange(page - 1)}
-        >
-          上一页
-        </Button>
-        <Button
-          disabled={page >= totalPages}
-          size="sm"
-          type="button"
-          variant="outline"
-          onClick={() => onPageChange(page + 1)}
-        >
-          下一页
-        </Button>
-      </div>
-    </div>
-  );
 }
 
 const guestbookStatusMeta: Record<

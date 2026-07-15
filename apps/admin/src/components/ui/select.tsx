@@ -61,7 +61,7 @@ function Select({
       <SelectPrimitive.Trigger
         aria-label={ariaLabel}
         className={cn(
-          "flex h-9 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-input bg-background/80 px-3 text-sm text-foreground shadow-xs outline-none transition-[background-color,border-color,box-shadow,scale] duration-150 ease-(--ease-out-ui) focus-visible:border-ring focus-visible:bg-background/95 focus-visible:ring-3 focus-visible:ring-ring/35 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100",
+          "flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-(--glass-border) bg-background/45 px-3 text-sm text-foreground shadow-xs outline-none backdrop-blur-md transition-[background-color,border-color,box-shadow,scale] duration-200 ease-(--ease-out-ui) focus-visible:border-ring focus-visible:bg-background/70 focus-visible:ring-3 focus-visible:ring-ring/35 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100",
           className,
         )}
         data-slot="select"
@@ -74,7 +74,7 @@ function Select({
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
         <SelectPrimitive.Content
-          className="z-50 max-h-80 min-w-(--radix-select-trigger-width) origin-(--radix-select-content-transform-origin) overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-(--shadow-glass-strong)"
+          className="z-50 max-h-80 min-w-(--radix-select-trigger-width) origin-(--radix-select-content-transform-origin) overflow-hidden rounded-lg border border-(--glass-border) bg-(--glass-surface-strong) text-popover-foreground shadow-(--shadow-glass-strong) backdrop-blur-2xl"
           position="popper"
           sideOffset={6}
         >
