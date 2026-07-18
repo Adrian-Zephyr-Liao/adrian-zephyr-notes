@@ -28,6 +28,7 @@ services:
       DATABASE_URL: postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:?POSTGRES_DB is required}?schema=public
       FRONTEND_ORIGIN: https://${WEBSITE_HOST:?WEBSITE_HOST is required}
       ADMIN_FRONTEND_ORIGIN: https://${ADMIN_HOST:?ADMIN_HOST is required}
+      SESSION_COOKIE_DOMAIN: ${SESSION_COOKIE_DOMAIN:-}
       ADMIN_GITHUB_LOGINS: ${ADMIN_GITHUB_LOGINS:?ADMIN_GITHUB_LOGINS is required}
       GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:?GITHUB_OAUTH_CLIENT_ID is required}
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:?GITHUB_OAUTH_CLIENT_SECRET is required}
@@ -70,7 +71,7 @@ services:
       dockerfile: apps/admin/Dockerfile
       args:
         NPM_CONFIG_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
-        VITE_BACKEND_API_BASE_URL: https://${WEBSITE_HOST:?WEBSITE_HOST is required}
+        VITE_BACKEND_API_BASE_URL: ${ADMIN_BACKEND_API_BASE_URL:-}
     restart: unless-stopped
     depends_on:
       server:

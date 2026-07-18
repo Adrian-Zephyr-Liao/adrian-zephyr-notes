@@ -36,18 +36,23 @@ class AuthController {
   ) {
     const authRequest = this.createGithubAuthorization.execute(returnTo ?? "/");
     const frontendOrigin = this.getFrontendOrigin(target);
+    const cookieDomain = this.getSessionCookieDomain();
 
     response.setHeader("Set-Cookie", [
       serializeCookie(OAUTH_STATE_COOKIE_NAME, authRequest.state, {
+        domain: cookieDomain,
         maxAgeSeconds: OAUTH_COOKIE_TTL_SECONDS,
       }),
       serializeCookie(OAUTH_VERIFIER_COOKIE_NAME, authRequest.codeVerifier, {
+        domain: cookieDomain,
         maxAgeSeconds: OAUTH_COOKIE_TTL_SECONDS,
       }),
       serializeCookie(OAUTH_RETURN_TO_COOKIE_NAME, authRequest.returnTo, {
+        domain: cookieDomain,
         maxAgeSeconds: OAUTH_COOKIE_TTL_SECONDS,
       }),
       serializeCookie(OAUTH_FRONTEND_ORIGIN_COOKIE_NAME, frontendOrigin, {
+        domain: cookieDomain,
         maxAgeSeconds: OAUTH_COOKIE_TTL_SECONDS,
       }),
     ]);
@@ -74,15 +79,17 @@ class AuthController {
       code,
       codeVerifier: cookies[OAUTH_VERIFIER_COOKIE_NAME] ?? "",
     });
+    const cookieDomain = this.getSessionCookieDomain();
 
     response.setHeader("Set-Cookie", [
       serializeCookie(SESSION_COOKIE_NAME, session.token, {
+        domain: cookieDomain,
         maxAgeSeconds: session.maxAgeSeconds,
       }),
-      clearCookie(OAUTH_STATE_COOKIE_NAME),
-      clearCookie(OAUTH_VERIFIER_COOKIE_NAME),
-      clearCookie(OAUTH_RETURN_TO_COOKIE_NAME),
-      clearCookie(OAUTH_FRONTEND_ORIGIN_COOKIE_NAME),
+      this.clearCookie(OAUTH_STATE_COOKIE_NAME),
+      this.clearCookie(OAUTH_VERIFIER_COOKIE_NAME),
+      this.clearCookie(OAUTH_RETURN_TO_COOKIE_NAME),
+      this.clearCookie(OAUTH_FRONTEND_ORIGIN_COOKIE_NAME),
     ]);
     response.redirect(`${frontendOrigin}${returnTo}`);
   }
@@ -99,7 +106,7 @@ class AuthController {
   @Post("logout")
   async logout(@Req() request: Request, @Res() response: Response) {
     await this.logoutUseCase.execute(getSessionTokenFromRequest(request));
-    response.setHeader("Set-Cookie", clearCookie(SESSION_COOKIE_NAME));
+    response.setHeader("Set-Cookie", this.clearCookie(SESSION_COOKIE_NAME));
     response.status(204).send();
   }
 
@@ -119,12 +126,17 @@ class AuthController {
 
     return origin && knownOrigins.has(origin) ? origin : this.githubOAuthClient.getFrontendOrigin();
   }
-}
 
-function clearCookie(name: string) {
-  return serializeCookie(name, "", {
-    maxAgeSeconds: 0,
-  });
+  private getSessionCookieDomain() {
+    return this.configService.get<string>("SESSION_COOKIE_DOMAIN") || undefined;
+  }
+
+  private clearCookie(name: string) {
+    return serializeCookie(name, "", {
+      domain: this.getSessionCookieDomain(),
+      maxAgeSeconds: 0,
+    });
+  }
 }
 
 export { AuthController };

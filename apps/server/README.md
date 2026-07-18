@@ -21,6 +21,7 @@ The server listens on `PORT` or `3001` by default.
 DATABASE_URL=postgresql://user:password@localhost:15432/adrian_zephyr_notes?schema=public
 FRONTEND_ORIGIN=http://localhost:3002
 ADMIN_FRONTEND_ORIGIN=http://localhost:3000
+SESSION_COOKIE_DOMAIN=
 ADMIN_GITHUB_LOGINS=Adrian-Zephyr-Liao
 GITHUB_OAUTH_CLIENT_ID=...
 GITHUB_OAUTH_CLIENT_SECRET=...

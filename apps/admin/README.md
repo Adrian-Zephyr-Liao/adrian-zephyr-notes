@@ -12,17 +12,18 @@ and audit logs. Authentication is handled by the API server through GitHub OAuth
 vp run dev:admin
 ```
 
-The app runs on <http://localhost:3000> by default. It calls the backend at
-`VITE_BACKEND_API_BASE_URL`, which defaults to <http://localhost:3001>.
+The app runs on <http://localhost:3000> by default. Local browser requests stay
+on the admin origin and Vite proxies `/api` to <http://127.0.0.1:3001>.
 
 ## Environment
 
 ```bash
-VITE_BACKEND_API_BASE_URL=http://localhost:3001
+VITE_BACKEND_PROXY_TARGET=http://127.0.0.1:3001
 ```
 
-When previewing through a public tunnel, set this variable to the public origin
-that can reach the backend routes.
+`VITE_BACKEND_API_BASE_URL` is only used for non-localhost hosts and production
+builds that intentionally call a separate API origin. When previewing through a
+public tunnel, configure either the Vite proxy target or the public API origin.
 
 ## Structure
 

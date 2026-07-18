@@ -20,10 +20,22 @@ class AdminApiError extends Error {
 }
 
 function getBackendApiBaseUrl() {
-  return (import.meta.env.VITE_BACKEND_API_BASE_URL ?? DEFAULT_BACKEND_API_BASE_URL).replace(
-    /\/$/,
-    "",
+  return resolveBackendApiBaseUrl(
+    import.meta.env.VITE_BACKEND_API_BASE_URL ?? DEFAULT_BACKEND_API_BASE_URL,
+    typeof window === "undefined" ? undefined : window.location.hostname,
   );
+}
+
+function resolveBackendApiBaseUrl(configuredBaseUrl: string, hostname?: string) {
+  if (!configuredBaseUrl || (hostname && isLocalHostname(hostname))) {
+    return "";
+  }
+
+  return configuredBaseUrl.replace(/\/$/, "");
+}
+
+function isLocalHostname(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
 function buildAdminQueryString(query: AdminQuery) {
@@ -137,6 +149,7 @@ export {
   buildAdminQueryString,
   getBackendApiBaseUrl,
   requestAdminApi,
+  resolveBackendApiBaseUrl,
   withAdminQuery,
 };
 export type { AdminQuery, AdminQueryValue, AdminRequestOptions };

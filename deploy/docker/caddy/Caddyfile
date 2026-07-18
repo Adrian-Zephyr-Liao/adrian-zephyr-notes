@@ -24,5 +24,6 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
+	reverse_proxy /api/* server:3001
 	reverse_proxy admin:80
 }

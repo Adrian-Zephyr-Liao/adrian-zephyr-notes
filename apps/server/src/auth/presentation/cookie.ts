@@ -1,4 +1,5 @@
 type CookieOptions = {
+  domain?: string;
   httpOnly?: boolean;
   maxAgeSeconds?: number;
   path?: string;
@@ -17,6 +18,10 @@ function serializeCookie(name: string, value: string, options: CookieOptions = {
 
   parts.push(`Path=${options.path ?? "/"}`);
   parts.push(`SameSite=${options.sameSite ?? "Lax"}`);
+
+  if (options.domain) {
+    parts.push(`Domain=${options.domain}`);
+  }
 
   if (options.httpOnly ?? true) {
     parts.push("HttpOnly");

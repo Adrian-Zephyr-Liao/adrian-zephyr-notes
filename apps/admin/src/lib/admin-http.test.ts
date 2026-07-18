@@ -3,6 +3,7 @@ import {
   AdminApiError,
   buildAdminQueryString,
   requestAdminApi,
+  resolveBackendApiBaseUrl,
   withAdminQuery,
 } from "./admin-http";
 
@@ -29,6 +30,22 @@ describe("admin HTTP helpers", () => {
       }),
     ).toBe("page=2&q=markdown");
     expect(withAdminQuery("/api/admin/articles", { page: 1 })).toBe("/api/admin/articles?page=1");
+  });
+
+  it("keeps admin traffic on the same origin when no API origin is configured", () => {
+    expect(resolveBackendApiBaseUrl("", "admin.zephyrai.site")).toBe("");
+  });
+
+  it("keeps localhost admin traffic on the same origin", () => {
+    expect(resolveBackendApiBaseUrl("https://zephyrai.site", "localhost")).toBe("");
+    expect(resolveBackendApiBaseUrl("https://zephyrai.site/", "127.0.0.1")).toBe("");
+    expect(resolveBackendApiBaseUrl("https://zephyrai.site/", "::1")).toBe("");
+  });
+
+  it("uses an explicit API origin on non-localhost admin hosts", () => {
+    expect(resolveBackendApiBaseUrl("https://zephyrai.site/", "preview.example.com")).toBe(
+      "https://zephyrai.site",
+    );
   });
 
   it("sends JSON requests with credentials and accept headers", async () => {
