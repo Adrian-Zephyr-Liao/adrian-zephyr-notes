@@ -27,6 +27,7 @@ import {
 } from "./application/published-article-tags.use-cases";
 import { SaveCurrentAdminArticleEditorDraftUseCase } from "./application/save-current-admin-article-editor-draft.use-case";
 import { UpdateAdminArticleUseCase } from "./application/update-admin-article.use-case";
+import { UploadAdminArticleImageUseCase } from "./application/upload-admin-article-image.use-case";
 import {
   CreateAdminArticleTagUseCase,
   DeleteAdminArticleTagUseCase,
@@ -41,6 +42,7 @@ import { ADMIN_ARTICLE_TAG_REPOSITORY } from "./domain/admin-article-tag.reposit
 import { ARTICLE_AI_SUMMARY_REPOSITORY } from "./domain/article-ai-summary.repository";
 import { ARTICLE_SUMMARY_GENERATOR } from "./domain/article-summary-generator";
 import { ARTICLE_REPOSITORY } from "./domain/article.repository";
+import { ARTICLE_IMAGE_STORAGE } from "./domain/article-image-storage";
 import { OpenAiCompatibleArticleSummaryGenerator } from "./infrastructure/ai/openai-compatible-article-summary.generator";
 import { PrismaAdminArticleEditorDraftRepository } from "./infrastructure/prisma-admin-article-editor-draft.repository";
 import { PrismaAdminArticleCategoryRepository } from "./infrastructure/prisma-admin-article-category.repository";
@@ -48,6 +50,12 @@ import { PrismaAdminArticleRepository } from "./infrastructure/prisma-admin-arti
 import { PrismaAdminArticleTagRepository } from "./infrastructure/prisma-admin-article-tag.repository";
 import { PrismaArticleRepository } from "./infrastructure/prisma-article.repository";
 import { PrismaArticleAiSummaryRepository } from "./infrastructure/prisma-article-ai-summary.repository";
+import {
+  ARTICLE_IMAGE_OSS_CLIENT_FACTORY,
+  AliyunOssArticleImageStorage,
+  createAliyunOssClient,
+} from "./infrastructure/aliyun-oss-article-image.storage";
+import { AdminArticleImagesController } from "./presentation/admin-article-images.controller";
 import { AdminArticleEditorDraftsController } from "./presentation/admin-article-editor-drafts.controller";
 import { AdminArticleCategoriesController } from "./presentation/admin-article-categories.controller";
 import { AdminArticlesController } from "./presentation/admin-articles.controller";
@@ -59,6 +67,7 @@ import { ArticlesController } from "./presentation/articles.controller";
   controllers: [
     ArticlesController,
     AdminArticlesController,
+    AdminArticleImagesController,
     AdminArticleCategoriesController,
     AdminArticleTagsController,
     AdminArticleEditorDraftsController,
@@ -86,10 +95,20 @@ import { ArticlesController } from "./presentation/articles.controller";
     UpdateAdminArticleUseCase,
     UpdateAdminArticleCategoryUseCase,
     UpdateAdminArticleTagUseCase,
+    UploadAdminArticleImageUseCase,
     GetPublishedArticleBySlugUseCase,
     QueueArticleSummaryUseCase,
     SaveCurrentAdminArticleEditorDraftUseCase,
     GeneratePendingArticleSummariesUseCase,
+    AliyunOssArticleImageStorage,
+    {
+      provide: ARTICLE_IMAGE_OSS_CLIENT_FACTORY,
+      useValue: createAliyunOssClient,
+    },
+    {
+      provide: ARTICLE_IMAGE_STORAGE,
+      useExisting: AliyunOssArticleImageStorage,
+    },
     {
       provide: ADMIN_ARTICLE_CATEGORY_REPOSITORY,
       useClass: PrismaAdminArticleCategoryRepository,

@@ -69,6 +69,7 @@ export type {
   AdminArticleDetailResponse,
   AdminArticleEditorDraftResponse,
   AdminArticleEditorDraftValues,
+  AdminArticleImageUploadResponse,
   AdminArticleListItemResponse,
   AdminArticleListQuery,
   AdminArticleListResponse,

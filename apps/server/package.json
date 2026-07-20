@@ -29,6 +29,7 @@
   "dependencies": {
     "@adrian-zephyr-notes/contracts": "workspace:*",
     "@ag-ui/client": "0.0.57",
+    "@alicloud/credentials": "^2.4.5",
     "@copilotkit/runtime": "1.62.2",
     "@langchain/core": "1.2.1",
     "@langchain/langgraph": "1.4.7",
@@ -39,6 +40,7 @@
     "@nestjs/platform-express": "^11.0.1",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "ali-oss": "^6.23.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "dotenv": "^17.4.2",
@@ -50,6 +52,7 @@
     "@nestjs/cli": "^11.0.0",
     "@nestjs/schematics": "^11.0.0",
     "@nestjs/testing": "^11.0.1",
+    "@types/ali-oss": "^6.23.3",
     "@types/express": "^5.0.0",
     "@types/node": "^24.0.0",
     "@types/pg": "^8.20.0",

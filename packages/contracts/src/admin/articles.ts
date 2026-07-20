@@ -41,6 +41,14 @@ type AdminArticleDetailResponse = AdminArticleListItemResponse & {
   markdown: string;
 };
 
+type AdminArticleImageUploadResponse = {
+  key: string;
+  mimeType: "image/gif" | "image/jpeg" | "image/png" | "image/webp";
+  originalName: string;
+  size: number;
+  url: string;
+};
+
 type AdminArticleTaxonomyOption = {
   slug: string;
   name: string;
@@ -168,6 +176,7 @@ export type {
   AdminArticleDetailResponse,
   AdminArticleEditorDraftResponse,
   AdminArticleEditorDraftValues,
+  AdminArticleImageUploadResponse,
   AdminArticleListItemResponse,
   AdminArticleListQuery,
   AdminArticleListResponse,
