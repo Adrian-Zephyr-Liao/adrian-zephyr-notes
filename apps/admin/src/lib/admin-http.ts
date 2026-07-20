@@ -4,6 +4,7 @@ type AdminQueryValue = boolean | null | number | string | undefined;
 type AdminQuery = object;
 
 type AdminRequestOptions = Omit<RequestInit, "body" | "credentials"> & {
+  body?: BodyInit;
   emptyResponse?: boolean;
   json?: unknown;
 };
@@ -66,12 +67,16 @@ async function requestAdminApi<TResponse>(
   path: string,
   options: AdminRequestOptions = {},
 ): Promise<TResponse> {
-  const { emptyResponse = false, json, ...init } = options;
+  const { body: requestBody, emptyResponse = false, json, ...init } = options;
   const headers = new Headers(init.headers);
+
+  if (requestBody !== undefined && json !== undefined) {
+    throw new TypeError("Admin API requests cannot include both body and json.");
+  }
 
   headers.set("accept", "application/json");
 
-  const body = json === undefined ? undefined : JSON.stringify(json);
+  const body = json === undefined ? requestBody : JSON.stringify(json);
 
   if (json !== undefined && !headers.has("content-type")) {
     headers.set("content-type", "application/json");
@@ -121,11 +126,16 @@ async function parseAdminApiErrorPayload(response: Response) {
     }
 
     const record = payload as Record<string, unknown>;
+    const nestedError =
+      record.error && typeof record.error === "object" && !Array.isArray(record.error)
+        ? (record.error as Record<string, unknown>)
+        : null;
+    const errorRecord = nestedError ?? record;
 
     return {
-      code: typeof record.code === "string" ? record.code : undefined,
-      details: record.details,
-      message: normalizeAdminApiErrorMessage(record.message),
+      code: typeof errorRecord.code === "string" ? errorRecord.code : undefined,
+      details: errorRecord.details,
+      message: normalizeAdminApiErrorMessage(errorRecord.message),
     };
   } catch {
     return fallback;

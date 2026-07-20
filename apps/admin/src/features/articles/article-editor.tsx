@@ -13,14 +13,18 @@ import {
   Search,
   SlidersHorizontal,
 } from "lucide-react";
-import type { ReactNode } from "react";
-import { useState } from "react";
+import type { ClipboardEvent, DragEvent, ReactNode } from "react";
+import { useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
 import { Select } from "../../components/ui/select";
 import { Textarea } from "../../components/ui/textarea";
+import { AdminApiError, uploadAdminArticleImage } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
+import { getArticleImageFileError } from "./article-image-file";
+import { insertArticleImageMarkdown, toArticleImageAltText } from "./article-image-markdown";
+import { ArticleImageUploadButton } from "./article-image-upload-button";
 
 type ArticleEditorViewMode = "edit" | "preview" | "split";
 
@@ -204,16 +208,136 @@ function MarkdownEditorField({
   onChange: (values: ArticleEditorValues) => void;
   values: ArticleEditorValues;
 }) {
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const uploadInFlightRef = useRef(false);
+  const valuesRef = useRef(values);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [imageUploadMessage, setImageUploadMessage] = useState<string | null>(null);
+  const [imageUploadError, setImageUploadError] = useState<string | null>(null);
+  valuesRef.current = values;
+
+  async function uploadImage(file: File) {
+    if (uploadInFlightRef.current) {
+      return;
+    }
+
+    const validationError = getArticleImageFileError(file);
+
+    if (validationError) {
+      setImageUploadError(validationError);
+      setImageUploadMessage(null);
+      return;
+    }
+
+    const selectionStart = textareaRef.current?.selectionStart ?? values.markdown.length;
+    const selectionEnd = textareaRef.current?.selectionEnd ?? selectionStart;
+    setImageUploadError(null);
+    setImageUploadMessage(null);
+    uploadInFlightRef.current = true;
+    setIsUploadingImage(true);
+
+    try {
+      const uploaded = await uploadAdminArticleImage(file);
+      const currentValues = valuesRef.current;
+      const currentSelectionStart = textareaRef.current?.selectionStart ?? selectionStart;
+      const currentSelectionEnd = textareaRef.current?.selectionEnd ?? selectionEnd;
+      const insertion = insertArticleImageMarkdown({
+        alt: toArticleImageAltText(uploaded.originalName),
+        markdown: currentValues.markdown,
+        selectionEnd: currentSelectionEnd,
+        selectionStart: currentSelectionStart,
+        url: uploaded.url,
+      });
+
+      onChange({ ...currentValues, markdown: insertion.markdown });
+      setImageUploadMessage(`${uploaded.originalName} 已上传`);
+      window.requestAnimationFrame(() => {
+        textareaRef.current?.focus();
+        textareaRef.current?.setSelectionRange(insertion.selectionStart, insertion.selectionEnd);
+      });
+    } catch (error) {
+      setImageUploadError(
+        error instanceof AdminApiError && error.message
+          ? error.message
+          : "图片上传失败，请检查网络后重试。",
+      );
+    } finally {
+      uploadInFlightRef.current = false;
+      setIsUploadingImage(false);
+    }
+  }
+
+  function handlePaste(event: ClipboardEvent<HTMLTextAreaElement>) {
+    const imageFile = Array.from(event.clipboardData.files).find((file) =>
+      file.type.startsWith("image/"),
+    );
+
+    if (imageFile) {
+      event.preventDefault();
+      void uploadImage(imageFile);
+    }
+  }
+
+  function handleDrop(event: DragEvent<HTMLTextAreaElement>) {
+    const file = Array.from(event.dataTransfer.files)[0];
+
+    if (!file) {
+      return;
+    }
+
+    event.preventDefault();
+    setIsDraggingImage(false);
+    void uploadImage(file);
+  }
+
   return (
-    <label className="flex min-h-[420px] min-w-0 flex-1 flex-col gap-1.5 xl:min-h-0">
-      <span className="text-xs font-medium text-muted-foreground">Markdown 内容</span>
+    <div className="flex min-h-[420px] min-w-0 flex-1 flex-col gap-1.5 xl:min-h-0">
+      <div className="flex min-h-8 items-center justify-between gap-3">
+        <label className="text-xs font-medium text-muted-foreground" htmlFor="article-markdown">
+          Markdown 内容
+        </label>
+        <ArticleImageUploadButton
+          isUploading={isUploadingImage}
+          onImageSelected={(file) => void uploadImage(file)}
+        />
+      </div>
       <Textarea
-        className="min-h-[420px] flex-1 resize-none overflow-auto font-mono leading-7 xl:min-h-0"
+        ref={textareaRef}
+        id="article-markdown"
+        aria-describedby="article-image-upload-status"
+        className={cn(
+          "min-h-[420px] flex-1 resize-none overflow-auto font-mono leading-7 xl:min-h-0",
+          isDraggingImage && "border-primary bg-primary/5 ring-3 ring-primary/20",
+        )}
         spellCheck={false}
         value={values.markdown}
+        onDragEnter={(event) => {
+          if (event.dataTransfer.types.includes("Files")) {
+            event.preventDefault();
+            setIsDraggingImage(true);
+          }
+        }}
+        onDragLeave={() => setIsDraggingImage(false)}
+        onDragOver={(event) => {
+          if (event.dataTransfer.types.includes("Files")) {
+            event.preventDefault();
+          }
+        }}
+        onDrop={handleDrop}
+        onPaste={handlePaste}
         onChange={(event) => onChange({ ...values, markdown: event.target.value })}
       />
-    </label>
+      <div id="article-image-upload-status" className="min-h-5 text-xs" aria-live="polite">
+        {imageUploadError ? (
+          <p className="text-destructive" role="alert">
+            {imageUploadError}
+          </p>
+        ) : imageUploadMessage ? (
+          <p className="text-muted-foreground">{imageUploadMessage}</p>
+        ) : null}
+      </div>
+    </div>
   );
 }
 

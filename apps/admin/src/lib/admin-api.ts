@@ -7,6 +7,7 @@ import type {
   AdminArticleCategoryListResponse,
   AdminArticleCategoryResponse,
   AdminArticleEditorDraftResponse,
+  AdminArticleImageUploadResponse,
   AdminArticleListQuery,
   AdminArticleListResponse,
   AdminArticleTaxonomyOptionsResponse,
@@ -223,6 +224,16 @@ async function deleteAdminArticle(id: string) {
   });
 }
 
+async function uploadAdminArticleImage(file: File) {
+  const body = new FormData();
+  body.append("file", file, file.name);
+
+  return requestAdminApi<AdminArticleImageUploadResponse>("/api/admin/articles/images", {
+    body,
+    method: "POST",
+  });
+}
+
 async function listAdminArticleComments(query: AdminArticleCommentListQuery) {
   return requestAdminApi<AdminArticleCommentListResponse>(
     withAdminQuery("/api/admin/comments", query),
@@ -319,6 +330,7 @@ export {
   saveCurrentAdminArticleEditorDraft,
   startAdminAgentTask,
   updateAdminArticle,
+  uploadAdminArticleImage,
   updateAdminArticleCategory,
   updateAdminArticleTag,
   updateAdminArticleComment,

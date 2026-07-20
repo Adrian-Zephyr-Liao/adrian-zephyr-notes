@@ -77,6 +77,24 @@ describe("admin HTTP helpers", () => {
     expect(headers.get("content-type")).toBe("application/json");
   });
 
+  it("sends FormData without overriding the browser multipart boundary", async () => {
+    const fetch = mockFetch(new Response(JSON.stringify({ ok: true })));
+    const body = new FormData();
+    body.append("file", new Blob(["image"]), "image.png");
+
+    await requestAdminApi<{ ok: boolean }>("/api/admin/articles/images", {
+      body,
+      method: "POST",
+    });
+
+    const requestInit = fetch.mock.calls[0]![1] as RequestInit;
+    const headers = new Headers(requestInit.headers);
+
+    expect(requestInit.body).toBe(body);
+    expect(requestInit.credentials).toBe("include");
+    expect(headers.has("content-type")).toBe(false);
+  });
+
   it("supports empty successful responses", async () => {
     mockFetch(new Response(null, { status: 204 }));
 
@@ -123,6 +141,29 @@ describe("admin HTTP helpers", () => {
       },
       message: "Agent 业务处理当前不能另开分支。",
       status: 409,
+    } satisfies Partial<AdminApiError>);
+  });
+
+  it("reads nested Nest error envelopes", async () => {
+    mockFetch(
+      new Response(
+        JSON.stringify({
+          error: {
+            code: "ARTICLE_IMAGE_TYPE_UNSUPPORTED",
+            message: "仅支持 JPEG、PNG、WebP 和 GIF 图片。",
+          },
+        }),
+        {
+          headers: { "content-type": "application/json" },
+          status: 400,
+        },
+      ),
+    );
+
+    await expect(requestAdminApi("/api/admin/articles/images")).rejects.toMatchObject({
+      code: "ARTICLE_IMAGE_TYPE_UNSUPPORTED",
+      message: "仅支持 JPEG、PNG、WebP 和 GIF 图片。",
+      status: 400,
     } satisfies Partial<AdminApiError>);
   });
 });
