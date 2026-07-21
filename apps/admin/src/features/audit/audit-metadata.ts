@@ -218,15 +218,15 @@ function formatAuditSummary(log: AdminOperationLogResponse) {
   }
 
   if (log.action === "ARTICLE_CREATED") {
-    return `创建文章 ${formatMetadataValue(metadata.articleSlug) || extractTrailingSummaryValue(log.summary)}`;
+    return `创建文章 ${formatArticleReference(log)}`;
   }
 
   if (log.action === "ARTICLE_UPDATED") {
-    return `更新文章 ${formatMetadataValue(metadata.articleSlug) || extractTrailingSummaryValue(log.summary)}`;
+    return `更新文章 ${formatArticleReference(log)}`;
   }
 
   if (log.action === "ARTICLE_DELETED") {
-    return `删除文章 ${formatMetadataValue(metadata.articleSlug) || extractTrailingSummaryValue(log.summary)}`;
+    return `删除文章 ${formatArticleReference(log)}`;
   }
 
   if (log.action === "ARTICLE_CATEGORY_CREATED") {
@@ -259,6 +259,16 @@ function formatAuditSummary(log: AdminOperationLogResponse) {
   }
 
   return formatSafeAuditSummary(log.summary);
+}
+
+function formatArticleReference(log: AdminOperationLogResponse) {
+  const articleTitle = formatPlainMetadataText(log.metadata?.articleTitle);
+
+  if (articleTitle) {
+    return `《${articleTitle}》`;
+  }
+
+  return formatMetadataValue(log.metadata?.articleSlug) || extractTrailingSummaryValue(log.summary);
 }
 
 function formatAuditResourceLabel(log: AdminOperationLogResponse) {

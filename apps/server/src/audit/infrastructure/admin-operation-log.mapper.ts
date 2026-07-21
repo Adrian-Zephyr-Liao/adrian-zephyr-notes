@@ -75,6 +75,7 @@ const publicMetadataFields = new Set([
   "action",
   "agentFindingId",
   "articleSlug",
+  "articleTitle",
   "decision",
   "findingCount",
   "source",

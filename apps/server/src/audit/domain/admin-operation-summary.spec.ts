@@ -71,10 +71,13 @@ describe("createAdminOperationSummary", () => {
     expect(
       createAdminOperationSummary({
         action: "ARTICLE_CREATED",
-        metadata: { slug: "markdown-guide" },
+        metadata: {
+          articleSlug: "markdown-guide",
+          articleTitle: "Markdown 语法全量展示",
+        },
         resourceType: "article",
       }),
-    ).toBe("创建文章 markdown-guide");
+    ).toBe("创建文章 《Markdown 语法全量展示》");
     expect(
       createAdminOperationSummary({
         action: "SITE_ANNOUNCEMENT_UPDATED",

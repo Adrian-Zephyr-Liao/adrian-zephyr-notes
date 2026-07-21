@@ -63,7 +63,8 @@ describe("AdminDashboard", () => {
     expect(within(metrics).getByText("今日评论").parentElement?.textContent).toContain("7");
     expect(within(metrics).getByText("Agent 待确认").parentElement?.textContent).toContain("4");
     expect(screen.getByText("Markdown 语法全量展示")).not.toBeNull();
-    expect(screen.getByText("更新站点配置")).not.toBeNull();
+    expect(screen.getByText("更新文章《Markdown 语法全量展示》")).not.toBeNull();
+    expect(screen.queryByText("更新文章 bb70e94b")).toBeNull();
 
     await waitFor(() => {
       expect(adminApiMocks.listAdminArticles).toHaveBeenNthCalledWith(1, {
@@ -119,15 +120,15 @@ function createArticle() {
 
 function createAuditLog() {
   return {
-    action: "SITE_SETTINGS_UPDATED",
+    action: "ARTICLE_UPDATED",
     actorLogin: "Adrian-Zephyr-Liao",
     createdAt: "2026-07-13T01:17:00.000Z",
     id: "audit-1",
     ipAddress: "127.0.0.1",
-    metadata: null,
-    resourceId: "site",
-    resourceType: "site_config",
-    summary: "更新站点配置",
+    metadata: { articleSlug: "bb70e94b" },
+    resourceId: "article-1",
+    resourceType: "article",
+    summary: "更新文章 bb70e94b",
     userAgent: "test",
   };
 }

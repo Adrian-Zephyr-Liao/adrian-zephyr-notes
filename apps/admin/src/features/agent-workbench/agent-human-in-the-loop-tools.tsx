@@ -7,15 +7,18 @@ import type {
 } from "@adrian-zephyr-notes/contracts";
 import { useHumanInTheLoop } from "@copilotkit/react-core/v2";
 import {
+  Activity,
   CheckCircle2,
+  ChevronDown,
   HelpCircle,
   Loader2,
   MessageSquareText,
   RotateCcw,
   ShieldCheck,
+  Sparkles,
   XCircle,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 import { controlAdminAgentTask, startAdminAgentTask } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
@@ -358,58 +361,38 @@ function StartAdminAgentTaskCard({
     }
   }
 
+  const taskLabel = toTaskLabel(visibleResult?.taskName ?? args.taskName);
+
   return (
-    <div className="max-w-[min(720px,100%)] rounded-xl border border-border/70 bg-background/70 p-4 text-sm shadow-sm">
-      <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          {visibleResult ? (
-            visibleResult.executed ? (
-              <CheckCircle2 aria-hidden="true" className="size-5" />
-            ) : (
-              <RotateCcw aria-hidden="true" className="size-5 text-destructive" />
-            )
-          ) : (
-            <Loader2 aria-hidden="true" className="size-5 animate-spin" />
-          )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-foreground">
-            {visibleResult?.executed
-              ? `${toTaskLabel(visibleResult.taskName)}正在协作`
-              : `正在连接${toTaskLabel(args.taskName)}`}
-          </p>
-          <p className="mt-1 text-muted-foreground">
-            {visibleResult?.summary ?? visibleResult?.error ?? "正在读取上下文并等待业务结果。"}
-          </p>
-        </div>
-      </div>
+    <div className="max-w-[min(720px,100%)] rounded-xl bg-background/45 p-2 text-sm shadow-sm backdrop-blur-xl">
+      <AgentRunStatus
+        events={visibleResult?.events}
+        state={toAgentRunState(visibleResult)}
+        subject={taskLabel}
+      />
 
       {visibleResult ? (
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-          {typeof visibleResult.findingCount === "number" ? (
-            <span className="rounded-full bg-muted px-2 py-1">
-              {visibleResult.findingCount ?? 0} 条建议
-            </span>
+        <AgentResultView
+          findingCount={visibleResult.findingCount}
+          requiresApproval={Boolean(visibleResult.interruption && !visibleResult.approval)}
+          summary={visibleResult.summary ?? visibleResult.error ?? "业务处理未返回结果。"}
+          title={`${taskLabel}结果`}
+        >
+          {visibleResult.interruption && !visibleResult.approval ? (
+            <AgentApprovalCard
+              disabled={!canAnswerApproval}
+              error={approvalError}
+              interruption={visibleResult.interruption}
+              isApplying={isApplyingApproval}
+              onSelect={(option) => void answerApproval(option)}
+            />
           ) : null}
-          {visibleResult.interruption ? (
-            <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">需要确认</span>
+
+          {visibleResult.approval ? (
+            <ApprovalResultSummary result={visibleResult.approval} />
           ) : null}
-        </div>
+        </AgentResultView>
       ) : null}
-
-      <AgentTaskTimeline events={visibleResult?.events} />
-
-      {visibleResult?.interruption && !visibleResult.approval ? (
-        <AgentApprovalCard
-          disabled={!canAnswerApproval}
-          error={approvalError}
-          interruption={visibleResult.interruption}
-          isApplying={isApplyingApproval}
-          onSelect={(option) => void answerApproval(option)}
-        />
-      ) : null}
-
-      {visibleResult?.approval ? <ApprovalResultSummary result={visibleResult.approval} /> : null}
     </div>
   );
 }
@@ -615,62 +598,223 @@ function ControlAdminAgentTaskCard({
   }
 
   return (
-    <div className="max-w-[min(720px,100%)] rounded-xl border border-border/70 bg-background/70 p-4 text-sm shadow-sm">
-      <div className="flex items-start gap-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-          {visibleResult ? (
-            visibleResult.executed ? (
-              <CheckCircle2 aria-hidden="true" className="size-5" />
-            ) : (
-              <RotateCcw aria-hidden="true" className="size-5 text-destructive" />
-            )
-          ) : (
-            <Loader2 aria-hidden="true" className="size-5 animate-spin" />
-          )}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold text-foreground">
-            {visibleResult?.executed ? `${actionLabel}已提交` : `正在准备${actionLabel}`}
-          </p>
-          <p className="mt-1 text-muted-foreground">
-            {toVisibleControlSummary(visibleResult?.summary) ??
-              visibleResult?.error ??
-              "正在等待业务结果。"}
-          </p>
-        </div>
-      </div>
+    <div className="max-w-[min(720px,100%)] rounded-xl bg-background/45 p-2 text-sm shadow-sm backdrop-blur-xl">
+      <AgentRunStatus
+        events={visibleResult?.events}
+        state={toAgentRunState(visibleResult)}
+        subject={`${actionLabel}操作`}
+      />
 
-      {visibleResult?.interruption ? (
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-          <span className="rounded-full bg-primary/10 px-2 py-1 text-primary">需要确认</span>
-        </div>
+      {visibleResult ? (
+        <AgentResultView
+          requiresApproval={Boolean(visibleResult.interruption && !visibleResult.approval)}
+          summary={
+            toVisibleControlSummary(visibleResult.summary) ??
+            visibleResult.error ??
+            "业务处理未返回结果。"
+          }
+          title={`${actionLabel}结果`}
+        >
+          {visibleResult.interruption && !visibleResult.approval ? (
+            <AgentApprovalCard
+              disabled={!canAnswerApproval}
+              error={approvalError}
+              interruption={visibleResult.interruption}
+              isApplying={isApplyingApproval}
+              onSelect={(option) => void answerApproval(option)}
+            />
+          ) : null}
+
+          {visibleResult.approval ? (
+            <ApprovalResultSummary result={visibleResult.approval} />
+          ) : null}
+        </AgentResultView>
       ) : null}
-
-      <AgentTaskTimeline events={visibleResult?.events} />
-
-      {visibleResult?.interruption && !visibleResult.approval ? (
-        <AgentApprovalCard
-          disabled={!canAnswerApproval}
-          error={approvalError}
-          interruption={visibleResult.interruption}
-          isApplying={isApplyingApproval}
-          onSelect={(option) => void answerApproval(option)}
-        />
-      ) : null}
-
-      {visibleResult?.approval ? <ApprovalResultSummary result={visibleResult.approval} /> : null}
     </div>
   );
 }
 
+type AgentRunState = "completed" | "failed" | "running" | "stopped" | "waiting";
+
+type AgentRunResult = {
+  approval?: QuestionToolResult;
+  error?: string;
+  executed: boolean;
+  interruption?: StartAdminAgentTaskResponse["interruption"];
+  task?: {
+    status: StartAdminAgentTaskResponse["task"]["status"];
+  };
+};
+
+const agentRunStateStyles: Record<
+  AgentRunState,
+  { icon: typeof Activity; label: string; tone: string }
+> = {
+  completed: {
+    icon: CheckCircle2,
+    label: "已完成",
+    tone: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
+  },
+  failed: {
+    icon: XCircle,
+    label: "未完成",
+    tone: "bg-destructive/10 text-destructive",
+  },
+  running: {
+    icon: Loader2,
+    label: "处理中",
+    tone: "bg-primary/10 text-primary",
+  },
+  stopped: {
+    icon: XCircle,
+    label: "已停止",
+    tone: "bg-muted text-muted-foreground",
+  },
+  waiting: {
+    icon: ShieldCheck,
+    label: "等待确认",
+    tone: "bg-amber-500/12 text-amber-700 dark:text-amber-300",
+  },
+};
+
+function AgentRunStatus({
+  events,
+  state,
+  subject,
+}: {
+  events?: StartAdminAgentTaskResponse["events"];
+  state: AgentRunState;
+  subject: string;
+}) {
+  const stateView = agentRunStateStyles[state];
+  const StateIcon = stateView.icon;
+  const visibleEvents = toVisibleTaskEvents(events);
+  const latestEvent = visibleEvents[visibleEvents.length - 1];
+
+  return (
+    <section
+      aria-label="Agent 运行状态"
+      className="rounded-lg bg-muted/45 px-3.5 py-3 dark:bg-background/25"
+    >
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-background/65 text-primary shadow-xs">
+          <Activity aria-hidden="true" className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="font-semibold text-foreground">Agent 运行状态</p>
+            <span
+              className={cn(
+                "inline-flex min-h-6 items-center gap-1.5 rounded-full px-2 text-xs font-medium",
+                stateView.tone,
+              )}
+            >
+              <StateIcon
+                aria-hidden="true"
+                className={cn("size-3.5", state === "running" && "animate-spin")}
+              />
+              {stateView.label}
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {subject}
+            {latestEvent ? ` · ${latestEvent.title}` : " · 正在建立业务上下文"}
+          </p>
+        </div>
+      </div>
+
+      {visibleEvents.length > 0 ? (
+        <details className="group mt-2.5">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
+            <ChevronDown
+              aria-hidden="true"
+              className="size-3.5 transition-transform group-open:rotate-180"
+            />
+            查看运行过程（{visibleEvents.length} 步）
+          </summary>
+          <AgentTaskTimeline events={visibleEvents} />
+        </details>
+      ) : null}
+    </section>
+  );
+}
+
+function AgentResultView({
+  children,
+  findingCount,
+  requiresApproval,
+  summary,
+  title,
+}: {
+  children?: ReactNode;
+  findingCount?: number;
+  requiresApproval: boolean;
+  summary: string;
+  title: string;
+}) {
+  return (
+    <section
+      aria-label={title}
+      className="mt-2 rounded-lg bg-(--glass-surface-strong) p-4 shadow-(--shadow-glass) backdrop-blur-xl"
+    >
+      <div className="flex items-start gap-3">
+        <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">
+          <Sparkles aria-hidden="true" className="size-4" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold text-foreground">{title}</p>
+          <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{summary}</p>
+        </div>
+      </div>
+
+      {typeof findingCount === "number" || requiresApproval ? (
+        <div className="mt-3 flex flex-wrap gap-2 text-xs">
+          {typeof findingCount === "number" ? (
+            <span className="rounded-full bg-muted px-2 py-1 text-muted-foreground">
+              {findingCount} 条建议
+            </span>
+          ) : null}
+          {requiresApproval ? (
+            <span className="rounded-full bg-amber-500/12 px-2 py-1 text-amber-700 dark:text-amber-300">
+              需要确认
+            </span>
+          ) : null}
+        </div>
+      ) : null}
+
+      {children}
+    </section>
+  );
+}
+
+function toAgentRunState(result: AgentRunResult | null): AgentRunState {
+  if (!result) {
+    return "running";
+  }
+
+  if (!result.executed || result.error || result.approval?.error) {
+    return "failed";
+  }
+
+  if (result.task?.status === "FAILED") {
+    return "failed";
+  }
+
+  if (result.task?.status === "CANCELLED") {
+    return "stopped";
+  }
+
+  if ((result.task?.status === "WAITING_FOR_APPROVAL" || result.interruption) && !result.approval) {
+    return "waiting";
+  }
+
+  return result.task?.status === "RUNNING" || result.task?.status === "PENDING"
+    ? "running"
+    : "completed";
+}
+
 function AgentTaskTimeline({ events }: { events?: StartAdminAgentTaskResponse["events"] }) {
-  const visibleEvents = (events ?? [])
-    .map((event) => ({
-      ...event,
-      description: toVisibleAgentCopy(event.description ?? undefined) ?? null,
-      title: toVisibleAgentCopy(event.title) ?? event.title,
-    }))
-    .filter((event) => event.title);
+  const visibleEvents = toVisibleTaskEvents(events);
 
   if (visibleEvents.length === 0) {
     return null;
@@ -704,6 +848,16 @@ function AgentTaskTimeline({ events }: { events?: StartAdminAgentTaskResponse["e
       ))}
     </ol>
   );
+}
+
+function toVisibleTaskEvents(events?: StartAdminAgentTaskResponse["events"]) {
+  return (events ?? [])
+    .map((event) => ({
+      ...event,
+      description: toVisibleAgentCopy(event.description ?? undefined) ?? null,
+      title: toVisibleAgentCopy(event.title) ?? event.title,
+    }))
+    .filter((event) => event.title);
 }
 
 function toTaskTimelineIcon(status: StartAdminAgentTaskResponse["events"][number]["status"]) {

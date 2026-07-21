@@ -99,7 +99,8 @@ class AdminArticlesController {
         resourceType: "article",
         resourceId: article.id,
         metadata: {
-          slug: article.slug,
+          articleSlug: article.slug,
+          articleTitle: article.title,
           status: article.status,
         },
         requestContext: toAdminOperationRequestContext(request),
@@ -156,9 +157,10 @@ class AdminArticlesController {
         resourceType: "article",
         resourceId: article.id,
         metadata: {
+          articleSlug: article.slug,
+          articleTitle: article.title,
           changedFields: toChangedFields(body),
           status: article.status,
-          slug: article.slug,
         },
         requestContext: toAdminOperationRequestContext(request),
       });
@@ -182,7 +184,8 @@ class AdminArticlesController {
         resourceType: "article",
         resourceId: article.id,
         metadata: {
-          slug: article.slug,
+          articleSlug: article.slug,
+          articleTitle: article.title,
           status: article.status,
         },
         requestContext: toAdminOperationRequestContext(request),

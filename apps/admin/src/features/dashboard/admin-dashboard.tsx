@@ -253,7 +253,9 @@ function AdminDashboard() {
                     key={log.id}
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{log.summary}</p>
+                      <p className="truncate text-sm font-medium">
+                        {formatDashboardActivitySummary(log, snapshot.recentArticles)}
+                      </p>
                       <p className="mt-1 text-xs text-muted-foreground">@{log.actorLogin}</p>
                     </div>
                     <time className="text-xs text-muted-foreground" dateTime={log.createdAt}>
@@ -438,6 +440,34 @@ function ArticleStatusBadge({ status }: { status: AdminArticleListItemResponse["
   }
 
   return <Badge variant="warning">草稿</Badge>;
+}
+
+const articleActionLabels = {
+  ARTICLE_CREATED: "创建文章",
+  ARTICLE_DELETED: "删除文章",
+  ARTICLE_UPDATED: "更新文章",
+} as const;
+
+function formatDashboardActivitySummary(
+  log: AdminOperationLogResponse,
+  recentArticles: AdminArticleListItemResponse[],
+) {
+  if (!(log.action in articleActionLabels)) {
+    return log.summary;
+  }
+
+  const action = log.action as keyof typeof articleActionLabels;
+  const metadataTitle = toNonEmptyText(log.metadata?.articleTitle);
+  const currentArticleTitle = recentArticles.find(
+    (article) => article.id === log.resourceId,
+  )?.title;
+  const articleTitle = metadataTitle || currentArticleTitle;
+
+  return articleTitle ? `${articleActionLabels[action]}《${articleTitle}》` : log.summary;
+}
+
+function toNonEmptyText(value: unknown) {
+  return typeof value === "string" ? value.trim() : "";
 }
 
 function formatRelativeDate(value: string) {

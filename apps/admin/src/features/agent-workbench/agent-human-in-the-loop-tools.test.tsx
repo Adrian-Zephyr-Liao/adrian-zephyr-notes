@@ -167,8 +167,10 @@ describe("AgentHumanInLoopTools", () => {
       });
     });
 
-    expect(await screen.findByText("评论治理正在协作")).not.toBeNull();
+    expect(await screen.findByRole("region", { name: "Agent 运行状态" })).not.toBeNull();
+    expect(screen.getByRole("region", { name: "评论治理结果" })).not.toBeNull();
     expect(screen.getByText("发现 1 条需要确认的评论。")).not.toBeNull();
+    expect(screen.getByText("等待确认")).not.toBeNull();
     expect(screen.getByText("需要确认")).not.toBeNull();
     expect(screen.getByText("是否确认屏蔽 1 条评论？")).not.toBeNull();
     expect(screen.queryByText("run run-1")).toBeNull();
@@ -211,10 +213,26 @@ describe("AgentHumanInLoopTools", () => {
     );
   });
 
-  it("keeps backend orchestration events out of the conversation tool card", async () => {
+  it("separates Agent runtime progress from the business result", async () => {
     const onOperationApplied = vi.fn().mockResolvedValue(undefined);
 
     adminApiMocks.startAdminAgentTask.mockResolvedValue({
+      events: [
+        {
+          createdAt: "2026-07-04T05:00:00.000Z",
+          description: "评论治理分析任务已创建。",
+          id: "event-1",
+          status: "COMPLETED",
+          title: "创建任务",
+        },
+        {
+          createdAt: "2026-07-04T05:00:01.000Z",
+          description: "评论治理分析已完成。",
+          id: "event-2",
+          status: "COMPLETED",
+          title: "处理完成",
+        },
+      ],
       interruption: null,
       output: {
         findingCount: 0,
@@ -241,10 +259,15 @@ describe("AgentHumanInLoopTools", () => {
 
     render(<StartTaskToolHarness respond={respond} tool={tool as HumanInTheLoopToolConfig} />);
 
-    expect(await screen.findByText("评论治理正在协作")).not.toBeNull();
-    expect(screen.getByText("评论治理已完成。")).not.toBeNull();
+    const runRegion = await screen.findByRole("region", { name: "Agent 运行状态" });
+    const resultRegion = screen.getByRole("region", { name: "评论治理结果" });
+
+    expect(runRegion.textContent).toContain("已完成");
+    expect(runRegion.textContent).toContain("处理完成");
+    expect(resultRegion.textContent).toContain("评论治理已完成。");
+    expect(screen.getByText("查看运行过程（2 步）").closest("details")?.open).toBe(false);
+    expect(screen.getByText("创建任务").closest("details")?.open).toBe(false);
     expect(screen.queryByText("处理进度")).toBeNull();
-    expect(screen.queryByText("创建任务")).toBeNull();
     expect(screen.queryByText("处理步骤")).toBeNull();
     expect(screen.queryByText("子任务")).toBeNull();
     expect(screen.queryByText("站点巡检")).toBeNull();
@@ -530,7 +553,7 @@ describe("AgentHumanInLoopTools", () => {
       });
     });
 
-    expect(await screen.findByText("另开处理已提交")).not.toBeNull();
+    expect(await screen.findByText("另开处理结果")).not.toBeNull();
     expect(screen.getByText("另开处理任务已完成。")).not.toBeNull();
     expect(document.body.textContent).not.toContain("分支协作");
     expect(screen.queryByText("run run-branch")).toBeNull();
@@ -597,7 +620,7 @@ describe("AgentHumanInLoopTools", () => {
       });
     });
 
-    expect(await screen.findByText("取消已提交")).not.toBeNull();
+    expect(await screen.findByText("取消结果")).not.toBeNull();
     expect(screen.getByText("Agent 业务处理已取消。")).not.toBeNull();
     expect(onOperationApplied).toHaveBeenCalledTimes(1);
     expect(respond).toHaveBeenCalledWith(
@@ -677,7 +700,7 @@ describe("AgentHumanInLoopTools", () => {
       });
     });
 
-    expect(await screen.findByText("取消已提交")).not.toBeNull();
+    expect(await screen.findByText("取消结果")).not.toBeNull();
     expect(screen.getByText("最新重试已取消。")).not.toBeNull();
     expect(onOperationApplied).toHaveBeenCalledTimes(1);
     expect(respond).toHaveBeenCalledWith(
@@ -808,7 +831,7 @@ describe("AgentHumanInLoopTools", () => {
       });
     });
 
-    expect(await screen.findByText("另开处理已提交")).not.toBeNull();
+    expect(await screen.findByText("另开处理结果")).not.toBeNull();
     expect(screen.getByText("另开处理发现 1 条需要确认的评论。")).not.toBeNull();
     expect(screen.getByText("是否确认屏蔽另开处理发现的 1 条评论？")).not.toBeNull();
     expect(screen.getByText("需要确认")).not.toBeNull();

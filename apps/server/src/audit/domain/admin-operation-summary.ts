@@ -107,6 +107,12 @@ function createAdminOperationSummary(input: AdminOperationSummaryInput) {
 }
 
 function toArticleReference(metadata: Record<string, unknown>, resourceId?: string | null) {
+  const articleTitle = toDisplayText(metadata.articleTitle);
+
+  if (articleTitle) {
+    return `《${articleTitle}》`;
+  }
+
   return (
     toDisplayText(metadata.articleSlug) ||
     toDisplayText(metadata.slug) ||
