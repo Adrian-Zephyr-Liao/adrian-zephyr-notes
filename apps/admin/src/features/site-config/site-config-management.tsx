@@ -5,6 +5,7 @@ import type {
   UpdateAdminSiteSettingsRequest,
 } from "@adrian-zephyr-notes/contracts";
 import { useEffect, useState } from "react";
+import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import {
   getAdminSiteConfig,
   updateAdminSiteAnnouncement,
@@ -28,6 +29,7 @@ function SiteConfigManagement() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [savingAnnouncementId, setSavingAnnouncementId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   useEffect(() => {
     void loadConfig();
@@ -70,7 +72,15 @@ function SiteConfigManagement() {
   }
 
   async function toggleAnnouncement(announcement: AdminSiteAnnouncementResponse) {
-    const confirmed = window.confirm(announcement.isEnabled ? "停用这条公告？" : "启用这条公告？");
+    const nextAction = announcement.isEnabled ? "停用" : "启用";
+    const confirmed = await confirm({
+      confirmLabel: `${nextAction}公告`,
+      description: announcement.isEnabled
+        ? "停用后读者侧将不再展示这条公告。"
+        : "启用后读者侧会立即展示这条公告。",
+      title: `确认${nextAction}公告`,
+      variant: announcement.isEnabled ? "destructive" : "default",
+    });
 
     if (!confirmed) {
       return;
@@ -150,6 +160,7 @@ function SiteConfigManagement() {
           onSave={() => void saveSettings()}
         />
       ) : null}
+      {confirmationDialog}
     </div>
   );
 }

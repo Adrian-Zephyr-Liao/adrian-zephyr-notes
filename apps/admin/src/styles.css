@@ -1,5 +1,6 @@
 @import "@chinese-fonts/hcqyt/dist/ChillRoundFRegular/result.css";
 @import "tailwindcss";
+@import "tw-animate-css";
 @import "@adrian-zephyr-notes/markdown/styles.css";
 
 @custom-variant dark (&:is(.dark *));

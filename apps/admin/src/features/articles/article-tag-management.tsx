@@ -2,6 +2,7 @@ import type { AdminArticleTagResponse } from "@adrian-zephyr-notes/contracts";
 import { Combine, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
+import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
 import {
   ManagementBody,
@@ -37,6 +38,7 @@ function ArticleTagManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ page: 1, totalItems: 0, totalPages: 0 });
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const loadTags = useCallback(async (page = 1, q?: string) => {
     setIsLoading(true);
@@ -81,7 +83,14 @@ function ArticleTagManagement() {
   }
 
   async function remove(tag: AdminArticleTagResponse) {
-    if (!window.confirm(`删除标签「${tag.name}」？`)) return;
+    const confirmed = await confirm({
+      confirmLabel: "删除标签",
+      description: `标签「${tag.name}」将被永久删除。`,
+      title: "确认删除标签",
+      variant: "destructive",
+    });
+
+    if (!confirmed) return;
     try {
       await deleteAdminArticleTag(tag.id);
       await loadTags(1, searchText.trim() || undefined);
@@ -96,11 +105,16 @@ function ArticleTagManagement() {
       return;
     }
     const target = tags.find((tag) => tag.id === targetTagId);
-    if (
-      !target ||
-      !window.confirm(`将「${mergeSource.name}」合并到「${target.name}」？源标签会被删除。`)
-    )
-      return;
+    if (!target) return;
+
+    const confirmed = await confirm({
+      confirmLabel: "合并标签",
+      description: `「${mergeSource.name}」的文章引用将迁移到「${target.name}」，源标签随后会被删除。`,
+      title: "确认合并标签",
+      variant: "destructive",
+    });
+
+    if (!confirmed) return;
     setIsSaving(true);
     setMessage(null);
     try {
@@ -283,6 +297,7 @@ function ArticleTagManagement() {
           onPageChange={(page) => void loadTags(page, searchText.trim() || undefined)}
         />
       </ManagementBody>
+      {confirmationDialog}
     </ManagementSurface>
   );
 }

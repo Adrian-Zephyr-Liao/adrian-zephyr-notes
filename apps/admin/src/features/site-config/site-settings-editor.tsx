@@ -9,6 +9,7 @@ import { Loader2, Plus, Save, ShieldCheck, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
+import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
 import {
   ManagementBody,
@@ -355,6 +356,8 @@ function EditableLinkItemFrame({
   item: EditableBaseLink;
   onRemove: () => void;
 }) {
+  const { confirm, confirmationDialog } = useConfirmationDialog();
+
   return (
     <div className="rounded-lg bg-background/24 p-3">
       <div className="grid gap-3 md:grid-cols-3">{children}</div>
@@ -364,19 +367,21 @@ function EditableLinkItemFrame({
           type="button"
           variant="destructive"
           onClick={() => {
-            const confirmed = window.confirm(
-              `移除「${item.label || item.id}」？保存后读者侧不再展示。`,
-            );
-
-            if (confirmed) {
-              onRemove();
-            }
+            void confirm({
+              confirmLabel: "移除链接",
+              description: `移除「${item.label || item.id}」后，保存配置时读者侧将不再展示。`,
+              title: "确认移除链接",
+              variant: "destructive",
+            }).then((confirmed) => {
+              if (confirmed) onRemove();
+            });
           }}
         >
           <Trash2 />
           移除
         </Button>
       </div>
+      {confirmationDialog}
     </div>
   );
 }

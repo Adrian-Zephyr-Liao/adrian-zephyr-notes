@@ -7,6 +7,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Cloud, CloudOff, HardDrive, Loader2, LogOut, Save, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "../../components/ui/button";
+import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import {
   createAdminArticle,
   deleteAdminArticle,
@@ -68,6 +69,7 @@ function ArticleWritingPage({ admin, articleId, onLogout }: ArticleWritingPagePr
   const [cloudDraftMessage, setCloudDraftMessage] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(() => isBrowserOnline());
+  const { confirm, confirmationDialog } = useConfirmationDialog();
   const draftKey = useMemo(
     () => createArticleLocalDraftKey({ adminLogin: admin.login, articleId }),
     [admin.login, articleId],
@@ -261,7 +263,13 @@ function ArticleWritingPage({ admin, articleId, onLogout }: ArticleWritingPagePr
     }
 
     if (article && requiresStatusConfirmation(article.status, values.status)) {
-      const confirmed = window.confirm(getStatusConfirmationText(values.status));
+      const isPublishing = values.status === "PUBLISHED";
+      const confirmed = await confirm({
+        confirmLabel: isPublishing ? "确认发布" : "确认归档",
+        description: getStatusConfirmationText(values.status),
+        title: isPublishing ? "确认发布文章" : "确认归档文章",
+        variant: isPublishing ? "default" : "destructive",
+      });
 
       if (!confirmed) {
         return;
@@ -314,7 +322,12 @@ function ArticleWritingPage({ admin, articleId, onLogout }: ArticleWritingPagePr
       return;
     }
 
-    const confirmed = window.confirm(`删除文章「${article.title}」？此操作会移除正文和关联评论。`);
+    const confirmed = await confirm({
+      confirmLabel: "删除文章",
+      description: `删除文章「${article.title}」后，正文和关联评论都会被移除。此操作无法撤销。`,
+      title: "确认删除文章",
+      variant: "destructive",
+    });
 
     if (!confirmed) {
       return;
@@ -440,6 +453,7 @@ function ArticleWritingPage({ admin, articleId, onLogout }: ArticleWritingPagePr
           onChange={handleEditorChange}
         />
       </section>
+      {confirmationDialog}
     </main>
   );
 }

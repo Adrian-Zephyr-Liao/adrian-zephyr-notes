@@ -7,6 +7,7 @@ import { Eye, EyeOff, Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-reac
 import { useEffect, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
+import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
 import {
   ManagementBody,
@@ -41,6 +42,7 @@ function GuestbookModeration() {
   const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   useEffect(() => {
     setIsLoading(true);
@@ -59,9 +61,12 @@ function GuestbookModeration() {
     input: { isPinned?: boolean; status?: AdminGuestbookMessageStatus },
   ) {
     if (input.status === "DELETED") {
-      const confirmed = window.confirm(
-        "删除这条留言？删除后读者侧不再展示，可以在已删除状态中恢复。",
-      );
+      const confirmed = await confirm({
+        confirmLabel: "删除留言",
+        description: "删除后读者侧不再展示，但仍可在已删除状态中恢复。",
+        title: "确认删除留言",
+        variant: "destructive",
+      });
 
       if (!confirmed) {
         return;
@@ -69,7 +74,11 @@ function GuestbookModeration() {
     }
 
     if (input.status === "HIDDEN") {
-      const confirmed = window.confirm("隐藏这条留言？读者侧将不再展示。");
+      const confirmed = await confirm({
+        confirmLabel: "隐藏留言",
+        description: "隐藏后读者侧将不再展示这条留言。",
+        title: "确认隐藏留言",
+      });
 
       if (!confirmed) {
         return;
@@ -240,6 +249,7 @@ function GuestbookModeration() {
           onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
         />
       </ManagementBody>
+      {confirmationDialog}
     </ManagementSurface>
   );
 }

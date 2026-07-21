@@ -7,6 +7,7 @@ import { Eye, EyeOff, Loader2, RefreshCw, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
+import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
 import {
   ManagementBody,
@@ -46,6 +47,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [updatingCommentId, setUpdatingCommentId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const isFocusedMode = Boolean(query.commentId);
 
@@ -89,7 +91,11 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
     status: AdminArticleCommentStatus,
   ) {
     if (status === "HIDDEN") {
-      const confirmed = window.confirm("隐藏这条评论？读者侧将不再展示。");
+      const confirmed = await confirm({
+        confirmLabel: "隐藏评论",
+        description: "隐藏后读者侧将不再展示这条评论。",
+        title: "确认隐藏评论",
+      });
 
       if (!confirmed) {
         return;
@@ -308,6 +314,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
           onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
         />
       </ManagementBody>
+      {confirmationDialog}
     </ManagementSurface>
   );
 }

@@ -2,6 +2,7 @@ import type { AdminArticleCategoryResponse } from "@adrian-zephyr-notes/contract
 import { Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "../../components/ui/button";
+import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
 import {
   ManagementBody,
@@ -34,6 +35,7 @@ function ArticleCategoryManagement() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [pagination, setPagination] = useState({ page: 1, totalItems: 0, totalPages: 0 });
+  const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const loadCategories = useCallback(async (page = 1, q?: string) => {
     setIsLoading(true);
@@ -82,7 +84,14 @@ function ArticleCategoryManagement() {
   }
 
   async function removeCategory(category: AdminArticleCategoryResponse) {
-    if (!window.confirm(`删除分类「${category.name}」？`)) {
+    const confirmed = await confirm({
+      confirmLabel: "删除分类",
+      description: `分类「${category.name}」将被永久删除。`,
+      title: "确认删除分类",
+      variant: "destructive",
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -200,6 +209,7 @@ function ArticleCategoryManagement() {
           onPageChange={(page) => void loadCategories(page, searchText.trim() || undefined)}
         />
       </ManagementBody>
+      {confirmationDialog}
     </ManagementSurface>
   );
 }
