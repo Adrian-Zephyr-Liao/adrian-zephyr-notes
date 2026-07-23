@@ -24,7 +24,6 @@ import {
   createAdminAgentWorkflowRunAttemptEvent,
   createAdminAgentWorkflowRunCreatedEvent,
 } from "../domain/admin-agent-workflow-lifecycle";
-import { AdminAgentWorkflowInvalidResumeError } from "../domain/admin-agent-workflow-runner";
 import type { GetAdminArticleByIdUseCase } from "../../articles/application/get-admin-article-by-id.use-case";
 import type { ListAdminArticlesUseCase } from "../../articles/application/list-admin-articles.use-case";
 import type {
@@ -193,7 +192,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     expect(repository.createdRuns).toHaveLength(0);
   });
 
-  it("runs comment moderation analysis through LangGraph and interrupts for approval", async () => {
+  it("completes high-risk comment analysis without triggering moderation", async () => {
     const repository = new RecordingAdminAgentRepository({
       todayComments: [
         createComment("comment-1", "你是不是脑残，全家死光"),
@@ -266,33 +265,150 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         targetId: "comment-1",
       },
     ]);
-    expect(repository.interruptedRuns).toEqual([
-      {
-        id: expect.any(String),
-        node: "human_approval",
-        summary: "等待管理员确认 1 条评论治理建议。",
-      },
-    ]);
+    expect(repository.interruptedRuns).toEqual([]);
+    expect(actionExecutor.calls).toEqual([]);
+    expect(repository.nodeUpdates.map((item) => item.node)).not.toContain("human_approval");
+    expect(repository.nodeUpdates.map((item) => item.node)).not.toContain("apply_approval");
     expect(repository.createdRuns[0]?.id).toBe(repository.createdRuns[0]?.threadId);
     expect(result).toMatchObject({
-      interruption: {
-        action: "HIDE_COMMENT",
-        approvalId: expect.stringContaining("comment-moderation:"),
+      interruption: null,
+      output: {
+        analyzedCount: 2,
+        findingCount: 1,
         findingIds: ["finding-1"],
-        kind: "COMMENT_MODERATION_APPROVAL",
-        payload: {
-          findingIds: ["finding-1"],
-          scope: "today",
-        },
-        subject: "ARTICLE_COMMENT",
-        summary: "确认后将屏蔽 1 条评论。",
+        scope: "today",
       },
       run: {
-        status: "WAITING_FOR_APPROVAL",
+        status: "COMPLETED",
       },
       scope: "today",
       summary: "LLM 识别出 1 条高风险评论。",
     });
+  });
+
+  it("keeps an existing pending risk finding in repeated analysis results", async () => {
+    const existingFinding = createFindingFromDraft(
+      {
+        category: "ABUSE",
+        confidence: 0.92,
+        evidence: ["脑残", "全家死光"],
+        proposedAction: "HIDE_COMMENT",
+        reason: "评论包含人身攻击和恶意诅咒。",
+        severity: "HIGH",
+        targetId: "comment-1",
+        targetType: "ARTICLE_COMMENT",
+      },
+      {
+        id: "existing-finding-1",
+        runId: "previous-run",
+      },
+    );
+    const repository = new RecordingAdminAgentRepository({
+      pendingFindings: [existingFinding],
+      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
+    });
+    const runner = new LangGraphAdminAgentWorkflowRunner(
+      repository,
+      new RecordingAdminAgentWorkflowActionExecutor(),
+      createChatCompletionClientDouble(
+        JSON.stringify({
+          findings: [
+            {
+              category: "ABUSE",
+              confidence: 0.92,
+              evidence: ["脑残", "全家死光"],
+              proposedAction: "HIDE_COMMENT",
+              reason: "评论包含人身攻击和恶意诅咒。",
+              severity: "HIGH",
+              targetId: "comment-1",
+            },
+          ],
+          summary: "仍识别出 1 条高风险评论。",
+        }),
+      ),
+      createConfigService(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        checkpointer: new MemorySaver(),
+      },
+    );
+
+    const result = await runner.startWorkflow({
+      input: { scope: "today" },
+      startedByUserId: "user-1",
+      workflowName: "COMMENT_MODERATION_ANALYSIS",
+    });
+
+    expect(repository.createdFindings).toEqual([]);
+    expect(result).toMatchObject({
+      output: {
+        findingCount: 1,
+        findingIds: ["existing-finding-1"],
+      },
+      summary: "仍识别出 1 条高风险评论。",
+    });
+  });
+
+  it("re-reads an explicit comment selection through the trusted selection port", async () => {
+    const repository = new RecordingAdminAgentRepository({
+      todayComments: [createComment("unselected-comment", "不应进入本次分析")],
+    });
+    const selectedComment = createComment("selected-comment", "请分析这一条评论");
+    const llm = createChatCompletionClientDouble(
+      JSON.stringify({
+        findings: [],
+        summary: "已完成指定评论分析。",
+      }),
+    );
+    const runner = new LangGraphAdminAgentWorkflowRunner(
+      repository,
+      new RecordingAdminAgentWorkflowActionExecutor(),
+      llm,
+      createConfigService(),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      {
+        checkpointer: new MemorySaver(),
+      },
+    );
+
+    Object.defineProperty(runner, "commentSelectionReader", {
+      value: {
+        listVisibleCommentsByIdsForAnalysis: async ({ ids }: { ids: string[] }) => {
+          expect(ids).toEqual(["selected-comment"]);
+          return [selectedComment];
+        },
+      },
+    });
+
+    const result = await runner.startWorkflow({
+      input: {
+        commentIds: ["selected-comment", "selected-comment"],
+        objective: "MODERATION_RISK",
+      },
+      startedByUserId: "user-1",
+      workflowName: "COMMENT_MODERATION_ANALYSIS",
+    });
+
+    expect(result).toMatchObject({
+      interruption: null,
+      output: {
+        analyzedCount: 1,
+        findingCount: 0,
+        scope: "selection",
+      },
+      run: {
+        status: "COMPLETED",
+      },
+      summary: "已完成指定评论分析。",
+    });
+    expect(JSON.stringify(llm.calls)).toContain("selected-comment");
+    expect(JSON.stringify(llm.calls)).not.toContain("unselected-comment");
   });
 
   it("retries transient LLM failures inside the same comment moderation workflow run", async () => {
@@ -342,12 +458,10 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     expect(repository.createdRuns).toHaveLength(1);
     expect(repository.failedRuns).toEqual([]);
     expect(result).toMatchObject({
-      interruption: {
-        kind: "COMMENT_MODERATION_APPROVAL",
-      },
+      interruption: null,
       run: {
         id: repository.createdRuns[0]?.id,
-        status: "WAITING_FOR_APPROVAL",
+        status: "COMPLETED",
       },
       summary: "LLM 重试后识别出 1 条高风险评论。",
     });
@@ -397,644 +511,6 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       },
       summary: "LLM 未识别出需要人工确认的评论风险。",
     });
-  });
-
-  it("resumes an interrupted comment moderation workflow with the same thread id", async () => {
-    const repository = new RecordingAdminAgentRepository({
-      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
-    });
-    const llm = createChatCompletionClientDouble(
-      JSON.stringify({
-        findings: [
-          {
-            category: "ABUSE",
-            confidence: 0.92,
-            evidence: ["脑残"],
-            proposedAction: "HIDE_COMMENT",
-            reason: "评论包含人身攻击。",
-            severity: "HIGH",
-            targetId: "comment-1",
-          },
-        ],
-        summary: "LLM 识别出 1 条高风险评论。",
-      }),
-    );
-    const actionExecutor = new RecordingAdminAgentWorkflowActionExecutor();
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      actionExecutor,
-      llm,
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    const started = await runner.startWorkflow({
-      startedByUserId: "user-1",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    if (started.interruption?.kind !== "COMMENT_MODERATION_APPROVAL") {
-      throw new Error("Expected comment moderation approval interruption.");
-    }
-
-    const resumed = await runner.resumeWorkflow({
-      actor: {
-        id: "admin-1",
-        login: "adrian",
-      },
-      resume: {
-        decision: "DEFER",
-        findingIds: started.interruption.findingIds,
-      },
-      requestContext: {
-        ipAddress: "127.0.0.1",
-        userAgent: "vitest",
-      },
-      threadId: started.run.threadId ?? started.run.id,
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    expect(resumed.interruption).toBeNull();
-    expect(resumed.output).toMatchObject({
-      actionResult: null,
-    });
-    expect(resumed.run.status).toBe("COMPLETED");
-    expect(resumed.summary).toContain("管理员选择暂不执行写操作");
-    expect(actionExecutor.calls).toEqual([]);
-    expect(repository.nodeUpdates.map((item) => item.node)).not.toContain("human_approval");
-    expect(repository.nodeUpdates.map((item) => item.node)).toContain("apply_approval");
-    expect(repository.runningTransitions).toContainEqual({
-      id: started.run.id,
-      resumed: true,
-    });
-  });
-
-  it("branches an interrupted comment moderation task into an independently resumable thread", async () => {
-    const repository = new RecordingAdminAgentRepository({
-      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
-    });
-    const llm = createChatCompletionClientDouble(
-      JSON.stringify({
-        findings: [
-          {
-            category: "ABUSE",
-            confidence: 0.92,
-            evidence: ["脑残"],
-            proposedAction: "HIDE_COMMENT",
-            reason: "评论包含人身攻击。",
-            severity: "HIGH",
-            targetId: "comment-1",
-          },
-        ],
-        summary: "LLM 识别出 1 条高风险评论。",
-      }),
-    );
-    const actionExecutor = new RecordingAdminAgentWorkflowActionExecutor();
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      actionExecutor,
-      llm,
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    const started = await runner.startWorkflow({
-      startedByUserId: "user-1",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    if (started.interruption?.kind !== "COMMENT_MODERATION_APPROVAL") {
-      throw new Error("Expected comment moderation approval interruption.");
-    }
-
-    const branched = await runner.branchWorkflow({
-      parentRunId: started.run.id,
-      sourceThreadId: started.run.threadId ?? started.run.id,
-      startedByUserId: "user-2",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    expect(branched.run.id).not.toBe(started.run.id);
-    expect(branched.run.threadId).toBe(branched.run.id);
-    expect(branched.run.parentRunId).toBe(started.run.id);
-    expect(branched.run.parentRunRelation).toBe("BRANCH");
-    expect(branched.run.status).toBe("WAITING_FOR_APPROVAL");
-    expect(branched.interruption).toMatchObject({
-      approvalId: `comment-moderation:${branched.run.id}`,
-      findingIds: ["finding-1"],
-      kind: "COMMENT_MODERATION_APPROVAL",
-    });
-
-    const resumedBranch = await runner.resumeWorkflow({
-      actor: {
-        id: "admin-1",
-        login: "adrian",
-      },
-      resume: {
-        decision: "DEFER",
-        findingIds: started.interruption.findingIds,
-      },
-      threadId: branched.run.threadId ?? branched.run.id,
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    expect(resumedBranch.run.id).toBe(branched.run.id);
-    expect(resumedBranch.run.status).toBe("COMPLETED");
-    expect((await repository.findRunById(started.run.id))?.status).toBe("WAITING_FOR_APPROVAL");
-  });
-
-  it("does not create branch runs for completed comment moderation tasks", async () => {
-    const repository = new RecordingAdminAgentRepository({
-      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
-    });
-    const llm = createChatCompletionClientDouble(
-      JSON.stringify({
-        findings: [
-          {
-            category: "ABUSE",
-            confidence: 0.92,
-            evidence: ["脑残"],
-            proposedAction: "HIDE_COMMENT",
-            reason: "评论包含人身攻击。",
-            severity: "HIGH",
-            targetId: "comment-1",
-          },
-        ],
-        summary: "LLM 识别出 1 条高风险评论。",
-      }),
-    );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      new RecordingAdminAgentWorkflowActionExecutor(),
-      llm,
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    const started = await runner.startWorkflow({
-      startedByUserId: "user-1",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    if (started.interruption?.kind !== "COMMENT_MODERATION_APPROVAL") {
-      throw new Error("Expected comment moderation approval interruption.");
-    }
-
-    await runner.resumeWorkflow({
-      actor: {
-        id: "admin-1",
-        login: "adrian",
-      },
-      resume: {
-        decision: "DEFER",
-        findingIds: started.interruption.findingIds,
-      },
-      threadId: started.run.threadId ?? started.run.id,
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    const createdRunCount = repository.createdRuns.length;
-
-    await expect(
-      runner.branchWorkflow({
-        parentRunId: started.run.id,
-        sourceThreadId: started.run.threadId ?? started.run.id,
-        startedByUserId: "user-2",
-        workflowName: "COMMENT_MODERATION_ANALYSIS",
-      }),
-    ).rejects.toThrow("Admin agent branch source must be waiting for approval");
-    expect(repository.createdRuns).toHaveLength(createdRunCount);
-  });
-
-  it("does not branch a source run through a different workflow graph", async () => {
-    const repository = new RecordingAdminAgentRepository({
-      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
-    });
-    const llm = createChatCompletionClientDouble(
-      JSON.stringify({
-        findings: [
-          {
-            category: "ABUSE",
-            confidence: 0.92,
-            evidence: ["脑残"],
-            proposedAction: "HIDE_COMMENT",
-            reason: "评论包含人身攻击。",
-            severity: "HIGH",
-            targetId: "comment-1",
-          },
-        ],
-        summary: "LLM 识别出 1 条高风险评论。",
-      }),
-    );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      new RecordingAdminAgentWorkflowActionExecutor(),
-      llm,
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    const started = await runner.startWorkflow({
-      startedByUserId: "user-1",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    if (started.interruption?.kind !== "COMMENT_MODERATION_APPROVAL") {
-      throw new Error("Expected comment moderation approval interruption.");
-    }
-
-    const createdRunCount = repository.createdRuns.length;
-
-    await expect(
-      runner.branchWorkflow({
-        parentRunId: started.run.id,
-        sourceThreadId: started.run.threadId ?? started.run.id,
-        startedByUserId: "user-2",
-        workflowName: "ARTICLE_ASSISTANCE",
-      }),
-    ).rejects.toThrow("Admin agent branch source workflow mismatch");
-    expect(repository.createdRuns).toHaveLength(createdRunCount);
-  });
-
-  it("does not resume a thread through a different workflow graph", async () => {
-    const repository = new RecordingAdminAgentRepository({
-      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
-    });
-    const llm = createChatCompletionClientDouble(
-      JSON.stringify({
-        findings: [
-          {
-            category: "ABUSE",
-            confidence: 0.92,
-            evidence: ["脑残"],
-            proposedAction: "HIDE_COMMENT",
-            reason: "评论包含人身攻击。",
-            severity: "HIGH",
-            targetId: "comment-1",
-          },
-        ],
-        summary: "LLM 识别出 1 条高风险评论。",
-      }),
-    );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      new RecordingAdminAgentWorkflowActionExecutor(),
-      llm,
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    const started = await runner.startWorkflow({
-      startedByUserId: "user-1",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    if (started.interruption?.kind !== "COMMENT_MODERATION_APPROVAL") {
-      throw new Error("Expected comment moderation approval interruption.");
-    }
-
-    const runningTransitionCount = repository.runningTransitions.length;
-
-    await expect(
-      runner.resumeWorkflow({
-        actor: {
-          id: "admin-1",
-          login: "adrian",
-        },
-        resume: {},
-        threadId: started.run.threadId ?? started.run.id,
-        workflowName: "ARTICLE_ASSISTANCE",
-      }),
-    ).rejects.toThrow("Admin agent workflow thread mismatch");
-    expect(repository.runningTransitions).toHaveLength(runningTransitionCount);
-  });
-
-  it("executes approved comment moderation findings while resuming the workflow", async () => {
-    const repository = new RecordingAdminAgentRepository({
-      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
-    });
-    const llm = createChatCompletionClientDouble(
-      JSON.stringify({
-        findings: [
-          {
-            category: "ABUSE",
-            confidence: 0.92,
-            evidence: ["脑残"],
-            proposedAction: "HIDE_COMMENT",
-            reason: "评论包含人身攻击。",
-            severity: "HIGH",
-            targetId: "comment-1",
-          },
-        ],
-        summary: "LLM 识别出 1 条高风险评论。",
-      }),
-    );
-    const actionExecutor = new RecordingAdminAgentWorkflowActionExecutor({
-      appliedCount: 1,
-      failedCount: 0,
-      results: [
-        {
-          resourceId: "finding-1",
-          status: "APPLIED",
-        },
-      ],
-    });
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      actionExecutor,
-      llm,
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    const started = await runner.startWorkflow({
-      startedByUserId: "user-1",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    if (started.interruption?.kind !== "COMMENT_MODERATION_APPROVAL") {
-      throw new Error("Expected comment moderation approval interruption.");
-    }
-
-    const resumed = await runner.resumeWorkflow({
-      actor: {
-        id: "admin-1",
-        login: "adrian",
-      },
-      resume: {
-        decision: "APPROVE",
-        findingIds: started.interruption.findingIds,
-      },
-      requestContext: {
-        ipAddress: "127.0.0.1",
-        userAgent: "vitest",
-      },
-      threadId: started.run.threadId ?? started.run.id,
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    expect(actionExecutor.calls).toEqual([
-      {
-        action: "HIDE_COMMENT",
-        actor: {
-          id: "admin-1",
-          login: "adrian",
-        },
-        findingIds: ["finding-1"],
-        payload: {
-          findingIds: ["finding-1"],
-        },
-        subject: "ARTICLE_COMMENT",
-      },
-    ]);
-    expect(resumed.interruption).toBeNull();
-    expect(resumed.output).toMatchObject({
-      actionResult: {
-        appliedCount: 1,
-        failedCount: 0,
-        results: [
-          {
-            resourceId: "finding-1",
-            status: "APPLIED",
-          },
-        ],
-      },
-    });
-    expect(resumed.run.status).toBe("COMPLETED");
-    expect(resumed.summary).toContain("管理员已确认 1 条评论治理建议；已执行 1 条，失败 0 条。");
-  });
-
-  it("keeps an interrupted comment moderation run paused when resume payload is invalid", async () => {
-    const repository = new RecordingAdminAgentRepository({
-      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
-    });
-    const llm = createChatCompletionClientDouble(
-      JSON.stringify({
-        findings: [
-          {
-            category: "ABUSE",
-            confidence: 0.92,
-            evidence: ["脑残"],
-            proposedAction: "HIDE_COMMENT",
-            reason: "评论包含人身攻击。",
-            severity: "HIGH",
-            targetId: "comment-1",
-          },
-        ],
-        summary: "LLM 识别出 1 条高风险评论。",
-      }),
-    );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      new RecordingAdminAgentWorkflowActionExecutor(),
-      llm,
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    const started = await runner.startWorkflow({
-      startedByUserId: "user-1",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    await expect(
-      runner.resumeWorkflow({
-        actor: {
-          id: "admin-1",
-          login: "adrian",
-        },
-        resume: {
-          findingIds:
-            started.interruption?.kind === "COMMENT_MODERATION_APPROVAL"
-              ? started.interruption.findingIds
-              : [],
-        },
-        threadId: started.run.threadId ?? started.run.id,
-        workflowName: "COMMENT_MODERATION_ANALYSIS",
-      }),
-    ).rejects.toBeInstanceOf(AdminAgentWorkflowInvalidResumeError);
-
-    expect(repository.runningTransitions).toEqual([{ id: started.run.id, resumed: false }]);
-    expect((await repository.findRunById(started.run.id))?.status).toBe("WAITING_FOR_APPROVAL");
-  });
-
-  it("reuses a succeeded comment moderation approval action when a resumed node replays", async () => {
-    const repository = new RecordingAdminAgentRepository();
-    const actionExecutor = new RecordingAdminAgentWorkflowActionExecutor({
-      appliedCount: 1,
-      failedCount: 0,
-      results: [
-        {
-          resourceId: "finding-1",
-          status: "APPLIED",
-          summary: "评论已屏蔽。",
-        },
-      ],
-    });
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      actionExecutor,
-      createChatCompletionClientDouble("{}"),
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    await repository.createRun({
-      id: "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
-      input: {},
-      startedByUserId: "user-1",
-      type: "COMMENT_MODERATION_TODAY",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-    await repository.createFindings("aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa", [
-      {
-        category: "ABUSE",
-        confidence: 0.92,
-        evidence: ["脑残"],
-        proposedAction: "HIDE_COMMENT",
-        reason: "评论包含人身攻击。",
-        severity: "HIGH",
-        targetId: "comment-1",
-        targetType: "ARTICLE_COMMENT",
-      },
-    ]);
-    const approval = {
-      actor: {
-        id: "admin-1",
-        login: "adrian",
-      },
-      decision: "APPROVE" as const,
-      findingIds: ["finding-1"],
-    };
-    const runnerInternals = runner as unknown as {
-      applyApproval: (state: {
-        approval: typeof approval;
-        runId: string;
-        summary: string;
-      }) => Promise<{ summary: string }>;
-    };
-
-    const firstResult = await runnerInternals.applyApproval({
-      approval,
-      runId: "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
-      summary: "评论治理建议已生成。",
-    });
-    const replayedResult = await runnerInternals.applyApproval({
-      approval,
-      runId: "aaaaaaaa-aaaa-4aaa-aaaa-aaaaaaaaaaaa",
-      summary: "评论治理建议已生成。",
-    });
-
-    expect(firstResult).toEqual(replayedResult);
-    expect(actionExecutor.calls).toHaveLength(1);
-  });
-
-  it("recovers completed comment moderation approval results without executing twice", async () => {
-    const repository = new RecordingAdminAgentRepository({
-      todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
-    });
-    const llm = createChatCompletionClientDouble(
-      JSON.stringify({
-        findings: [
-          {
-            category: "ABUSE",
-            confidence: 0.92,
-            evidence: ["脑残"],
-            proposedAction: "HIDE_COMMENT",
-            reason: "评论包含人身攻击。",
-            severity: "HIGH",
-            targetId: "comment-1",
-          },
-        ],
-        summary: "LLM 识别出 1 条高风险评论。",
-      }),
-    );
-    const actionExecutor = new RecordingAdminAgentWorkflowActionExecutor();
-    const runner = new LangGraphAdminAgentWorkflowRunner(
-      repository,
-      actionExecutor,
-      llm,
-      createConfigService(),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-      {
-        checkpointer: new MemorySaver(),
-      },
-    );
-    const started = await runner.startWorkflow({
-      startedByUserId: "user-1",
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    if (started.interruption?.kind !== "COMMENT_MODERATION_APPROVAL") {
-      throw new Error("Expected comment moderation approval interruption.");
-    }
-
-    await repository.markFindingExecuted(started.interruption.findingIds[0] ?? "");
-
-    const resumed = await runner.resumeWorkflow({
-      actor: {
-        id: "admin-1",
-        login: "adrian",
-      },
-      resume: {
-        decision: "APPROVE",
-        findingIds: started.interruption.findingIds,
-      },
-      requestContext: {
-        ipAddress: "127.0.0.1",
-        userAgent: "vitest",
-      },
-      threadId: started.run.threadId ?? started.run.id,
-      workflowName: "COMMENT_MODERATION_ANALYSIS",
-    });
-
-    expect(actionExecutor.calls).toEqual([]);
-    expect(resumed.interruption).toBeNull();
-    expect(resumed.run.status).toBe("COMPLETED");
-    expect(resumed.summary).toContain("管理员已确认 1 条评论治理建议；已执行 1 条，失败 0 条。");
   });
 
   it("retries comment moderation as a new child task with its own persisted thread", async () => {
@@ -2126,7 +1602,6 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       "load_comments",
       "analyze_comments",
       "persist_findings",
-      "apply_approval",
       "complete",
       "load_audit_logs",
       "analyze_audit_logs",

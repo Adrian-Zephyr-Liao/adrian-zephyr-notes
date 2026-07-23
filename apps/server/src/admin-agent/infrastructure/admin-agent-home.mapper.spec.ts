@@ -84,9 +84,10 @@ describe("toAdminAgentHomeResponse", () => {
       capabilityId: "comments",
       controls: [
         expect.objectContaining({ action: "cancel", title: "取消" }),
-        expect.objectContaining({ action: "branch", title: "另开处理" }),
         expect.objectContaining({ action: "retry", title: "重新尝试" }),
       ],
+      requiresApprovalForWrites: false,
+      supportsHumanApproval: false,
       supportsStart: true,
       taskName: "comment_moderation_analysis",
     });

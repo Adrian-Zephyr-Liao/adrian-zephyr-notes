@@ -213,9 +213,9 @@ type AdminAgentCommentModerationApprovalInterruptionResponse = Omit<
   findingIds: string[];
   payload: {
     findingIds: string[];
-    scope: "recentVisibleFallback" | "today";
+    scope: "recentVisibleFallback" | "selection" | "today";
   };
-  scope: "recentVisibleFallback" | "today";
+  scope: "recentVisibleFallback" | "selection" | "today";
   subject: "ARTICLE_COMMENT";
 };
 
@@ -286,17 +286,45 @@ type StartAdminAgentTaskResponse = ResumeAdminAgentTaskResponse;
 
 type ControlAdminAgentTaskResponse = ResumeAdminAgentTaskResponse;
 
-type AdminAgentChatMessageRole = "assistant" | "user";
+type AdminAgentChatMessageRole = "activity" | "assistant" | "tool" | "user";
 
-type AdminAgentChatMessage = {
-  role: AdminAgentChatMessageRole;
-  content: string;
-};
-
-type AdminAgentConversationMessageResponse = AdminAgentChatMessage & {
+type AdminAgentToolCallResponse = {
+  function: {
+    arguments: string;
+    name: string;
+  };
   id: string;
-  createdAt: string;
+  type: "function";
 };
+
+type AdminAgentConversationMessageResponse =
+  | {
+      content: string;
+      id: string;
+      role: "user";
+    }
+  | {
+      content?: string;
+      id: string;
+      role: "assistant";
+      toolCalls?: AdminAgentToolCallResponse[];
+    }
+  | {
+      content: string;
+      id: string;
+      role: "tool";
+      toolCallId: string;
+    }
+  | AdminAgentActivityMessageResponse;
+
+type AdminAgentActivityMessageResponse = {
+  activityType: string;
+  content: Record<string, unknown>;
+  id: string;
+  role: "activity";
+};
+
+type AdminAgentChatMessage = AdminAgentConversationMessageResponse;
 
 type AdminAgentConversationMessagesResponse = {
   data: AdminAgentConversationMessageResponse[];
@@ -308,45 +336,6 @@ type AdminAgentContextEntry = {
   description: string;
   value: string;
 };
-
-type AdminAgentAssistantMessage = AdminAgentChatMessage & {
-  role: "assistant";
-};
-
-type AdminAgentInteractionEvent =
-  | {
-      id: string;
-      type: "textMessage";
-      message: AdminAgentAssistantMessage;
-      createdAt: string;
-    }
-  | {
-      id: string;
-      type: "textDelta";
-      messageId: string;
-      delta: string;
-      createdAt: string;
-    }
-  | {
-      id: string;
-      type: "toolCallStart";
-      toolCallId: string;
-      toolCallName: string;
-      createdAt: string;
-    }
-  | {
-      id: string;
-      type: "toolCallArgsDelta";
-      toolCallId: string;
-      delta: string;
-      createdAt: string;
-    }
-  | {
-      id: string;
-      type: "toolCallEnd";
-      toolCallId: string;
-      createdAt: string;
-    };
 
 type DecideAdminAgentFindingsRequest = {
   decisions: {
@@ -376,14 +365,40 @@ type DecideAdminAgentFindingsResponse = {
   results: AdminAgentFindingDecisionResultResponse[];
 };
 
+type ModerateAdminAgentCommentAnalysisRequest = {
+  findingIds: string[];
+};
+
+type AdminAgentCommentAnalysisModerationResultResponse =
+  | {
+      findingId: string;
+      status: "APPLIED";
+    }
+  | {
+      error: {
+        code: string;
+        message: string;
+      };
+      findingId: string;
+      status: "FAILED";
+    };
+
+type ModerateAdminAgentCommentAnalysisResponse = {
+  activityMessage: AdminAgentActivityMessageResponse;
+  analysisId: string;
+  appliedCount: number;
+  failedCount: number;
+  results: AdminAgentCommentAnalysisModerationResultResponse[];
+};
+
 export type {
-  AdminAgentAssistantMessage,
   AdminAgentActionExecutionResultItemResponse,
   AdminAgentActionExecutionResultResponse,
   AdminAgentAutomationAction,
   AdminAgentAutomationEligibilityResponse,
   AdminAgentAutomationPolicyMode,
   AdminAgentAutomationPolicyResponse,
+  AdminAgentActivityMessageResponse,
   AdminAgentCapabilityId,
   AdminAgentCapabilityResponse,
   AdminAgentCapabilityStatus,
@@ -403,12 +418,12 @@ export type {
   AdminAgentFindingTargetResponse,
   AdminAgentFindingTargetType,
   AdminAgentHomeResponse,
-  AdminAgentInteractionEvent,
   AdminAgentProposedAction,
   AdminAgentRecentActionResponse,
   AdminAgentTaskSummaryResponse,
   AdminAgentTaskStatus,
   AdminAgentCommentModerationApprovalInterruptionResponse,
+  AdminAgentCommentAnalysisModerationResultResponse,
   AdminAgentGenericApprovalInterruptionResponse,
   AdminAgentTaskApprovalInterruptionResponse,
   AdminAgentTaskApprovalOptionResponse,
@@ -422,11 +437,14 @@ export type {
   AdminAgentTaskRelation,
   AdminAgentTaskTimelineEventResponse,
   AdminAgentTaskTimelineEventStatus,
+  AdminAgentToolCallResponse,
   AdminAgentTaskOutputResponse,
   ControlAdminAgentTaskRequest,
   ControlAdminAgentTaskResponse,
   DecideAdminAgentFindingsRequest,
   DecideAdminAgentFindingsResponse,
+  ModerateAdminAgentCommentAnalysisRequest,
+  ModerateAdminAgentCommentAnalysisResponse,
   ResumeAdminAgentTaskRequest,
   ResumeAdminAgentTaskResponse,
   StartAdminAgentTaskRequest,

@@ -8,7 +8,7 @@ export type { AdminMeResponse, AdminUserResponse } from "./admin/auth.js";
 export type {
   AdminAgentActionExecutionResultItemResponse,
   AdminAgentActionExecutionResultResponse,
-  AdminAgentAssistantMessage,
+  AdminAgentActivityMessageResponse,
   AdminAgentAutomationPolicyMode,
   AdminAgentAutomationPolicyResponse,
   AdminAgentCapabilityId,
@@ -30,7 +30,6 @@ export type {
   AdminAgentFindingTargetResponse,
   AdminAgentFindingTargetType,
   AdminAgentHomeResponse,
-  AdminAgentInteractionEvent,
   AdminAgentProposedAction,
   AdminAgentRecentActionResponse,
   AdminAgentTaskSummaryResponse,
@@ -46,6 +45,8 @@ export type {
   AdminAgentTaskOutputResponse,
   AdminAgentTaskTimelineEventResponse,
   AdminAgentTaskTimelineEventStatus,
+  ModerateAdminAgentCommentAnalysisRequest,
+  ModerateAdminAgentCommentAnalysisResponse,
   ControlAdminAgentTaskRequest,
   ControlAdminAgentTaskResponse,
   DecideAdminAgentFindingsRequest,
@@ -181,6 +182,12 @@ const adminAgentTaskControls = [
   },
 ] as const satisfies readonly AdminAgentTaskControlCatalogItem[];
 
+const adminAgentA2uiCatalogId = "https://zephyrai.site/a2ui/catalogs/admin-agent/v2";
+
+const adminAgentAnalysisTaskControls = adminAgentTaskControls.filter(
+  (control) => control.action !== "branch",
+);
+
 const adminAgentMultiTaskControls = [
   ...adminAgentTaskControls,
   {
@@ -197,10 +204,10 @@ const adminAgentTaskCatalog = [
   {
     availability: "AVAILABLE",
     capabilityId: "comments",
-    controls: adminAgentTaskControls,
-    description: "读取评论上下文，生成风险建议，并在写操作前请求管理员确认。",
-    requiresApprovalForWrites: true,
-    supportsHumanApproval: true,
+    controls: adminAgentAnalysisTaskControls,
+    description: "读取指定评论上下文并生成可追踪的风险分析，不修改评论状态。",
+    requiresApprovalForWrites: false,
+    supportsHumanApproval: false,
     supportsStart: true,
     title: "评论治理分析",
     taskName: "comment_moderation_analysis",
@@ -259,4 +266,9 @@ const startableAdminAgentTaskNames = [
   "multi_task_orchestration",
 ] as const satisfies readonly AdminAgentTaskName[];
 
-export { adminAgentTaskCatalog, adminAgentTaskControls, startableAdminAgentTaskNames };
+export {
+  adminAgentA2uiCatalogId,
+  adminAgentTaskCatalog,
+  adminAgentTaskControls,
+  startableAdminAgentTaskNames,
+};

@@ -1,246 +1,257 @@
-import { EventType, type RunAgentInput } from "@ag-ui/client";
+import { EventType, type RunAgentInput } from "@ag-ui/core";
 import { lastValueFrom, toArray } from "rxjs";
-import { AdminAgentCopilotKitAgent } from "./admin-agent-copilotkit-agent";
+import { describe, expect, it, vi } from "vitest";
+import type { AdminAgentChatRunnerEvent } from "../domain/admin-agent-chat-runner";
+import { AdminAgentAgUiAgent } from "./admin-agent-copilotkit-agent";
 
-describe("AdminAgentCopilotKitAgent", () => {
-  it("does not emit component state snapshots for ordinary chat", async () => {
-    const agent = new AdminAgentCopilotKitAgent({
-      sendChatMessage: {
-        stream: async function* () {
-          yield {
-            createdAt: "2026-07-04T10:00:01.000Z",
-            delta: "当前评论上下文已进入普通 chat stream。",
-            id: "chat-delta-1",
-            messageId: "message-1",
-            type: "textDelta",
-          };
-        },
-      },
-    } as never);
-
-    const events = await lastValueFrom(agent.run(createChatAgentInput()).pipe(toArray()));
-
-    expect(events.some((event) => event.type === EventType.STATE_SNAPSHOT)).toBe(false);
-    expect(events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          delta: "当前评论上下文已进入普通 chat stream。",
-          type: EventType.TEXT_MESSAGE_CONTENT,
-        }),
-      ]),
-    );
-  });
-
-  it("ignores forwarded runType and streams as ordinary chat", async () => {
-    const stream = vi.fn(async function* () {
-      yield {
-        createdAt: "2026-07-04T10:00:01.000Z",
-        delta: "我会按普通对话处理这次请求。",
-        id: "chat-delta-1",
-        messageId: "message-1",
-        type: "textDelta" as const,
-      };
-    });
-    const agent = new AdminAgentCopilotKitAgent({
-      sendChatMessage: { stream },
-    } as never);
-
-    const events = await lastValueFrom(agent.run(createRunAgentInput()).pipe(toArray()));
-
-    expect(stream).toHaveBeenCalledWith({
-      conversationId: "conversation-1",
-      context: [
+describe("AdminAgentAgUiAgent", () => {
+  it("executes a server tool and emits the standard AG-UI tool lifecycle", async () => {
+    const modelTurns: AdminAgentChatRunnerEvent[][] = [
+      [
         {
-          description: "当前评论治理队列的聚合状态。",
-          id: "comments.summary",
-          title: "评论治理上下文",
-          value: '{"pendingFindingCount":2}',
+          toolCallId: "call-1",
+          toolCallName: "search_comments",
+          type: "toolCallStart",
+        },
+        {
+          delta: '{"period":"TODAY"}',
+          toolCallId: "call-1",
+          type: "toolCallArgsDelta",
+        },
+        {
+          toolCallId: "call-1",
+          type: "toolCallEnd",
         },
       ],
-      message: "分析今日评论",
-      persistUserMessage: true,
-      recentMessages: [],
+      [
+        {
+          delta: "今日没有需要分析的评论。",
+          type: "textDelta",
+        },
+      ],
+    ];
+    const stream = vi.fn((..._args: unknown[]) => toAsyncIterable(modelTurns.shift() ?? []));
+    const execute = vi.fn().mockResolvedValue({
+      content: JSON.stringify({
+        ok: true,
+        result: {
+          comments: [],
+          matchedCount: 0,
+          truncated: false,
+        },
+      }),
     });
-    expect(events).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ type: EventType.TEXT_MESSAGE_START }),
-        expect.objectContaining({
-          delta: "我会按普通对话处理这次请求。",
-          type: EventType.TEXT_MESSAGE_CONTENT,
-        }),
-        expect.objectContaining({ type: EventType.TEXT_MESSAGE_END }),
-      ]),
+    const recordMessage = vi.fn();
+    const agent = new AdminAgentAgUiAgent({
+      actorUserId: "admin-1",
+      chatMessageRepository: { recordMessage } as never,
+      sendChatMessage: { stream } as never,
+      serverTools: [
+        {
+          description: "Search comments.",
+          execute,
+          name: "search_comments",
+          parameters: {
+            properties: {
+              period: {
+                enum: ["TODAY", "RECENT"],
+                type: "string",
+              },
+            },
+            type: "object",
+          },
+        },
+      ],
+    });
+    const events = await lastValueFrom(agent.run(createRunInput()).pipe(toArray()));
+
+    expect(events.map((event) => event.type)).toEqual([
+      EventType.RUN_STARTED,
+      EventType.TOOL_CALL_START,
+      EventType.TOOL_CALL_ARGS,
+      EventType.TOOL_CALL_END,
+      EventType.TOOL_CALL_RESULT,
+      EventType.TEXT_MESSAGE_START,
+      EventType.TEXT_MESSAGE_CONTENT,
+      EventType.TEXT_MESSAGE_END,
+      EventType.RUN_FINISHED,
+    ]);
+    expect(execute).toHaveBeenCalledWith(
+      { period: "TODAY" },
+      {
+        conversationId: "thread-1",
+        runId: "run-1",
+        toolCallId: "call-1",
+      },
     );
+    expect(events.find((event) => event.type === EventType.TOOL_CALL_RESULT)).toMatchObject({
+      content: expect.stringContaining('"matchedCount":0'),
+      role: "tool",
+      toolCallId: "call-1",
+    });
+    expect(stream).toHaveBeenCalledTimes(2);
+    expect(recordMessage).toHaveBeenCalledWith({
+      conversationId: "thread-1",
+      message: {
+        content: expect.stringContaining('"matchedCount":0'),
+        id: "admin-agent-tool-result-run-1-call-1",
+        role: "tool",
+        toolCallId: "call-1",
+      },
+    });
+    expect(stream.mock.calls[1]?.[0]).toMatchObject({
+      persistUserMessage: false,
+      recentMessages: [
+        {
+          content: "分析今天的评论",
+          role: "user",
+        },
+        {
+          content: "",
+          role: "assistant",
+          toolCalls: [
+            {
+              arguments: '{"period":"TODAY"}',
+              id: "call-1",
+              name: "search_comments",
+            },
+          ],
+        },
+        {
+          content: expect.stringContaining('"matchedCount":0'),
+          role: "tool",
+          toolCallId: "call-1",
+        },
+      ],
+    });
   });
 
-  it("passes only prior dialog turns as recent chat history", async () => {
-    const stream = vi.fn(async function* () {
-      yield {
-        createdAt: "2026-07-04T10:00:01.000Z",
-        delta: "继续。",
-        id: "chat-delta-1",
-        messageId: "message-1",
-        type: "textDelta" as const,
-      };
+  it("returns a structured tool error result and lets the model recover", async () => {
+    const modelTurns: AdminAgentChatRunnerEvent[][] = [
+      [
+        {
+          toolCallId: "call-1",
+          toolCallName: "analyze_comments",
+          type: "toolCallStart",
+        },
+        {
+          delta: "not-json",
+          toolCallId: "call-1",
+          type: "toolCallArgsDelta",
+        },
+        {
+          toolCallId: "call-1",
+          type: "toolCallEnd",
+        },
+      ],
+      [{ delta: "分析参数无效，请重新选择评论。", type: "textDelta" }],
+    ];
+    const stream = vi.fn((..._args: unknown[]) => toAsyncIterable(modelTurns.shift() ?? []));
+    const execute = vi.fn();
+    const agent = new AdminAgentAgUiAgent({
+      chatMessageRepository: { recordMessage: vi.fn() } as never,
+      sendChatMessage: { stream } as never,
+      serverTools: [
+        {
+          description: "Analyze comments.",
+          execute,
+          name: "analyze_comments",
+          parameters: { type: "object" },
+        },
+      ],
     });
-    const agent = new AdminAgentCopilotKitAgent({
-      sendChatMessage: { stream },
-    } as never);
+    const events = await lastValueFrom(agent.run(createRunInput()).pipe(toArray()));
+    const toolResult = events.find((event) => event.type === EventType.TOOL_CALL_RESULT);
 
-    await lastValueFrom(agent.run(createFollowUpAgentInput()).pipe(toArray()));
-
-    expect(stream).toHaveBeenCalledWith(
-      expect.objectContaining({
-        conversationId: "thread-1",
-        message: "接下来怎么做？",
-        persistUserMessage: true,
-        recentMessages: [
-          {
-            content: "进入文章工作台",
-            role: "user",
-          },
-          {
-            content: "我会先通过对话澄清。",
-            role: "assistant",
-          },
-        ],
-      }),
-    );
+    expect(execute).not.toHaveBeenCalled();
+    expect(toolResult).toMatchObject({
+      content: expect.stringContaining("TOOL_EXECUTION_FAILED"),
+      toolCallId: "call-1",
+    });
+    expect(events.at(-1)?.type).toBe(EventType.RUN_FINISHED);
   });
 
-  it("keeps tool-result continuations in the same conversation without persisting them as user input", async () => {
-    const stream = vi.fn(async function* () {
-      yield {
-        createdAt: "2026-07-04T10:00:01.000Z",
-        delta: "已继续处理。",
-        id: "chat-delta-1",
-        messageId: "message-1",
-        type: "textDelta" as const,
-      };
+  it("emits and persists a durable activity snapshot returned by a server tool", async () => {
+    const modelTurns: AdminAgentChatRunnerEvent[][] = [
+      [
+        {
+          toolCallId: "call-activity",
+          toolCallName: "analyze_comments",
+          type: "toolCallStart",
+        },
+        {
+          delta: '{"commentIds":["comment-1"]}',
+          toolCallId: "call-activity",
+          type: "toolCallArgsDelta",
+        },
+        {
+          toolCallId: "call-activity",
+          type: "toolCallEnd",
+        },
+      ],
+      [{ delta: "分析完成。", type: "textDelta" }],
+    ];
+    const stream = vi.fn((..._args: unknown[]) => toAsyncIterable(modelTurns.shift() ?? []));
+    const activity = {
+      activityType: "a2ui-surface",
+      content: { a2ui_operations: [] },
+      id: "comment-analysis-activity-analysis-1",
+      role: "activity" as const,
+    };
+    const recordMessage = vi.fn();
+    const agent = new AdminAgentAgUiAgent({
+      chatMessageRepository: { recordMessage } as never,
+      sendChatMessage: { stream } as never,
+      serverTools: [
+        {
+          description: "Analyze comments.",
+          execute: vi.fn().mockResolvedValue({
+            activity,
+            content: JSON.stringify({ ok: true, result: { analysisId: "analysis-1" } }),
+          }),
+          name: "analyze_comments",
+          parameters: { type: "object" },
+        },
+      ],
     });
-    const agent = new AdminAgentCopilotKitAgent({
-      sendChatMessage: { stream },
-    } as never);
 
-    await lastValueFrom(agent.run(createToolContinuationAgentInput()).pipe(toArray()));
+    const events = await lastValueFrom(agent.run(createRunInput()).pipe(toArray()));
 
-    expect(stream).toHaveBeenCalledWith(
-      expect.objectContaining({
-        conversationId: "thread-1",
-        message: "请根据刚刚的工具执行结果，继续以简短中文回复管理员。",
-        persistUserMessage: false,
-      }),
-    );
+    expect(events.find((event) => event.type === EventType.ACTIVITY_SNAPSHOT)).toMatchObject({
+      activityType: "a2ui-surface",
+      content: activity.content,
+      messageId: activity.id,
+      replace: true,
+    });
+    expect(recordMessage).toHaveBeenCalledWith({
+      conversationId: "thread-1",
+      message: activity,
+    });
   });
 });
 
-function createRunAgentInput(): RunAgentInput {
+function createRunInput(): RunAgentInput {
   return {
-    context: [
+    context: [],
+    messages: [
       {
-        description: "comments.summary\n评论治理上下文\n当前评论治理队列的聚合状态。",
-        value: '{"pendingFindingCount":2}',
+        content: "分析今天的评论",
+        id: "user-1",
+        role: "user",
       },
     ],
-    forwardedProps: {
-      conversationId: "conversation-1",
-      runType: "COMMENT_MODERATION_TODAY",
+    runId: "run-1",
+    threadId: "thread-1",
+    tools: [],
+  };
+}
+
+function toAsyncIterable(
+  events: AdminAgentChatRunnerEvent[],
+): AsyncIterable<AdminAgentChatRunnerEvent> {
+  return {
+    async *[Symbol.asyncIterator]() {
+      yield* events;
     },
-    messages: [
-      {
-        content: "分析今日评论",
-        id: "message-user-1",
-        role: "user",
-      },
-    ],
-    runId: "run-1",
-    state: {},
-    threadId: "thread-1",
-    tools: [],
-  };
-}
-
-function createChatAgentInput(): RunAgentInput {
-  return {
-    context: [],
-    forwardedProps: {},
-    messages: [
-      {
-        content: "分析今日评论",
-        id: "message-user-1",
-        role: "user",
-      },
-    ],
-    runId: "run-1",
-    state: {},
-    threadId: "thread-1",
-    tools: [],
-  };
-}
-
-function createFollowUpAgentInput(): RunAgentInput {
-  return {
-    context: [],
-    forwardedProps: {},
-    messages: [
-      {
-        content: "进入文章工作台",
-        id: "message-user-1",
-        role: "user",
-      },
-      {
-        content: "我会先通过对话澄清。",
-        id: "message-assistant-1",
-        role: "assistant",
-      },
-      {
-        content: "接下来怎么做？",
-        id: "message-user-2",
-        role: "user",
-      },
-    ],
-    runId: "run-2",
-    state: {},
-    threadId: "thread-1",
-    tools: [],
-  };
-}
-
-function createToolContinuationAgentInput(): RunAgentInput {
-  return {
-    context: [],
-    forwardedProps: {},
-    messages: [
-      {
-        content: "分析今日评论",
-        id: "message-user-1",
-        role: "user",
-      },
-      {
-        content: "",
-        id: "message-assistant-1",
-        role: "assistant",
-        toolCalls: [
-          {
-            function: {
-              arguments: '{"taskName":"comment_moderation_analysis"}',
-              name: "start_admin_agent_task",
-            },
-            id: "tool-call-1",
-            type: "function",
-          },
-        ],
-      } as never,
-      {
-        content: '{"status":"completed"}',
-        id: "message-tool-1",
-        role: "tool",
-        toolCallId: "tool-call-1",
-      } as never,
-    ],
-    runId: "run-3",
-    state: {},
-    threadId: "thread-1",
-    tools: [],
   };
 }

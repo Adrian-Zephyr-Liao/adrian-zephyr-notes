@@ -1,5 +1,6 @@
 import type { AdminAgentCapabilityId } from "@adrian-zephyr-notes/contracts";
-import { MarkdownPreview } from "@adrian-zephyr-notes/markdown";
+import type { Message } from "@ag-ui/client";
+import { CopilotChatMessageView } from "@copilotkit/react-core/v2";
 import {
   BookOpenText,
   FileClock,
@@ -10,46 +11,45 @@ import {
   RefreshCw,
   Send,
   Settings2,
+  Square,
   X,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { cn } from "../../lib/utils";
-import { AgentToolCallMessage } from "./agent-tool-call-messages";
-import type {
-  AgentConversationItem,
-  AgentConversationMessage,
-  AgentLandingCapabilitySuggestion,
-} from "./agent-workbench-types";
+import { AgentReasoningMessage } from "./agent-reasoning-message";
+import type { AgentLandingCapabilitySuggestion } from "./agent-workbench-types";
 
 type AgentWorkbenchShellProps = {
   children?: ReactNode;
-  conversationItems: AgentConversationItem[];
   errorMessage: string | null;
   isLoading: boolean;
   isSendingChat: boolean;
   landingSuggestions: AgentLandingCapabilitySuggestion[];
+  messages: Message[];
   promptText: string;
   shouldShowLanding: boolean;
   onChangePromptText: (value: string) => void;
   onClearConversation: () => void;
   onOpenWorkbenchMenu: () => void;
+  onStop: () => void;
   onSubmitPrompt: (input: string) => void;
 };
 
 function AgentWorkbenchShell({
   children,
-  conversationItems,
   errorMessage,
   isLoading,
   isSendingChat,
   landingSuggestions,
+  messages,
   promptText,
   shouldShowLanding,
   onChangePromptText,
   onClearConversation,
   onOpenWorkbenchMenu,
+  onStop,
   onSubmitPrompt,
 }: AgentWorkbenchShellProps) {
   return (
@@ -119,9 +119,12 @@ function AgentWorkbenchShell({
             />
           ) : (
             <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col justify-end gap-3 py-4">
-              {conversationItems.map((item) => (
-                <ConversationItemView key={item.id} item={item} />
-              ))}
+              <CopilotChatMessageView
+                className="grid gap-3"
+                isRunning={isSendingChat}
+                messages={messages}
+                reasoningMessage={AgentReasoningMessage}
+              />
 
               {errorMessage ? (
                 <div
@@ -142,19 +145,12 @@ function AgentWorkbenchShell({
           isSendingChat={isSendingChat}
           promptText={promptText}
           onChangePromptText={onChangePromptText}
+          onStop={onStop}
           onSubmitPrompt={onSubmitPrompt}
         />
       </div>
     </section>
   );
-}
-
-function ConversationItemView({ item }: { item: AgentConversationItem }) {
-  if ("toolCallId" in item) {
-    return <AgentToolCallMessage toolCallId={item.toolCallId} />;
-  }
-
-  return <ConversationTextMessage message={item} />;
 }
 
 function AgentAssistantLanding({
@@ -246,12 +242,14 @@ function AgentPromptDock({
   isLoading,
   promptText,
   onChangePromptText,
+  onStop,
   onSubmitPrompt,
 }: {
   isSendingChat: boolean;
   isLoading: boolean;
   promptText: string;
   onChangePromptText: (value: string) => void;
+  onStop: () => void;
   onSubmitPrompt: (input: string) => void;
 }) {
   const [areShortcutsVisible, setAreShortcutsVisible] = useState(true);
@@ -327,13 +325,17 @@ function AgentPromptDock({
             onChange={(event) => onChangePromptText(event.target.value)}
           />
           <Button
-            aria-label="发送"
+            aria-label={isSendingChat ? "停止生成" : "发送"}
             className="size-11 shrink-0 rounded-full"
-            disabled={isSendingChat}
             size="icon"
-            type="submit"
+            type={isSendingChat ? "button" : "submit"}
+            onClick={isSendingChat ? onStop : undefined}
           >
-            <Send aria-hidden="true" className="size-5" />
+            {isSendingChat ? (
+              <Square aria-hidden="true" className="size-4 fill-current" />
+            ) : (
+              <Send aria-hidden="true" className="size-5" />
+            )}
           </Button>
         </div>
 
@@ -378,48 +380,6 @@ function PromptShortcutButton({
       </span>
       <span>{label}</span>
     </button>
-  );
-}
-
-function ConversationTextMessage({ message }: { message: AgentConversationMessage }) {
-  const isUser = message.role === "user";
-  const hasText = Boolean(message.text.trim());
-
-  return (
-    <div className={cn("flex", isUser ? "justify-end" : "justify-start")}>
-      <div
-        className={cn(
-          "max-w-[min(720px,100%)] rounded-xl border px-3 py-2 text-sm/6",
-          isUser
-            ? "border-primary/30 bg-primary/15 text-foreground"
-            : "border-border/70 bg-background/65 text-foreground",
-        )}
-      >
-        {hasText ? (
-          isUser ? (
-            <p className="wrap-break-word whitespace-pre-wrap">{message.text}</p>
-          ) : (
-            <MarkdownPreview
-              className="max-w-none text-sm/6 [&>*:first-child]:mt-0 [&>*:last-child]:mb-0"
-              content={message.text}
-              variant="stream"
-            />
-          )
-        ) : (
-          <StreamingMessageIndicator />
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StreamingMessageIndicator() {
-  return (
-    <span aria-label="Agent 正在生成回复" className="flex h-6 items-center gap-1" role="status">
-      <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/70" />
-      <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/50 [animation-delay:120ms]" />
-      <span className="size-1.5 animate-pulse rounded-full bg-muted-foreground/40 [animation-delay:240ms]" />
-    </span>
   );
 }
 

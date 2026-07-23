@@ -22,6 +22,10 @@ import {
   type AdminAgentRepository,
 } from "../domain/admin-agent.repository";
 import {
+  ADMIN_AGENT_COMMENT_SELECTION_READER,
+  type AdminAgentCommentSelectionReader,
+} from "../domain/admin-agent-comment-selection.reader";
+import {
   ADMIN_AGENT_WORKFLOW_ACTION_EXECUTOR,
   type AdminAgentWorkflowActionExecutionResult,
   type AdminAgentWorkflowActionExecutor,
@@ -234,6 +238,10 @@ const CommentModerationWorkflowAnnotation = Annotation.Root({
     default: () => [],
     reducer: (_left, right) => right,
   }),
+  input: Annotation<Record<string, unknown>>({
+    default: () => ({}),
+    reducer: (_left, right) => right,
+  }),
   runId: Annotation<string>(),
   scope: Annotation<AdminAgentCommentAnalysisScope>({
     default: () => "today",
@@ -358,6 +366,8 @@ class LangGraphAdminAgentWorkflowRunner
   implements AdminAgentWorkflowRunner, OnModuleInit, OnModuleDestroy
 {
   private readonly logger = new Logger(LangGraphAdminAgentWorkflowRunner.name);
+  @Inject(ADMIN_AGENT_COMMENT_SELECTION_READER)
+  private readonly commentSelectionReader?: AdminAgentCommentSelectionReader;
   private readonly articleAssistanceGraph: ReturnType<
     LangGraphAdminAgentWorkflowRunner["createArticleAssistanceGraph"]
   >;
@@ -667,6 +677,7 @@ class LangGraphAdminAgentWorkflowRunner
     const result = await this.invokeGraphOrFail(run.id, () =>
       this.commentModerationGraph.invoke(
         {
+          input: input.input ?? {},
           runId: run.id,
         },
         createLangGraphThreadConfig(threadId),
@@ -975,6 +986,7 @@ class LangGraphAdminAgentWorkflowRunner
         result.findings ?? [],
         toCommentModerationScope(result.scope),
         result.actionResult ?? null,
+        result.comments?.length ?? 0,
       ),
     );
   }
@@ -1069,15 +1081,11 @@ class LangGraphAdminAgentWorkflowRunner
       .addNode("load_comments", async (state) => this.loadComments(state))
       .addNode("analyze_comments", async (state) => this.analyzeComments(state))
       .addNode("persist_findings", async (state) => this.persistFindings(state))
-      .addNode("human_approval", async (state) => this.requestHumanApproval(state))
-      .addNode("apply_approval", async (state) => this.applyApproval(state))
       .addNode("complete", async (state) => this.complete(state))
       .addEdge(START, "load_comments")
       .addEdge("load_comments", "analyze_comments")
       .addEdge("analyze_comments", "persist_findings")
-      .addEdge("persist_findings", "human_approval")
-      .addEdge("human_approval", "apply_approval")
-      .addEdge("apply_approval", "complete")
+      .addEdge("persist_findings", "complete")
       .addEdge("complete", END)
       .setNodeDefaults({ retryPolicy: transientWorkflowRetryPolicy })
       .compile({
@@ -1563,6 +1571,22 @@ class LangGraphAdminAgentWorkflowRunner
   private async loadComments(state: CommentModerationWorkflowState) {
     await this.markWorkflowNodeStarted(state.runId, "load_comments");
 
+    const selectedCommentIds = normalizeCommentIds(state.input.commentIds);
+
+    if (selectedCommentIds.length > 0) {
+      if (!this.commentSelectionReader) {
+        throw new AdminAgentWorkflowConfigurationError(
+          "Comment selection reader is not configured.",
+        );
+      }
+
+      const comments = await this.commentSelectionReader.listVisibleCommentsByIdsForAnalysis({
+        ids: selectedCommentIds,
+      });
+
+      return { comments, scope: "selection" as const };
+    }
+
     const { todayEnd, todayStart } = createLocalDayRange(new Date());
     const todayComments = await this.adminAgentRepository.listTodayVisibleCommentsForAnalysis({
       limit: commentAnalysisLimit,
@@ -1631,9 +1655,8 @@ class LangGraphAdminAgentWorkflowRunner
       .filter((finding) => !existingPendingTargetIds.has(finding.targetId))
       .map(toFindingDraft);
     const createdFindings = await this.adminAgentRepository.createFindings(state.runId, drafts);
-    const findings = [...existingPendingFindings, ...createdFindings];
 
-    return { findings };
+    return { findings: [...existingPendingFindings, ...createdFindings] };
   }
 
   private async requestHumanApproval(state: CommentModerationWorkflowState) {
@@ -1696,6 +1719,7 @@ class LangGraphAdminAgentWorkflowRunner
 
     const result = createCommentModerationCompletionResult({
       actionResult: state.actionResult,
+      analyzedCount: state.comments.length,
       findings: state.findings,
       scope: state.scope,
       summary: state.summary,
@@ -1710,6 +1734,21 @@ class LangGraphAdminAgentWorkflowRunner
 function normalizeOptionalStringInput(value: unknown) {
   const normalized = typeof value === "string" ? value.trim() : "";
   return normalized ? normalized : undefined;
+}
+
+function normalizeCommentIds(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      value.flatMap((item) => {
+        const id = typeof item === "string" ? item.trim() : "";
+        return id ? [id] : [];
+      }),
+    ),
+  ].slice(0, commentAnalysisLimit);
 }
 
 function isPlainRecord(value: unknown): value is Record<string, unknown> {

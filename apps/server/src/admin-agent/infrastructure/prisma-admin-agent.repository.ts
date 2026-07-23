@@ -10,6 +10,10 @@ import type {
   ListRecentVisibleCommentsForAnalysisInput,
   ListTodayVisibleCommentsForAnalysisInput,
 } from "../domain/admin-agent.repository";
+import type {
+  AdminAgentCommentSelectionReader,
+  ListVisibleCommentsByIdsForAnalysisInput,
+} from "../domain/admin-agent-comment-selection.reader";
 import {
   adminAgentFindingInclude,
   agentCommentInclude,
@@ -39,7 +43,7 @@ import {
 import type { AdminAgentWorkflowNode } from "../domain/admin-agent-workflow-node";
 
 @Injectable()
-class PrismaAdminAgentRepository implements AdminAgentRepository {
+class PrismaAdminAgentRepository implements AdminAgentRepository, AdminAgentCommentSelectionReader {
   constructor(private readonly prisma: PrismaService) {}
 
   async createRun(input: CreateAdminAgentRunInput) {
@@ -623,6 +627,29 @@ class PrismaAdminAgentRepository implements AdminAgentRepository {
       },
       take: input.limit,
       where: {
+        status: "VISIBLE",
+      },
+    });
+
+    return records.map(toAdminAgentCommentForAnalysis);
+  }
+
+  async listVisibleCommentsByIdsForAnalysis(input: ListVisibleCommentsByIdsForAnalysisInput) {
+    const ids = [...new Set(input.ids)];
+
+    if (ids.length === 0) {
+      return [];
+    }
+
+    const records = await this.prisma.articleComment.findMany({
+      include: agentCommentInclude,
+      orderBy: {
+        createdAt: "desc",
+      },
+      where: {
+        id: {
+          in: ids,
+        },
         status: "VISIBLE",
       },
     });

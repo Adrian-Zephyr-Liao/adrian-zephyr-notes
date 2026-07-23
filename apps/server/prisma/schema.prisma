@@ -82,10 +82,11 @@ enum AdminAgentDecisionEffectStatus {
   FAILED
 }
 
-enum AdminAgentChatMessageRole {
+enum AdminAgentMessageRole {
   USER
   ASSISTANT
   TOOL
+  ACTIVITY
 }
 
 enum AdminAgentFindingTargetType {
@@ -180,7 +181,7 @@ model User {
   adminOperationLogs AdminOperationLog[]
   articleEditorDrafts AdminArticleEditorDraft[]
   adminAgentRuns AdminAgentRun[]
-  adminAgentConversationMessages AdminAgentConversationMessage[]
+  adminAgentMessages AdminAgentMessage[]
 
   @@map("users")
 }
@@ -431,19 +432,20 @@ model AdminAgentRun {
   @@map("admin_agent_runs")
 }
 
-model AdminAgentConversationMessage {
-  id             String                    @id @default(uuid()) @db.Uuid
-  conversationId String                    @map("conversation_id")
-  role           AdminAgentChatMessageRole
-  content        String                    @db.Text
-  metadata       Json?
-  actorUserId    String?                   @map("actor_user_id") @db.Uuid
-  createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  actor          User?                     @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+model AdminAgentMessage {
+  id             String                @id
+  conversationId String                @map("conversation_id")
+  role           AdminAgentMessageRole
+  message        Json
+  actorUserId    String?               @map("actor_user_id") @db.Uuid
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  actor          User?                 @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
 
   @@index([conversationId, createdAt])
+  @@index([conversationId, role, createdAt])
   @@index([actorUserId, createdAt])
-  @@map("admin_agent_conversation_messages")
+  @@map("admin_agent_messages")
 }
 
 model AdminAgentWorkflowEvent {

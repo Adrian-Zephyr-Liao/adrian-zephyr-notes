@@ -44,7 +44,9 @@ describe("admin agent workflow output", () => {
       ),
     ).toEqual({
       actionResult: null,
+      analyzedCount: 0,
       findingCount: 2,
+      findingIds: ["finding-1", "finding-2"],
       scope: "recentVisibleFallback",
     });
   });
@@ -82,7 +84,9 @@ describe("admin agent workflow output", () => {
       interruption,
       output: {
         actionResult: null,
+        analyzedCount: 0,
         findingCount: 1,
+        findingIds: ["finding-1"],
         scope: "today",
       },
       run,
@@ -114,7 +118,9 @@ describe("admin agent workflow output", () => {
       interruption: null,
       output: {
         actionResult,
+        analyzedCount: 0,
         findingCount: 1,
+        findingIds: ["finding-1"],
         scope: "recentVisibleFallback",
       },
       run,
@@ -210,7 +216,9 @@ describe("admin agent workflow output", () => {
     ).toEqual({
       output: {
         actionResult,
+        analyzedCount: 0,
         findingCount: 1,
+        findingIds: ["finding-1"],
         scope: "recentVisibleFallback",
       },
       summary: "评论治理任务已生成 1 条建议。",

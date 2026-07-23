@@ -28,7 +28,9 @@
   },
   "dependencies": {
     "@adrian-zephyr-notes/contracts": "workspace:*",
+    "@ag-ui/a2ui-toolkit": "0.0.4",
     "@ag-ui/client": "0.0.57",
+    "@ag-ui/core": "0.0.57",
     "@alicloud/credentials": "^2.4.5",
     "@copilotkit/runtime": "1.62.2",
     "@langchain/core": "1.2.1",

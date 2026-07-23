@@ -13,7 +13,7 @@ import type {
   AdminAgentFinding,
   AdminAgentFindingTarget,
 } from "../domain/admin-agent-finding.entity";
-import type { AdminAgentConversationMessage } from "../domain/admin-agent-chat-message.repository";
+import type { AdminAgentMessage } from "../domain/admin-agent-chat-message.repository";
 import type { AdminAgentRun } from "../domain/admin-agent-run.entity";
 import type { AdminAgentWorkflowEvent } from "../domain/admin-agent-workflow-event.entity";
 import type { AdminAgentWorkflowResult } from "../domain/admin-agent-workflow-runner";
@@ -300,15 +300,10 @@ function toAdminAgentTaskTimelineStatusFromPayload(
 }
 
 function toAdminAgentConversationMessagesResponse(
-  messages: AdminAgentConversationMessage[],
+  messages: AdminAgentMessage[],
 ): AdminAgentConversationMessagesResponse {
   return {
-    data: messages.map((message) => ({
-      content: message.content,
-      createdAt: message.createdAt.toISOString(),
-      id: message.id,
-      role: message.role === "USER" ? "user" : "assistant",
-    })),
+    data: messages,
   };
 }
 

@@ -19,6 +19,7 @@
     "@adrian-zephyr-notes/markdown": "workspace:*",
     "@ag-ui/client": "0.0.57",
     "@chinese-fonts/hcqyt": "^2.0.0",
+    "@copilotkit/a2ui-renderer": "1.62.2",
     "@copilotkit/react-core": "1.62.2",
     "@tailwindcss/vite": "^4.3.2",
     "@tanstack/react-router": "1.170.17",

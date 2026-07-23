@@ -1,28 +1,63 @@
-import { All, Controller, Req, Res, UseGuards } from "@nestjs/common";
+import { All, Controller, Inject, Req, Res, UseGuards } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { Readable } from "node:stream";
 import {
-  CopilotRuntime,
+  CopilotSseRuntime,
   InMemoryAgentRunner,
   createCopilotRuntimeHandler,
 } from "@copilotkit/runtime/v2";
+import type { AuthUser } from "../../auth/domain/auth-user.entity";
 import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
+import {
+  toAdminOperationActor,
+  toAdminOperationRequestContext,
+} from "../../audit/presentation/admin-audit-context";
 import { SendAdminAgentChatMessageUseCase } from "../application/send-admin-agent-chat-message.use-case";
-import { AdminAgentCopilotKitAgent } from "../infrastructure/admin-agent-copilotkit-agent";
+import {
+  ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY,
+  type AdminAgentChatMessageRepository,
+} from "../domain/admin-agent-chat-message.repository";
+import { AdminAgentAgUiAgent } from "../infrastructure/admin-agent-copilotkit-agent";
+import { AdminAgentCommentTools } from "../infrastructure/tools/admin-agent-comment-tools";
 
 @Controller("api")
 @UseGuards(AdminAuthGuard)
 class AdminAgentCopilotKitController {
   private readonly runner = new InMemoryAgentRunner();
 
-  constructor(private readonly sendChatMessage: SendAdminAgentChatMessageUseCase) {}
+  constructor(
+    private readonly sendChatMessage: SendAdminAgentChatMessageUseCase,
+    private readonly commentTools: AdminAgentCommentTools,
+    @Inject(ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY)
+    private readonly chatMessageRepository: AdminAgentChatMessageRepository,
+  ) {}
 
   @All("copilotkit")
-  async handle(@Req() request: Request, @Res() response: Response): Promise<void> {
-    const runtime = new CopilotRuntime({
+  async handle(
+    @Req() request: Request,
+    @Res() response: Response,
+    @CurrentAdmin() admin: AuthUser,
+  ): Promise<void> {
+    const runtime = new CopilotSseRuntime({
+      a2ui: {
+        agents: ["admin-agent"],
+        injectA2UITool: false,
+        recovery: {
+          debugExposure: "hidden",
+          showProgressTokens: false,
+        },
+      },
       agents: {
-        "admin-agent": new AdminAgentCopilotKitAgent({
+        "admin-agent": new AdminAgentAgUiAgent({
+          actorUserId: admin.id,
+          chatMessageRepository: this.chatMessageRepository,
           sendChatMessage: this.sendChatMessage,
+          serverTools: this.commentTools.create({
+            actor: toAdminOperationActor(admin),
+            requestContext: toAdminOperationRequestContext(request),
+            startedByUserId: admin.id,
+          }),
         }),
       },
       runner: this.runner,

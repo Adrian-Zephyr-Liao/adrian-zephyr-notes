@@ -1,8 +1,4 @@
 import { Inject, Injectable } from "@nestjs/common";
-import type {
-  AdminAgentAssistantMessage,
-  AdminAgentInteractionEvent,
-} from "@adrian-zephyr-notes/contracts";
 import {
   ADMIN_AGENT_CHAT_RUNNER,
   type AdminAgentChatContextEntry,
@@ -18,12 +14,14 @@ import {
 
 type SendAdminAgentChatMessageInput = {
   actorUserId?: string | null;
+  assistantMessageId: string;
   conversationId?: string | null;
   context?: AdminAgentChatContextEntry[];
   message: string;
   persistUserMessage?: boolean;
   recentMessages?: AdminAgentChatMessage[];
   tools?: AdminAgentChatTool[];
+  userMessageId: string;
 };
 
 const maxContextEntries = 12;
@@ -41,15 +39,13 @@ class SendAdminAgentChatMessageUseCase {
     private readonly chatMessageRepository: AdminAgentChatMessageRepository,
   ) {}
 
-  async *stream(input: SendAdminAgentChatMessageInput): AsyncIterable<AdminAgentInteractionEvent> {
+  async *stream(input: SendAdminAgentChatMessageInput): AsyncIterable<AdminAgentChatRunnerEvent> {
     const message = input.message.trim();
 
     if (!message) {
       throw new AdminAgentChatValidationError("Message is required.");
     }
 
-    const messageId = `agent-chat-${Date.now()}`;
-    let index = 0;
     let content = "";
     let hasToolCall = false;
     const conversationId = normalizeConversationId(input.conversationId);
@@ -62,9 +58,12 @@ class SendAdminAgentChatMessageUseCase {
     if (conversationId && input.persistUserMessage !== false) {
       await this.chatMessageRepository.recordMessage({
         actorUserId: input.actorUserId ?? null,
-        content: normalizedUserMessage,
         conversationId,
-        role: "USER",
+        message: {
+          content: normalizedUserMessage,
+          id: normalizeMessageId(input.userMessageId, "user"),
+          role: "user",
+        },
       });
     }
 
@@ -74,11 +73,18 @@ class SendAdminAgentChatMessageUseCase {
       recentMessages: normalizeRecentMessages(input.recentMessages ?? []),
       ...(tools.length ? { tools } : {}),
     })) {
+      if (event.type === "reasoningDelta") {
+        if (event.delta) {
+          yield event;
+        }
+
+        continue;
+      }
+
       if (event.type !== "textDelta") {
         hasToolCall = true;
         bufferToolCallEvent(bufferedToolCalls, event);
-        yield toToolInteractionEvent(messageId, index, event);
-        index += 1;
+        yield event;
         continue;
       }
 
@@ -94,15 +100,7 @@ class SendAdminAgentChatMessageUseCase {
 
       content += delta;
 
-      yield {
-        createdAt: new Date().toISOString(),
-        delta,
-        id: `${messageId}-delta-${index}`,
-        messageId,
-        type: "textDelta",
-      };
-
-      index += 1;
+      yield { delta, type: "textDelta" };
     }
 
     const trimmedContent = content.trim();
@@ -114,26 +112,25 @@ class SendAdminAgentChatMessageUseCase {
     if (conversationId && (trimmedContent || hasToolCall)) {
       await this.chatMessageRepository.recordMessage({
         actorUserId: null,
-        content: trimmedContent,
         conversationId,
-        metadata: bufferedToolCalls.size
-          ? {
-              toolCalls: [...bufferedToolCalls.values()],
-            }
-          : null,
-        role: "ASSISTANT",
+        message: {
+          content: trimmedContent,
+          id: normalizeMessageId(input.assistantMessageId, "assistant"),
+          role: "assistant",
+          ...(bufferedToolCalls.size
+            ? {
+                toolCalls: [...bufferedToolCalls.values()].map((toolCall) => ({
+                  function: {
+                    arguments: toolCall.arguments,
+                    name: toolCall.name,
+                  },
+                  id: toolCall.id,
+                  type: "function" as const,
+                })),
+              }
+            : {}),
+        },
       });
-    }
-
-    if (trimmedContent) {
-      const assistantMessage: AdminAgentAssistantMessage = {
-        content: trimmedContent,
-        role: "assistant",
-      };
-
-      for (const event of toChatInteractionEvents(messageId, assistantMessage)) {
-        yield event;
-      }
     }
   }
 
@@ -160,9 +157,15 @@ function normalizeConversationId(value: string | null | undefined) {
   return normalized ? normalized.slice(0, 200) : null;
 }
 
+function normalizeMessageId(value: string, prefix: string) {
+  const normalized = value.trim();
+
+  return normalized ? normalized.slice(0, 240) : `${prefix}-${crypto.randomUUID()}`;
+}
+
 function bufferToolCallEvent(
   toolCalls: Map<string, BufferedAdminAgentToolCall>,
-  event: Exclude<AdminAgentChatRunnerEvent, { type: "textDelta" }>,
+  event: Exclude<AdminAgentChatRunnerEvent, { type: "reasoningDelta" | "textDelta" }>,
 ) {
   if (event.type === "toolCallStart") {
     toolCalls.set(event.toolCallId, {
@@ -188,17 +191,79 @@ function bufferToolCallEvent(
 }
 
 function normalizeRecentMessages(messages: AdminAgentChatMessage[]) {
-  return messages
-    .flatMap((message): AdminAgentChatMessage[] => {
-      const content = message.content.trim();
+  const normalizedMessages = messages.flatMap((message): AdminAgentChatMessage[] => {
+    const content = message.content.trim();
 
-      if (!content && (message.role !== "assistant" || !message.toolCalls?.length)) {
-        return [];
+    if (!content && (message.role !== "assistant" || !message.toolCalls?.length)) {
+      return [];
+    }
+
+    return [normalizeRecentMessageContent(message, content)];
+  });
+
+  return takeRecentCompleteMessageGroups(normalizedMessages, maxRecentMessages);
+}
+
+function takeRecentCompleteMessageGroups(messages: AdminAgentChatMessage[], maxMessages: number) {
+  const groups: AdminAgentChatMessage[][] = [];
+
+  for (let index = 0; index < messages.length; index += 1) {
+    const message = messages[index];
+
+    if (!message) {
+      continue;
+    }
+
+    if (message.role === "tool") {
+      continue;
+    }
+
+    if (message.role !== "assistant" || !message.toolCalls?.length) {
+      groups.push([message]);
+      continue;
+    }
+
+    const expectedToolCallIds = new Set(message.toolCalls.map((toolCall) => toolCall.id));
+    const toolResults: AdminAgentChatMessage[] = [];
+    let cursor = index + 1;
+
+    while (cursor < messages.length && messages[cursor]?.role === "tool") {
+      const toolResult = messages[cursor];
+
+      if (toolResult?.role === "tool" && expectedToolCallIds.has(toolResult.toolCallId)) {
+        expectedToolCallIds.delete(toolResult.toolCallId);
+        toolResults.push(toolResult);
       }
 
-      return [normalizeRecentMessageContent(message, content)];
-    })
-    .slice(-maxRecentMessages);
+      cursor += 1;
+    }
+
+    if (expectedToolCallIds.size === 0) {
+      groups.push([message, ...toolResults]);
+    }
+
+    index = cursor - 1;
+  }
+
+  const selectedGroups: AdminAgentChatMessage[][] = [];
+  let selectedMessageCount = 0;
+
+  for (let index = groups.length - 1; index >= 0; index -= 1) {
+    const group = groups[index];
+
+    if (!group) {
+      continue;
+    }
+
+    if (selectedMessageCount > 0 && selectedMessageCount + group.length > maxMessages) {
+      break;
+    }
+
+    selectedGroups.unshift(group);
+    selectedMessageCount += group.length;
+  }
+
+  return selectedGroups.flat();
 }
 
 function normalizeRecentMessageContent(
@@ -275,57 +340,6 @@ function normalizeContextEntries(entries: AdminAgentChatContextEntry[]) {
       ];
     })
     .slice(0, maxContextEntries);
-}
-
-function toChatInteractionEvents(
-  messageId: string,
-  message: AdminAgentAssistantMessage,
-): AdminAgentInteractionEvent[] {
-  const createdAt = new Date().toISOString();
-
-  return [
-    {
-      createdAt,
-      id: `${messageId}-text`,
-      message,
-      type: "textMessage",
-    },
-  ];
-}
-
-function toToolInteractionEvent(
-  messageId: string,
-  index: number,
-  event: Exclude<AdminAgentChatRunnerEvent, { type: "textDelta" }>,
-): AdminAgentInteractionEvent {
-  const createdAt = new Date().toISOString();
-
-  if (event.type === "toolCallStart") {
-    return {
-      createdAt,
-      id: `${messageId}-tool-start-${index}`,
-      toolCallId: event.toolCallId,
-      toolCallName: event.toolCallName,
-      type: "toolCallStart",
-    };
-  }
-
-  if (event.type === "toolCallArgsDelta") {
-    return {
-      createdAt,
-      delta: event.delta,
-      id: `${messageId}-tool-args-${index}`,
-      toolCallId: event.toolCallId,
-      type: "toolCallArgsDelta",
-    };
-  }
-
-  return {
-    createdAt,
-    id: `${messageId}-tool-end-${index}`,
-    toolCallId: event.toolCallId,
-    type: "toolCallEnd",
-  };
 }
 
 export {

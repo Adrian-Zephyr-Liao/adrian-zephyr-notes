@@ -187,3 +187,8 @@ body {
 [data-theme="dark"] body {
   background: var(--gradient-soft), var(--background);
 }
+
+[data-copilotkit].copilotKitMessages,
+[data-copilotkit].copilotKitMessage {
+  background-color: transparent !important;
+}

@@ -43,7 +43,7 @@ class PrismaAdminArticleCommentRepository implements AdminArticleCommentReposito
       this.prisma.articleComment.findMany({
         where,
         include: adminArticleCommentInclude,
-        orderBy: [{ createdAt: "desc" }],
+        orderBy: [{ createdAt: filters.sort === "OLDEST" ? "asc" : "desc" }],
         skip: (filters.page - 1) * filters.pageSize,
         take: filters.pageSize,
       }),
@@ -87,12 +87,47 @@ function buildAdminArticleCommentWhere(
 ): Prisma.ArticleCommentWhereInput {
   const where: Prisma.ArticleCommentWhereInput = {};
 
+  if (filters.articleId) {
+    where.articleId = filters.articleId;
+  }
+
+  if (filters.articleSlug || filters.articleTitle) {
+    where.article = {
+      ...(filters.articleSlug
+        ? { slug: { contains: filters.articleSlug, mode: "insensitive" } }
+        : {}),
+      ...(filters.articleTitle
+        ? { title: { contains: filters.articleTitle, mode: "insensitive" } }
+        : {}),
+    };
+  }
+
+  if (filters.author) {
+    where.author = {
+      OR: [
+        { login: { contains: filters.author, mode: "insensitive" } },
+        { name: { contains: filters.author, mode: "insensitive" } },
+      ],
+    };
+  }
+
+  if (filters.body) {
+    where.body = { contains: filters.body, mode: "insensitive" };
+  }
+
   if (filters.commentId) {
     where.id = filters.commentId;
   }
 
   if (filters.status) {
     where.status = filters.status;
+  }
+
+  if (filters.createdFrom || filters.createdTo) {
+    where.createdAt = {
+      ...(filters.createdFrom ? { gte: filters.createdFrom } : {}),
+      ...(filters.createdTo ? { lt: filters.createdTo } : {}),
+    };
   }
 
   if (filters.search) {

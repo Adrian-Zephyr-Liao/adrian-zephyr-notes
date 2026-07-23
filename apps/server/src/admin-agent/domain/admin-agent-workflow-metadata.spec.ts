@@ -33,12 +33,12 @@ describe("admin agent workflow metadata", () => {
       })),
     ).toEqual([
       {
-        approvalNode: "human_approval",
+        approvalNode: null,
         graphName: "commentModerationWorkflow",
-        requiresApprovalForWrites: true,
+        requiresApprovalForWrites: false,
         runType: "COMMENT_MODERATION_TODAY",
         supportsCancel: true,
-        supportsHumanApproval: true,
+        supportsHumanApproval: false,
         taskName: "comment_moderation_analysis",
         workflowName: "COMMENT_MODERATION_ANALYSIS",
       },
@@ -126,14 +126,15 @@ describe("admin agent workflow metadata", () => {
   });
 
   it("exposes control action policy from the shared catalog", () => {
-    expect(getAdminAgentWorkflowControl("COMMENT_MODERATION_ANALYSIS", "branch")).toEqual(
+    expect(getAdminAgentWorkflowControl("COMMENT_MODERATION_ANALYSIS", "branch")).toBeNull();
+    expect(getAdminAgentWorkflowControl("COMMENT_MODERATION_ANALYSIS", "refresh")).toBeNull();
+    expect(getAdminAgentWorkflowControl("COMMENT_MODERATION_ANALYSIS", "retry")).toEqual(
       expect.objectContaining({
-        action: "branch",
-        allowedStatuses: ["WAITING_FOR_APPROVAL"],
-        requiresPausedTask: true,
+        action: "retry",
+        allowedStatuses: ["COMPLETED", "FAILED", "CANCELLED"],
+        requiresPausedTask: false,
       }),
     );
-    expect(getAdminAgentWorkflowControl("COMMENT_MODERATION_ANALYSIS", "refresh")).toBeNull();
     expect(getAdminAgentWorkflowControl("MULTI_TASK_ORCHESTRATION", "refresh")).toEqual(
       expect.objectContaining({
         action: "refresh",

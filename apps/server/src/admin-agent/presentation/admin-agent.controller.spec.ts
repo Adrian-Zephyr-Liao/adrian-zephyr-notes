@@ -110,19 +110,18 @@ describe("AdminAgentController", () => {
     });
   });
 
-  it("lists persisted conversation messages without exposing protocol state", async () => {
+  it("restores standard conversation messages including persisted A2UI activities", async () => {
     const execute = vi.fn().mockResolvedValue([
       {
         content: "上次的问题",
-        createdAt: new Date("2026-07-04T03:00:00.000Z"),
         id: "message-1",
-        role: "USER",
+        role: "user",
       },
       {
-        content: "上次的回答",
-        createdAt: new Date("2026-07-04T03:00:01.000Z"),
-        id: "message-2",
-        role: "ASSISTANT",
+        activityType: "a2ui-surface",
+        content: { a2ui_operations: [{ op: "beginRendering" }] },
+        id: "comment-analysis-activity-analysis-1",
+        role: "activity",
       },
     ]);
     const controller = createController({}, { execute });
@@ -131,19 +130,90 @@ describe("AdminAgentController", () => {
       data: [
         {
           content: "上次的问题",
-          createdAt: "2026-07-04T03:00:00.000Z",
           id: "message-1",
           role: "user",
         },
         {
-          content: "上次的回答",
-          createdAt: "2026-07-04T03:00:01.000Z",
-          id: "message-2",
-          role: "assistant",
+          activityType: "a2ui-surface",
+          content: { a2ui_operations: [{ op: "beginRendering" }] },
+          id: "comment-analysis-activity-analysis-1",
+          role: "activity",
         },
       ],
     });
     expect(execute).toHaveBeenCalledWith({ conversationId: "conversation-1" });
+  });
+
+  it("hides selected comment findings once and persists the replaced activity", async () => {
+    const createdAt = new Date("2026-07-22T00:00:00.000Z");
+    const execute = vi.fn().mockResolvedValue({
+      analysis: {
+        id: "analysis-1",
+        output: { analyzedCount: 1, scope: "selection" },
+        summary: "识别出 1 条高风险评论。",
+      },
+      findings: [
+        {
+          category: "ABUSE",
+          confidence: 0.99,
+          createdAt,
+          evidence: ["明显辱骂"],
+          executedAt: createdAt,
+          id: "finding-1",
+          proposedAction: "HIDE_COMMENT",
+          reason: "评论包含明确人身攻击。",
+          runId: "analysis-1",
+          severity: "HIGH",
+          status: "EXECUTED",
+          target: {
+            article: { id: "article-1", slug: "test", title: "测试文章" },
+            author: { id: "user-1", login: "reader", name: null },
+            body: "风险评论",
+            createdAt,
+            id: "comment-1",
+            status: "HIDDEN",
+          },
+          targetId: "comment-1",
+          targetType: "ARTICLE_COMMENT",
+          updatedAt: createdAt,
+        },
+      ],
+      result: {
+        results: [{ findingId: "finding-1", status: "APPLIED" }],
+      },
+    });
+    const recordMessage = vi.fn();
+    const controller = createController({}, undefined, { execute }, { recordMessage });
+
+    const response = await controller.hideCommentAnalysisFindings(
+      "conversation-1",
+      "analysis-1",
+      { findingIds: ["finding-1"] },
+      createAdminUser(),
+      createRequest(),
+    );
+
+    expect(execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "HIDE",
+        analysisId: "analysis-1",
+        findingIds: ["finding-1"],
+      }),
+    );
+    expect(response).toMatchObject({
+      activityMessage: {
+        activityType: "a2ui-surface",
+        id: "comment-analysis-activity-analysis-1",
+        role: "activity",
+      },
+      analysisId: "analysis-1",
+      appliedCount: 1,
+      failedCount: 0,
+    });
+    expect(recordMessage).toHaveBeenCalledWith({
+      conversationId: "conversation-1",
+      message: response.activityMessage,
+    });
   });
 
   it("does not expose persisted workflow events as a product endpoint", () => {
@@ -533,6 +603,8 @@ describe("AdminAgentController", () => {
 function createController(
   overrides: Record<string, unknown> = {},
   conversationMessages = { execute: vi.fn().mockResolvedValue([]) },
+  moderateCommentAnalysis = { execute: vi.fn() },
+  chatMessageRepository = { recordMessage: vi.fn() },
 ) {
   return new AdminAgentController(
     {} as never,
@@ -541,6 +613,8 @@ function createController(
     {
       ...overrides,
     } as never,
+    moderateCommentAnalysis as never,
+    chatMessageRepository as never,
   );
 }
 

@@ -28,7 +28,7 @@ type AdminAgentCommentForAnalysis = {
   createdAt: Date;
 };
 
-type AdminAgentCommentAnalysisScope = "recentVisibleFallback" | "today";
+type AdminAgentCommentAnalysisScope = "recentVisibleFallback" | "selection" | "today";
 
 type AdminAgentCommentAnalysisPromptMessage = {
   content: string;

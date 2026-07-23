@@ -1,9 +1,18 @@
 type AdminArticleCommentStatus = "HIDDEN" | "VISIBLE";
+type AdminArticleCommentSort = "NEWEST" | "OLDEST";
 
 type ListAdminArticleCommentsFilters = {
+  articleId?: string;
+  articleSlug?: string;
+  articleTitle?: string;
+  author?: string;
+  body?: string;
   commentId?: string;
+  createdFrom?: Date;
+  createdTo?: Date;
   page: number;
   pageSize: number;
+  sort: AdminArticleCommentSort;
   search?: string;
   status?: AdminArticleCommentStatus;
 };
@@ -73,6 +82,7 @@ export type {
   AdminArticleCommentListItem,
   AdminArticleCommentParent,
   AdminArticleCommentRepository,
+  AdminArticleCommentSort,
   AdminArticleCommentsPage,
   AdminArticleCommentStatus,
   ListAdminArticleCommentsFilters,

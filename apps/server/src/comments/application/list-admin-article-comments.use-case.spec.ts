@@ -19,10 +19,18 @@ describe("ListAdminArticleCommentsUseCase", () => {
     });
 
     expect(repository.list).toHaveBeenCalledWith({
+      articleId: undefined,
+      articleSlug: undefined,
+      articleTitle: undefined,
+      author: undefined,
+      body: undefined,
       commentId: "comment-1",
+      createdFrom: undefined,
+      createdTo: undefined,
       page: 1,
       pageSize: 50,
       search: "hello",
+      sort: "NEWEST",
       status: "HIDDEN",
     });
   });
@@ -31,10 +39,18 @@ describe("ListAdminArticleCommentsUseCase", () => {
 describe("normalizeListAdminArticleCommentsInput", () => {
   it("drops unsupported status filters", () => {
     expect(normalizeListAdminArticleCommentsInput({ status: "ALL" })).toEqual({
+      articleId: undefined,
+      articleSlug: undefined,
+      articleTitle: undefined,
+      author: undefined,
+      body: undefined,
       commentId: undefined,
+      createdFrom: undefined,
+      createdTo: undefined,
       page: 1,
       pageSize: 20,
       search: undefined,
+      sort: "NEWEST",
       status: undefined,
     });
   });

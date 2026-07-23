@@ -11,7 +11,7 @@ import type { AdminAgentWorkflowNode } from "./admin-agent-workflow-node";
 type AdminAgentWorkflowTaskName = AdminAgentTaskName;
 
 type AdminAgentWorkflowMetadata = {
-  approvalNode: AdminAgentWorkflowNode;
+  approvalNode: AdminAgentWorkflowNode | null;
   capabilityId: AdminAgentTaskCatalogItem["capabilityId"];
   controls: AdminAgentTaskCatalogItem["controls"];
   description: string;
@@ -33,7 +33,7 @@ type AdminAgentWorkflowTaskControlAction = AdminAgentTaskControlAction;
 type AdminAgentWorkflowTaskControlCatalogItem = AdminAgentTaskControlCatalogItem;
 
 type AdminAgentWorkflowPrivateMetadata = {
-  approvalNode: AdminAgentWorkflowNode;
+  approvalNode: AdminAgentWorkflowNode | null;
   graphName: string;
   runType: AdminAgentRunType;
   taskName: AdminAgentWorkflowTaskName;
@@ -42,7 +42,7 @@ type AdminAgentWorkflowPrivateMetadata = {
 
 const adminAgentWorkflowPrivateMetadataCatalog = [
   {
-    approvalNode: "human_approval",
+    approvalNode: null,
     graphName: "commentModerationWorkflow",
     runType: "COMMENT_MODERATION_TODAY",
     taskName: "comment_moderation_analysis",

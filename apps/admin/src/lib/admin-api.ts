@@ -23,6 +23,8 @@ import type {
   ControlAdminAgentTaskResponse,
   DecideAdminAgentFindingsRequest,
   DecideAdminAgentFindingsResponse,
+  ModerateAdminAgentCommentAnalysisRequest,
+  ModerateAdminAgentCommentAnalysisResponse,
   ResumeAdminAgentTaskRequest,
   ResumeAdminAgentTaskResponse,
   StartAdminAgentTaskRequest,
@@ -158,19 +160,25 @@ async function getAdminAgentTask(taskId: string) {
   return requestAdminApi<AdminAgentTaskSummaryResponse>(`/api/admin/agent/tasks/${taskId}`);
 }
 
-async function startAdminAgentTask(input: StartAdminAgentTaskRequest) {
+async function startAdminAgentTask(input: StartAdminAgentTaskRequest, signal?: AbortSignal) {
   return requestAdminApi<StartAdminAgentTaskResponse>("/api/admin/agent/tasks", {
     json: input,
     method: "POST",
+    signal,
   });
 }
 
-async function controlAdminAgentTask(taskId: string, input: ControlAdminAgentTaskRequest) {
+async function controlAdminAgentTask(
+  taskId: string,
+  input: ControlAdminAgentTaskRequest,
+  signal?: AbortSignal,
+) {
   return requestAdminApi<ControlAdminAgentTaskResponse>(
     `/api/admin/agent/tasks/${taskId}/control`,
     {
       json: input,
       method: "POST",
+      signal,
     },
   );
 }
@@ -182,10 +190,29 @@ async function decideAdminAgentFindings(input: DecideAdminAgentFindingsRequest) 
   });
 }
 
-async function resumeAdminAgentTask(taskId: string, input: ResumeAdminAgentTaskRequest) {
+async function hideAdminAgentCommentAnalysisFindings(
+  conversationId: string,
+  analysisId: string,
+  input: ModerateAdminAgentCommentAnalysisRequest,
+) {
+  return requestAdminApi<ModerateAdminAgentCommentAnalysisResponse>(
+    `/api/admin/agent/conversations/${encodeURIComponent(conversationId)}/comment-analyses/${encodeURIComponent(analysisId)}/hide`,
+    {
+      json: input,
+      method: "POST",
+    },
+  );
+}
+
+async function resumeAdminAgentTask(
+  taskId: string,
+  input: ResumeAdminAgentTaskRequest,
+  signal?: AbortSignal,
+) {
   return requestAdminApi<ResumeAdminAgentTaskResponse>(`/api/admin/agent/tasks/${taskId}/resume`, {
     json: input,
     method: "POST",
+    signal,
   });
 }
 
@@ -315,6 +342,7 @@ export {
   getAdminLoginUrl,
   getAdminSiteConfig,
   getCurrentAdmin,
+  hideAdminAgentCommentAnalysisFindings,
   listAdminAgentTasks,
   listAdminAgentConversationMessages,
   listAdminArticleComments,

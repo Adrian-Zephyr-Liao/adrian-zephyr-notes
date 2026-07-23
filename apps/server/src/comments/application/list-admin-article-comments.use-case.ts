@@ -7,10 +7,18 @@ import {
 } from "../domain/admin-article-comment.repository";
 
 type ListAdminArticleCommentsInput = {
+  articleId?: string;
+  articleSlug?: string;
+  articleTitle?: string;
+  author?: string;
+  body?: string;
   commentId?: string;
+  createdFrom?: Date;
+  createdTo?: Date;
   page?: number;
   pageSize?: number;
   search?: string;
+  sort?: string;
   status?: string;
 };
 
@@ -30,12 +38,24 @@ function normalizeListAdminArticleCommentsInput(
   input: ListAdminArticleCommentsInput,
 ): ListAdminArticleCommentsFilters {
   return {
+    articleId: normalizeOptionalText(input.articleId),
+    articleSlug: normalizeOptionalText(input.articleSlug),
+    articleTitle: normalizeOptionalText(input.articleTitle),
+    author: normalizeOptionalText(input.author),
+    body: normalizeOptionalText(input.body),
     commentId: normalizeOptionalText(input.commentId),
+    createdFrom: normalizeOptionalDate(input.createdFrom),
+    createdTo: normalizeOptionalDate(input.createdTo),
     page: normalizePositiveInteger(input.page, 1),
     pageSize: Math.min(normalizePositiveInteger(input.pageSize, 20), 50),
     search: normalizeOptionalText(input.search),
+    sort: input.sort === "OLDEST" ? "OLDEST" : "NEWEST",
     status: normalizeStatus(input.status),
   };
+}
+
+function normalizeOptionalDate(value: Date | undefined) {
+  return value instanceof Date && Number.isFinite(value.getTime()) ? value : undefined;
 }
 
 function normalizeStatus(value: string | undefined): AdminArticleCommentStatus | undefined {

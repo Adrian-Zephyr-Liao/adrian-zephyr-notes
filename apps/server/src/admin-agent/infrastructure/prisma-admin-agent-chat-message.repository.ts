@@ -1,9 +1,11 @@
+import { MessageSchema } from "@ag-ui/core";
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
 import type {
   AdminAgentChatMessageRepository,
-  RecordAdminAgentConversationMessageInput,
+  AdminAgentMessage,
+  RecordAdminAgentMessageInput,
 } from "../domain/admin-agent-chat-message.repository";
 
 @Injectable()
@@ -11,39 +13,70 @@ class PrismaAdminAgentChatMessageRepository implements AdminAgentChatMessageRepo
   constructor(private readonly prisma: PrismaService) {}
 
   async listConversationMessages(input: { conversationId: string; limit: number }) {
-    const records = await this.prisma.adminAgentConversationMessage.findMany({
+    const records = await this.prisma.adminAgentMessage.findMany({
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: input.limit,
       where: {
-        content: {
-          not: "",
-        },
         conversationId: input.conversationId,
-        role: {
-          in: ["ASSISTANT", "USER"],
-        },
       },
     });
 
-    return records.reverse().map((record) => ({
-      content: record.content,
-      createdAt: record.createdAt,
-      id: record.id,
-      role: record.role === "USER" ? ("USER" as const) : ("ASSISTANT" as const),
-    }));
+    return records.reverse().flatMap((record): AdminAgentMessage[] => {
+      const parsed = MessageSchema.safeParse(record.message);
+
+      return parsed.success && isPersistedAdminAgentMessage(parsed.data) ? [parsed.data] : [];
+    });
   }
 
-  async recordMessage(input: RecordAdminAgentConversationMessageInput) {
-    await this.prisma.adminAgentConversationMessage.create({
-      data: {
+  async recordMessage(input: RecordAdminAgentMessageInput) {
+    const role = toAdminAgentMessageRole(input.message);
+    const message = input.message as unknown as Prisma.InputJsonObject;
+
+    await this.prisma.adminAgentMessage.upsert({
+      create: {
         actorUserId: input.actorUserId ?? undefined,
-        content: input.content,
         conversationId: input.conversationId,
-        metadata: input.metadata ? (input.metadata as Prisma.InputJsonObject) : undefined,
-        role: input.role,
+        id: input.message.id,
+        message,
+        role,
+      },
+      update: {
+        actorUserId: input.actorUserId ?? undefined,
+        conversationId: input.conversationId,
+        message,
+        role,
+      },
+      where: {
+        id: input.message.id,
       },
     });
   }
 }
+
+function isPersistedAdminAgentMessage(message: MessageSchemaOutput): message is AdminAgentMessage {
+  if (message.role === "user") {
+    return typeof message.content === "string";
+  }
+
+  return ["activity", "assistant", "tool"].includes(message.role);
+}
+
+function toAdminAgentMessageRole(message: AdminAgentMessage) {
+  if (message.role === "activity") {
+    return "ACTIVITY" as const;
+  }
+
+  if (message.role === "assistant") {
+    return "ASSISTANT" as const;
+  }
+
+  if (message.role === "tool") {
+    return "TOOL" as const;
+  }
+
+  return "USER" as const;
+}
+
+type MessageSchemaOutput = ReturnType<typeof MessageSchema.parse>;
 
 export { PrismaAdminAgentChatMessageRepository };

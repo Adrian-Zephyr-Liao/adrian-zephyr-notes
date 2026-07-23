@@ -1,34 +1,23 @@
-type AdminAgentConversationMessageRole = "ASSISTANT" | "TOOL" | "USER";
+import type { ActivityMessage, AssistantMessage, ToolMessage, UserMessage } from "@ag-ui/core";
 
-type RecordAdminAgentConversationMessageInput = {
+type AdminAgentUserMessage = Omit<UserMessage, "content"> & { content: string };
+type AdminAgentMessage = ActivityMessage | AssistantMessage | ToolMessage | AdminAgentUserMessage;
+
+type RecordAdminAgentMessageInput = {
   actorUserId?: string | null;
-  content: string;
   conversationId: string;
-  metadata?: Record<string, unknown> | null;
-  role: AdminAgentConversationMessageRole;
-};
-
-type AdminAgentConversationMessage = {
-  content: string;
-  createdAt: Date;
-  id: string;
-  role: "ASSISTANT" | "USER";
+  message: AdminAgentMessage;
 };
 
 interface AdminAgentChatMessageRepository {
   listConversationMessages(input: {
     conversationId: string;
     limit: number;
-  }): Promise<AdminAgentConversationMessage[]>;
-  recordMessage(input: RecordAdminAgentConversationMessageInput): Promise<void>;
+  }): Promise<AdminAgentMessage[]>;
+  recordMessage(input: RecordAdminAgentMessageInput): Promise<void>;
 }
 
 const ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY = Symbol("ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY");
 
 export { ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY };
-export type {
-  AdminAgentChatMessageRepository,
-  AdminAgentConversationMessage,
-  AdminAgentConversationMessageRole,
-  RecordAdminAgentConversationMessageInput,
-};
+export type { AdminAgentChatMessageRepository, AdminAgentMessage, RecordAdminAgentMessageInput };

@@ -8,6 +8,7 @@ describe("buildAdminArticleCommentWhere", () => {
         commentId: "comment-1",
         page: 1,
         pageSize: 10,
+        sort: "NEWEST",
       }),
     ).toEqual({
       id: "comment-1",
@@ -21,6 +22,7 @@ describe("buildAdminArticleCommentWhere", () => {
         page: 1,
         pageSize: 10,
         search: "spam",
+        sort: "NEWEST",
         status: "HIDDEN",
       }),
     ).toEqual({

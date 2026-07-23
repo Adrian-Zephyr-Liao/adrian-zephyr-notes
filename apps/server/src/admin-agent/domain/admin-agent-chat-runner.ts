@@ -40,7 +40,34 @@ type AdminAgentChatTool = {
   parameters: Record<string, unknown>;
 };
 
+type AdminAgentServerTool = AdminAgentChatTool & {
+  execute: (
+    argumentsValue: Record<string, unknown>,
+    context: AdminAgentServerToolExecutionContext,
+  ) => Promise<AdminAgentServerToolResult>;
+};
+
+type AdminAgentServerToolExecutionContext = {
+  conversationId: string;
+  runId: string;
+  toolCallId: string;
+};
+
+type AdminAgentServerToolResult = {
+  activity?: {
+    activityType: string;
+    content: Record<string, unknown>;
+    id: string;
+    role: "activity";
+  };
+  content: string;
+};
+
 type AdminAgentChatRunnerEvent =
+  | {
+      type: "reasoningDelta";
+      delta: string;
+    }
   | {
       type: "textDelta";
       delta: string;
@@ -75,4 +102,7 @@ export type {
   AdminAgentChatRunnerEvent,
   AdminAgentChatTool,
   AdminAgentChatToolCall,
+  AdminAgentServerTool,
+  AdminAgentServerToolExecutionContext,
+  AdminAgentServerToolResult,
 };

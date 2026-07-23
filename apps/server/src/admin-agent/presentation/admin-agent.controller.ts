@@ -4,6 +4,7 @@ import {
   ConflictException,
   Controller,
   Get,
+  Inject,
   NotFoundException,
   Param,
   Post,
@@ -19,6 +20,7 @@ import type {
   AdminAgentTaskListResponse,
   ControlAdminAgentTaskResponse,
   DecideAdminAgentFindingsResponse,
+  ModerateAdminAgentCommentAnalysisResponse,
   ResumeAdminAgentTaskResponse,
   StartAdminAgentTaskResponse,
 } from "@adrian-zephyr-notes/contracts";
@@ -32,6 +34,15 @@ import {
 import { DecideAdminAgentFindingsUseCase } from "../application/decide-admin-agent-findings.use-case";
 import { GetAdminAgentHomeUseCase } from "../application/get-admin-agent-home.use-case";
 import { ListAdminAgentConversationMessagesUseCase } from "../application/list-admin-agent-conversation-messages.use-case";
+import {
+  AdminAgentCommentAnalysisNotFoundError,
+  AdminAgentCommentAnalysisSelectionError,
+  ModerateAdminAgentCommentAnalysisUseCase,
+} from "../application/moderate-admin-agent-comment-analysis.use-case";
+import {
+  ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY,
+  type AdminAgentChatMessageRepository,
+} from "../domain/admin-agent-chat-message.repository";
 import {
   AdminAgentWorkflowActiveRunRetryError,
   AdminAgentWorkflowCancelUnavailableError,
@@ -58,9 +69,11 @@ import {
   toAdminAgentTaskListResponse,
 } from "../infrastructure/admin-agent-home.mapper";
 import { toAdminAgentWorkflowNameFromTaskName } from "../domain/admin-agent-workflow-metadata";
+import { createCommentAnalysisActivityMessage } from "../infrastructure/admin-agent-comment-analysis-a2ui";
 import { AdminAgentTaskListQueryDto } from "./dto/admin-agent-task-list-query.dto";
 import { ControlAdminAgentTaskDto } from "./dto/control-admin-agent-task.dto";
 import { DecideAdminAgentFindingsDto } from "./dto/decide-admin-agent-findings.dto";
+import { ModerateAdminAgentCommentAnalysisDto } from "./dto/moderate-admin-agent-comment-analysis.dto";
 import { ResumeAdminAgentTaskDto } from "./dto/resume-admin-agent-task.dto";
 import { StartAdminAgentTaskDto } from "./dto/start-admin-agent-task.dto";
 
@@ -72,6 +85,9 @@ class AdminAgentController {
     private readonly getAdminAgentHome: GetAdminAgentHomeUseCase,
     private readonly listAdminAgentConversationMessages: ListAdminAgentConversationMessagesUseCase,
     private readonly manageAdminAgentWorkflows: ManageAdminAgentWorkflowsUseCase,
+    private readonly moderateCommentAnalysis: ModerateAdminAgentCommentAnalysisUseCase,
+    @Inject(ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY)
+    private readonly chatMessageRepository: AdminAgentChatMessageRepository,
   ) {}
 
   @Get("home")
@@ -139,6 +155,79 @@ class AdminAgentController {
         conversationId,
       }),
     );
+  }
+
+  @Post("conversations/:conversationId/comment-analyses/:analysisId/hide")
+  async hideCommentAnalysisFindings(
+    @Param("conversationId") conversationIdValue: string,
+    @Param("analysisId") analysisId: string,
+    @Body() body: ModerateAdminAgentCommentAnalysisDto,
+    @CurrentAdmin() admin: AuthUser,
+    @Req() request: Request,
+  ): Promise<ModerateAdminAgentCommentAnalysisResponse> {
+    const conversationId = conversationIdValue.trim().slice(0, 200);
+
+    if (!conversationId) {
+      throw new BadRequestException("Conversation ID is required.");
+    }
+
+    try {
+      const moderation = await this.moderateCommentAnalysis.execute({
+        action: "HIDE",
+        actor: toAdminOperationActor(admin),
+        analysisId,
+        findingIds: body.findingIds,
+        requestContext: toAdminOperationRequestContext(request),
+      });
+      const activityMessage = createCommentAnalysisActivityMessage({
+        analysisId: moderation.analysis.id,
+        analyzedCount: toNonnegativeInteger(
+          moderation.analysis.output?.analyzedCount,
+          moderation.findings.length,
+        ),
+        findings: moderation.findings,
+        scope: moderation.analysis.output?.scope,
+        summary: moderation.analysis.summary ?? "评论风险分析已更新。",
+      });
+
+      await this.chatMessageRepository.recordMessage({
+        conversationId,
+        message: activityMessage,
+      });
+
+      const appliedCount = moderation.result.results.filter(
+        (item) => item.status === "APPLIED",
+      ).length;
+
+      return {
+        activityMessage,
+        analysisId: moderation.analysis.id,
+        appliedCount,
+        failedCount: moderation.result.results.length - appliedCount,
+        results: moderation.result.results.map((item) =>
+          item.status === "FAILED"
+            ? {
+                error: item.error,
+                findingId: item.findingId,
+                status: item.status,
+              }
+            : {
+                findingId: item.findingId,
+                status: item.status,
+              },
+        ),
+      };
+    } catch (error) {
+      if (error instanceof AdminAgentCommentAnalysisNotFoundError) {
+        throw new NotFoundException(error.message);
+      }
+
+      if (error instanceof AdminAgentCommentAnalysisSelectionError) {
+        throw new BadRequestException(error.message);
+      }
+
+      throw error;
+    }
   }
 
   @Get("tasks/:taskId")
@@ -216,6 +305,10 @@ class AdminAgentController {
 }
 
 export { AdminAgentController };
+
+function toNonnegativeInteger(value: unknown, fallback: number) {
+  return typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : fallback;
+}
 
 function toAdminAgentParentRunRelationFromQuery(relation: AdminAgentTaskListQueryDto["relation"]) {
   if (relation === "child") {

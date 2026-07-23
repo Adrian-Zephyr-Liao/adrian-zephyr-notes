@@ -45,6 +45,6 @@ import { ArticleCommentsController } from "./presentation/article-comments.contr
       useClass: PrismaArticleCommentLikeRepository,
     },
   ],
-  exports: [UpdateAdminArticleCommentStatusUseCase],
+  exports: [ListAdminArticleCommentsUseCase, UpdateAdminArticleCommentStatusUseCase],
 })
 export class CommentsModule {}

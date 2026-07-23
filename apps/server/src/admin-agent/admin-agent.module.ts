@@ -13,12 +13,14 @@ import { ExecuteAdminAgentWorkflowActionUseCase } from "./application/execute-ad
 import { GetAdminAgentHomeUseCase } from "./application/get-admin-agent-home.use-case";
 import { ListAdminAgentConversationMessagesUseCase } from "./application/list-admin-agent-conversation-messages.use-case";
 import { ManageAdminAgentWorkflowsUseCase } from "./application/manage-admin-agent-workflows.use-case";
+import { ModerateAdminAgentCommentAnalysisUseCase } from "./application/moderate-admin-agent-comment-analysis.use-case";
 import { RepairAdminAgentDecisionEffectsUseCase } from "./application/repair-admin-agent-decision-effects.use-case";
 import { SendAdminAgentChatMessageUseCase } from "./application/send-admin-agent-chat-message.use-case";
 import { SiteConfigAgentActionHandler } from "./application/site-config-agent-action.handler";
 import { ADMIN_AGENT_AUTOMATION_POLICY_REPOSITORY } from "./domain/admin-agent-automation-policy.repository";
 import { ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY } from "./domain/admin-agent-chat-message.repository";
 import { ADMIN_AGENT_CHAT_RUNNER } from "./domain/admin-agent-chat-runner";
+import { ADMIN_AGENT_COMMENT_SELECTION_READER } from "./domain/admin-agent-comment-selection.reader";
 import { ADMIN_AGENT_HOME_REPOSITORY } from "./domain/admin-agent-home.repository";
 import { ADMIN_AGENT_REPOSITORY } from "./domain/admin-agent.repository";
 import {
@@ -34,6 +36,7 @@ import { PrismaAdminAgentAutomationPolicyRepository } from "./infrastructure/pri
 import { PrismaAdminAgentChatMessageRepository } from "./infrastructure/prisma-admin-agent-chat-message.repository";
 import { PrismaAdminAgentRepository } from "./infrastructure/prisma-admin-agent.repository";
 import { PrismaAdminAgentHomeRepository } from "./infrastructure/prisma-admin-agent-home.repository";
+import { AdminAgentCommentTools } from "./infrastructure/tools/admin-agent-comment-tools";
 import { AdminAgentCopilotKitController } from "./presentation/admin-agent-copilotkit.controller";
 import { AdminAgentController } from "./presentation/admin-agent.controller";
 
@@ -48,6 +51,7 @@ import { AdminAgentController } from "./presentation/admin-agent.controller";
   ],
   controllers: [AdminAgentController, AdminAgentCopilotKitController],
   providers: [
+    AdminAgentCommentTools,
     DecideAdminAgentFindingUseCase,
     DecideAdminAgentFindingsUseCase,
     CommentModerationAgentActionHandler,
@@ -55,6 +59,7 @@ import { AdminAgentController } from "./presentation/admin-agent.controller";
     GetAdminAgentHomeUseCase,
     ListAdminAgentConversationMessagesUseCase,
     ManageAdminAgentWorkflowsUseCase,
+    ModerateAdminAgentCommentAnalysisUseCase,
     RepairAdminAgentDecisionEffectsUseCase,
     SendAdminAgentChatMessageUseCase,
     SiteConfigAgentActionHandler,
@@ -98,6 +103,10 @@ import { AdminAgentController } from "./presentation/admin-agent.controller";
     {
       provide: ADMIN_AGENT_REPOSITORY,
       useClass: PrismaAdminAgentRepository,
+    },
+    {
+      provide: ADMIN_AGENT_COMMENT_SELECTION_READER,
+      useExisting: ADMIN_AGENT_REPOSITORY,
     },
   ],
 })

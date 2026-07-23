@@ -10,7 +10,9 @@ import type { AdminAgentWorkflowResult } from "./admin-agent-workflow-runner";
 
 type AdminAgentCommentModerationWorkflowOutput = {
   actionResult: AdminAgentWorkflowActionExecutionResult | null;
+  analyzedCount: number;
   findingCount: number;
+  findingIds: string[];
   scope: AdminAgentCommentAnalysisScope;
 };
 type AdminAgentGenericWorkflowRawResult = {
@@ -29,6 +31,7 @@ type AdminAgentCommentModerationApprovalUpdate = {
 };
 type AdminAgentCommentModerationCompletionInput = {
   actionResult: AdminAgentWorkflowActionExecutionResult | null;
+  analyzedCount?: number;
   findings: AdminAgentFinding[];
   scope: AdminAgentCommentAnalysisScope;
   summary?: string | null;
@@ -39,6 +42,7 @@ type AdminAgentCommentModerationCompletionResult = {
 };
 type AdminAgentCommentModerationWorkflowRawResult = {
   actionResult?: AdminAgentWorkflowActionExecutionResult | null;
+  comments?: unknown[];
   findings?: AdminAgentFinding[];
   scope?: unknown;
   summary?: string;
@@ -74,16 +78,23 @@ function toCommentModerationWorkflowOutput(
   findings: AdminAgentFinding[],
   scope: AdminAgentCommentAnalysisScope,
   actionResult: AdminAgentWorkflowActionExecutionResult | null = null,
+  analyzedCount = 0,
 ): AdminAgentCommentModerationWorkflowOutput {
   return {
     actionResult,
+    analyzedCount,
     findingCount: findings.length,
+    findingIds: findings.map((finding) => finding.id),
     scope,
   };
 }
 
 function toCommentModerationScope(value: unknown): AdminAgentCommentAnalysisScope {
-  return value === "today" ? "today" : "recentVisibleFallback";
+  if (value === "selection" || value === "today") {
+    return value;
+  }
+
+  return "recentVisibleFallback";
 }
 
 function toCommentModerationWorkflowResult(input: {
@@ -98,7 +109,12 @@ function toCommentModerationWorkflowResult(input: {
   return {
     findings,
     interruption: input.interruption,
-    output: toCommentModerationWorkflowOutput(findings, scope, input.result.actionResult ?? null),
+    output: toCommentModerationWorkflowOutput(
+      findings,
+      scope,
+      input.result.actionResult ?? null,
+      input.result.comments?.length ?? 0,
+    ),
     run: input.run,
     scope,
     summary: input.result.summary || input.run.summary || input.summaryFallback || "",
@@ -141,7 +157,12 @@ function createCommentModerationCompletionResult(
   input: AdminAgentCommentModerationCompletionInput,
 ): AdminAgentCommentModerationCompletionResult {
   return {
-    output: toCommentModerationWorkflowOutput(input.findings, input.scope, input.actionResult),
+    output: toCommentModerationWorkflowOutput(
+      input.findings,
+      input.scope,
+      input.actionResult,
+      input.analyzedCount,
+    ),
     summary:
       input.summary ||
       (input.findings.length > 0

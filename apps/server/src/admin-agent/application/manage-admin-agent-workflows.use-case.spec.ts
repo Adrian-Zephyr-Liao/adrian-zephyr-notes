@@ -35,9 +35,25 @@ import type { RepairAdminAgentDecisionEffectsUseCase } from "./repair-admin-agen
 describe("ManageAdminAgentWorkflowsUseCase", () => {
   it("lists workflow runs with normalized pagination and filters", async () => {
     const repository = new RecordingAdminAgentRepository([
-      createRun({ id: "run-1", status: "FAILED" }),
-      createRun({ id: "run-2", status: "COMPLETED" }),
-      createRun({ id: "child-run", parentRunId: "parent-run", status: "FAILED" }),
+      createRun({
+        id: "run-1",
+        status: "FAILED",
+        type: "COMMENT_MODERATION_TODAY",
+        workflowName: "COMMENT_MODERATION_ANALYSIS",
+      }),
+      createRun({
+        id: "run-2",
+        status: "COMPLETED",
+        type: "COMMENT_MODERATION_TODAY",
+        workflowName: "COMMENT_MODERATION_ANALYSIS",
+      }),
+      createRun({
+        id: "child-run",
+        parentRunId: "parent-run",
+        status: "FAILED",
+        type: "COMMENT_MODERATION_TODAY",
+        workflowName: "COMMENT_MODERATION_ANALYSIS",
+      }),
     ]);
     repository.workflowEvents.push(
       {
@@ -194,8 +210,8 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
         action: "branch",
         source: "admin_agent",
         status: "COMPLETED",
-        taskTitle: "评论治理分析",
-        taskName: "comment_moderation_analysis",
+        taskTitle: "文章协作",
+        taskName: "article_assistance",
       },
       requestContext: {
         ipAddress: "127.0.0.1",
@@ -229,14 +245,14 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
           resultStatus: branched.run.status,
         },
         runId: sourceRun.id,
-        summary: "评论治理分析已执行「另开处理」操作。",
+        summary: "文章协作已执行「另开处理」操作。",
         type: "CONTROLLED",
       }),
     );
     expect(branched.events).toContainEqual(
       expect.objectContaining({
         runId: sourceRun.id,
-        summary: "评论治理分析已执行「另开处理」操作。",
+        summary: "文章协作已执行「另开处理」操作。",
         type: "CONTROLLED",
       }),
     );
@@ -296,16 +312,18 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
     );
   });
 
-  it("branches every paused business workflow from its persisted checkpoint", async () => {
-    const runs = listAdminAgentWorkflowMetadata().map((metadata) =>
-      createRun({
-        id: `${metadata.taskName}-waiting-run`,
-        status: "WAITING_FOR_APPROVAL",
-        threadId: `${metadata.taskName}-thread`,
-        type: metadata.runType,
-        workflowName: metadata.workflowName,
-      }),
-    );
+  it("branches every branchable paused workflow from its persisted checkpoint", async () => {
+    const runs = listAdminAgentWorkflowMetadata()
+      .filter((metadata) => metadata.supportsBranch)
+      .map((metadata) =>
+        createRun({
+          id: `${metadata.taskName}-waiting-run`,
+          status: "WAITING_FOR_APPROVAL",
+          threadId: `${metadata.taskName}-thread`,
+          type: metadata.runType,
+          workflowName: metadata.workflowName,
+        }),
+      );
     const workflowRegistry = new RecordingAdminAgentWorkflowRegistry();
     const useCase = createUseCase(new RecordingAdminAgentRepository(runs), workflowRegistry);
 
@@ -347,13 +365,13 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
     expect(cancelled.run).toMatchObject({
       id: sourceRun.id,
       status: "CANCELLED",
-      summary: "已取消评论治理分析。",
+      summary: "已取消文章协作。",
     });
     expect(repository.workflowEvents).toEqual([
       expect.objectContaining({
         node: "cancelled",
         runId: sourceRun.id,
-        summary: "已取消评论治理分析。",
+        summary: "已取消文章协作。",
         type: "CANCELLED",
       }),
       expect.objectContaining({
@@ -363,7 +381,7 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
           resultStatus: "CANCELLED",
         },
         runId: sourceRun.id,
-        summary: "评论治理分析已执行「取消」操作。",
+        summary: "文章协作已执行「取消」操作。",
         type: "CONTROLLED",
       }),
     ]);
@@ -462,16 +480,18 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
     expect(workflowRegistry.startCalls).toEqual([]);
   });
 
-  it("resumes every paused business workflow through its stored thread id", async () => {
-    const runs = listAdminAgentWorkflowMetadata().map((metadata) =>
-      createRun({
-        id: `${metadata.taskName}-waiting-run`,
-        status: "WAITING_FOR_APPROVAL",
-        threadId: `${metadata.taskName}-thread`,
-        type: metadata.runType,
-        workflowName: metadata.workflowName,
-      }),
-    );
+  it("resumes every approval workflow through its stored thread id", async () => {
+    const runs = listAdminAgentWorkflowMetadata()
+      .filter((metadata) => metadata.supportsHumanApproval)
+      .map((metadata) =>
+        createRun({
+          id: `${metadata.taskName}-waiting-run`,
+          status: "WAITING_FOR_APPROVAL",
+          threadId: `${metadata.taskName}-thread`,
+          type: metadata.runType,
+          workflowName: metadata.workflowName,
+        }),
+      );
     const workflowRegistry = new RecordingAdminAgentWorkflowRegistry();
     const useCase = createUseCase(new RecordingAdminAgentRepository(runs), workflowRegistry);
 
@@ -870,6 +890,7 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
         },
       },
       status: "FAILED",
+      type: "COMMENT_MODERATION_TODAY",
       workflowName: "COMMENT_MODERATION_ANALYSIS",
     });
     const workflowRegistry = new RecordingAdminAgentWorkflowRegistry();
@@ -1092,8 +1113,8 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
         decision: "APPROVE",
         source: "admin_agent",
         status: "COMPLETED",
-        taskTitle: "评论治理分析",
-        taskName: "comment_moderation_analysis",
+        taskTitle: "文章协作",
+        taskName: "article_assistance",
       },
       requestContext: {
         ipAddress: "127.0.0.1",
@@ -1110,7 +1131,7 @@ describe("ManageAdminAgentWorkflowsUseCase", () => {
           resultStatus: "COMPLETED",
         },
         runId: waitingRun.id,
-        summary: "评论治理分析已执行「继续执行」操作。",
+        summary: "文章协作已执行「继续执行」操作。",
         type: "CONTROLLED",
       }),
     );
@@ -1707,9 +1728,9 @@ function createRun(overrides: Partial<AdminAgentRun> = {}): AdminAgentRun {
     status: "PENDING",
     summary: null,
     threadId: null,
-    type: "COMMENT_MODERATION_TODAY",
+    type: "ARTICLE_ASSISTANCE",
     updatedAt: new Date("2026-07-04T10:00:00.000Z"),
-    workflowName: "COMMENT_MODERATION_ANALYSIS",
+    workflowName: "ARTICLE_ASSISTANCE",
     ...overrides,
   };
 }

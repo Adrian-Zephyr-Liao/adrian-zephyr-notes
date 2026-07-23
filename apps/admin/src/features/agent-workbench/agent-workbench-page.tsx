@@ -1,149 +1,108 @@
-import type {
-  AdminAgentConversationMessageResponse,
-  AdminAgentHomeResponse,
-  AdminAgentTaskSummaryResponse,
-  AdminAgentTaskStatus,
-} from "@adrian-zephyr-notes/contracts";
-import { useAgentContext } from "@copilotkit/react-core/v2";
+import type { AdminAgentHomeResponse } from "@adrian-zephyr-notes/contracts";
+import type { Message } from "@ag-ui/client";
+import {
+  UseAgentUpdate,
+  useAgent,
+  useAgentContext,
+  useCopilotKit,
+} from "@copilotkit/react-core/v2";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AgentWorkbenchClient } from "./agent-api-client";
 import { useAgentWorkbenchClient } from "./agent-api-client";
 import { createAgentContextRegistry } from "./agent-context-registry";
-import { AgentHumanInLoopTools } from "./agent-human-in-the-loop-tools";
 import { AgentWorkbenchShell } from "./agent-workbench-shell";
-import type { AgentConversationItem, AgentConversationMessage } from "./agent-workbench-types";
+import { adminAgentId } from "./agent-tool-contracts";
 
 const agentConversationStorageKey = "az-notes-agent-conversation-id";
-const agentTaskContextPageSize = 8;
-const agentTaskChildContextPageSize = 8;
-const agentTaskContextStatuses = [
-  "WAITING_FOR_APPROVAL",
-  "RUNNING",
-  "FAILED",
-] satisfies AdminAgentTaskStatus[];
+const agentWorkbenchUpdates: UseAgentUpdate[] = [
+  UseAgentUpdate.OnMessagesChanged,
+  UseAgentUpdate.OnRunStatusChanged,
+];
 
 function AgentWorkbenchPage() {
   const [home, setHome] = useState<AdminAgentHomeResponse | null>(null);
-  const [conversationItems, setConversationItems] = useState<AgentConversationItem[]>([]);
   const [conversationId, setConversationId] = useState(() => getOrCreateAgentConversationId());
-  const [agentTasks, setAgentTasks] = useState<AdminAgentTaskSummaryResponse[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSendingChat, setIsSendingChat] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [promptText, setPromptText] = useState("");
   const conversationEndRef = useRef<HTMLDivElement>(null);
-  const conversationItemsRef = useRef<AgentConversationItem[]>([]);
-  const contextRegistry = useMemo(
-    () => createAgentContextRegistry(home, agentTasks),
-    [home, agentTasks],
-  );
+  const homeLoadPromiseRef = useRef<Promise<void> | null>(null);
+  const { agent } = useAgent({
+    agentId: adminAgentId,
+    throttleMs: 40,
+    updates: agentWorkbenchUpdates,
+  });
+  const wasAgentRunningRef = useRef(agent.isRunning);
+  const { copilotkit } = useCopilotKit();
+  const contextRegistry = useMemo(() => createAgentContextRegistry(home), [home]);
   const agentClient = useAgentWorkbenchClient();
 
   const loadHome = useCallback(
-    async (options: { showLoading?: boolean } = {}) => {
+    (options: { showLoading?: boolean } = {}) => {
+      if (homeLoadPromiseRef.current) {
+        return homeLoadPromiseRef.current;
+      }
+
       const shouldShowLoading = options.showLoading ?? true;
-
-      if (shouldShowLoading) {
-        setIsLoading(true);
-      }
-      setErrorMessage(null);
-
-      try {
-        const nextHome = await agentClient.loadHome();
-
-        setHome(nextHome);
-        try {
-          const taskContext = await loadAgentTaskContext(agentClient);
-
-          setAgentTasks(taskContext.tasks);
-        } catch {
-          setAgentTasks([]);
-        }
-      } catch {
-        setErrorMessage("Agent 工作台加载失败，请检查服务端或管理员登录状态。");
-      } finally {
+      const request = (async () => {
         if (shouldShowLoading) {
-          setIsLoading(false);
+          setIsLoading(true);
         }
-      }
+        setErrorMessage(null);
+
+        try {
+          const nextHome = await agentClient.loadHome();
+
+          setHome(nextHome);
+        } catch {
+          setErrorMessage("Agent 工作台加载失败，请检查服务端或管理员登录状态。");
+        } finally {
+          if (shouldShowLoading) {
+            setIsLoading(false);
+          }
+        }
+      })();
+
+      homeLoadPromiseRef.current = request;
+      void request.finally(() => {
+        if (homeLoadPromiseRef.current === request) {
+          homeLoadPromiseRef.current = null;
+        }
+      });
+
+      return request;
     },
     [agentClient],
   );
 
-  async function sendChatMessage(input: string) {
-    let assistantMessageId: string | null = null;
-    let activeRemoteTextMessageId: string | null = null;
-    let shouldStartNewAssistantMessage = false;
-    let streamedText = "";
-    const recentMessages = getConversationMessages(conversationItemsRef.current);
+  const refreshHomeAfterOperation = useCallback(async () => {
+    const currentLoad = homeLoadPromiseRef.current;
 
-    appendUserMessage(input);
+    if (currentLoad) {
+      await currentLoad;
+    }
+
+    await loadHome({ showLoading: false });
+  }, [loadHome]);
+
+  async function sendChatMessage(input: string) {
+    agent.addMessage({
+      content: input,
+      id: `user-${crypto.randomUUID()}`,
+      role: "user",
+    });
     setErrorMessage(null);
-    setIsSendingChat(true);
 
     try {
-      await agentClient.streamChatMessage(
-        {
+      await copilotkit.runAgent({
+        agent,
+        forwardedProps: {
+          ...copilotkit.properties,
           conversationId,
-          message: input,
-          recentMessages,
         },
-        {
-          onEvent(event) {
-            if (event.type === "textDelta") {
-              if (
-                assistantMessageId === null ||
-                activeRemoteTextMessageId !== event.messageId ||
-                shouldStartNewAssistantMessage
-              ) {
-                assistantMessageId = appendAssistantMessage("");
-                activeRemoteTextMessageId = event.messageId;
-                shouldStartNewAssistantMessage = false;
-                streamedText = "";
-              }
-
-              streamedText += event.delta;
-              replaceConversationMessage(assistantMessageId, streamedText);
-              return;
-            }
-
-            if (event.type === "textMessage") {
-              if (assistantMessageId === null || shouldStartNewAssistantMessage) {
-                assistantMessageId = appendAssistantMessage("");
-                activeRemoteTextMessageId = null;
-                shouldStartNewAssistantMessage = false;
-              }
-
-              streamedText = event.message.content;
-              replaceConversationMessage(assistantMessageId, event.message.content);
-              return;
-            }
-
-            if (event.type === "toolCallStart") {
-              appendToolCallItem(event.toolCallId);
-              if (assistantMessageId !== null && streamedText.trim().length > 0) {
-                shouldStartNewAssistantMessage = true;
-              }
-              return;
-            }
-
-            if (event.type === "toolCallEnd") {
-              ensureToolCallItem(event.toolCallId);
-              if (assistantMessageId !== null && streamedText.trim().length > 0) {
-                shouldStartNewAssistantMessage = true;
-              }
-            }
-          },
-        },
-      );
+        runId: `admin-agent-run-${crypto.randomUUID()}`,
+      });
     } catch (error) {
-      if (assistantMessageId === null || shouldStartNewAssistantMessage) {
-        assistantMessageId = appendAssistantMessage("");
-      }
-      replaceConversationMessage(assistantMessageId, toAgentChatFailureMessage(error));
-    } finally {
-      setIsSendingChat(false);
-      void loadHome({ showLoading: false });
+      setErrorMessage(toAgentChatFailureMessage(error));
     }
   }
 
@@ -163,66 +122,35 @@ function AgentWorkbenchPage() {
     setPromptText("");
   }
 
-  function appendUserMessage(userText: string) {
-    appendConversationItem({
-      id: `user-${crypto.randomUUID()}`,
-      role: "user",
-      text: userText,
-    });
-  }
-
-  function appendAssistantMessage(assistantText: string) {
-    const assistantMessageId = `assistant-${crypto.randomUUID()}`;
-
-    appendConversationItem({
-      id: assistantMessageId,
-      role: "assistant",
-      text: assistantText,
-    });
-
-    return assistantMessageId;
-  }
-
-  function appendToolCallItem(toolCallId: string) {
-    updateConversationItems((current) =>
-      current.some((item) => "toolCallId" in item && item.toolCallId === toolCallId)
-        ? current
-        : [...current, { id: `tool-call-${toolCallId}`, toolCallId, type: "toolCall" }],
-    );
-  }
-
-  function ensureToolCallItem(toolCallId: string) {
-    appendToolCallItem(toolCallId);
-  }
-
-  function appendConversationItem(item: AgentConversationItem) {
-    updateConversationItems((current) => [...current, item]);
-  }
-
-  function replaceConversationMessage(id: string, text: string) {
-    updateConversationItems((current) =>
-      current.map((item) => (item.id === id && !("toolCallId" in item) ? { ...item, text } : item)),
-    );
-  }
-
   function clearConversation() {
+    agent.abortRun();
+    agent.setMessages([]);
     setConversationId(resetAgentConversationId());
-    updateConversationItems(() => []);
     setErrorMessage(null);
-  }
-
-  function updateConversationItems(
-    updater: (current: AgentConversationItem[]) => AgentConversationItem[],
-  ) {
-    const nextItems = updater(conversationItemsRef.current);
-
-    conversationItemsRef.current = nextItems;
-    setConversationItems(nextItems);
   }
 
   useEffect(() => {
     void loadHome();
   }, [loadHome]);
+
+  useEffect(() => {
+    const wasRunning = wasAgentRunningRef.current;
+
+    wasAgentRunningRef.current = agent.isRunning;
+
+    if (!wasRunning || agent.isRunning) {
+      return;
+    }
+
+    void refreshHomeAfterOperation();
+  }, [agent.isRunning, refreshHomeAfterOperation]);
+
+  useEffect(() => {
+    copilotkit.setProperties({
+      ...copilotkit.properties,
+      conversationId,
+    });
+  }, [conversationId, copilotkit]);
 
   useEffect(() => {
     let isActive = true;
@@ -231,19 +159,13 @@ function AgentWorkbenchPage() {
       try {
         const response = await agentClient.listConversationMessages(conversationId);
 
-        if (!isActive || conversationItemsRef.current.length > 0) {
+        if (!isActive || agent.messages.length > 0) {
           return;
         }
 
-        const items = response.data.map(
-          (message: AdminAgentConversationMessageResponse): AgentConversationMessage => ({
-            id: `persisted-${message.id}`,
-            role: message.role,
-            text: message.content,
-          }),
-        );
+        const messages: Message[] = response.data;
 
-        updateConversationItems(() => items);
+        agent.setMessages(messages);
       } catch {
         // Conversation recovery should never block the workbench from opening.
       }
@@ -254,9 +176,9 @@ function AgentWorkbenchPage() {
     return () => {
       isActive = false;
     };
-  }, [agentClient, conversationId]);
+  }, [agent, agentClient, conversationId]);
 
-  const hasConversation = conversationItems.length > 0 || Boolean(errorMessage);
+  const hasConversation = agent.messages.length > 0 || Boolean(errorMessage);
 
   useEffect(() => {
     if (!hasConversation) {
@@ -266,102 +188,31 @@ function AgentWorkbenchPage() {
     conversationEndRef.current?.scrollIntoView({
       block: "end",
     });
-  }, [conversationItems.length, errorMessage, hasConversation, home?.lastUpdatedAt]);
+  }, [agent.isRunning, agent.messages.length, errorMessage, hasConversation, home?.lastUpdatedAt]);
 
   return (
     <>
       {contextRegistry.entries.map((entry) => (
         <AgentWorkbenchContextEntry key={entry.id} entry={entry} />
       ))}
-      <AgentHumanInLoopTools
-        agentTasks={agentTasks}
-        home={home}
-        onOperationApplied={() => loadHome({ showLoading: false })}
-      />
       <AgentWorkbenchShell
-        conversationItems={conversationItems}
         errorMessage={errorMessage}
         isLoading={isLoading}
-        isSendingChat={isSendingChat}
+        isSendingChat={agent.isRunning}
         landingSuggestions={contextRegistry.suggestions}
+        messages={agent.messages}
         promptText={promptText}
         shouldShowLanding={!hasConversation}
         onChangePromptText={setPromptText}
         onClearConversation={clearConversation}
         onOpenWorkbenchMenu={openWorkbenchMenu}
+        onStop={() => agent.abortRun()}
         onSubmitPrompt={submitPrompt}
       >
         <div ref={conversationEndRef} aria-hidden="true" className="h-px" />
       </AgentWorkbenchShell>
     </>
   );
-}
-
-type AgentTaskContextResult = {
-  tasks: AdminAgentTaskSummaryResponse[];
-};
-
-async function loadAgentTaskContext(
-  agentClient: AgentWorkbenchClient,
-): Promise<AgentTaskContextResult> {
-  const taskPages = await Promise.all([
-    agentClient.listAgentTasks({
-      page: 1,
-      pageSize: agentTaskContextPageSize,
-      rootOnly: true,
-      taskName: "ALL",
-    }),
-    ...agentTaskContextStatuses.map(async (status) => {
-      try {
-        return await agentClient.listAgentTasks({
-          page: 1,
-          pageSize: agentTaskContextPageSize,
-          status,
-          taskName: "ALL",
-        });
-      } catch {
-        return null;
-      }
-    }),
-  ]);
-  const taskSeeds = dedupeAgentTasks(taskPages.flatMap((page) => page?.data ?? []));
-  const childTaskPages = await Promise.all(
-    taskSeeds
-      .filter((task) => task.parentTaskId === null)
-      .map(async (task) => {
-        try {
-          return await agentClient.listAgentTasks({
-            page: 1,
-            pageSize: agentTaskChildContextPageSize,
-            parentTaskId: task.id,
-            relation: "child",
-            taskName: "ALL",
-          });
-        } catch {
-          return null;
-        }
-      }),
-  );
-  const childTasks = childTaskPages.flatMap((page) => page?.data ?? []);
-  const tasks = dedupeAgentTasks([...taskSeeds, ...childTasks]);
-
-  return {
-    tasks,
-  };
-}
-
-function dedupeAgentTasks(tasks: AdminAgentTaskSummaryResponse[]) {
-  const taskById = new Map<string, AdminAgentTaskSummaryResponse>();
-
-  for (const task of tasks) {
-    taskById.set(task.id, task);
-  }
-
-  return [...taskById.values()];
-}
-
-function getConversationMessages(items: AgentConversationItem[]): AgentConversationMessage[] {
-  return items.filter((item): item is AgentConversationMessage => !("toolCallId" in item));
 }
 
 function getOrCreateAgentConversationId() {

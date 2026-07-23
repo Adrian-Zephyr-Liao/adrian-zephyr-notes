@@ -54,6 +54,8 @@ type OpenAiCompatibleChatCompletionStreamChunk = {
   choices?: Array<{
     delta?: {
       content?: string | null;
+      reasoning_content?: string | null;
+      reasoning_details?: OpenAiCompatibleReasoningDetail[] | null;
       tool_calls?: Array<{
         index?: number;
         id?: string;
@@ -66,11 +68,21 @@ type OpenAiCompatibleChatCompletionStreamChunk = {
     };
     message?: {
       content?: string | null;
+      reasoning_content?: string | null;
+      reasoning_details?: OpenAiCompatibleReasoningDetail[] | null;
     };
   }>;
 };
 
+type OpenAiCompatibleReasoningDetail = {
+  text?: string | null;
+};
+
 type OpenAiCompatibleChatCompletionStreamEvent =
+  | {
+      type: "reasoningDelta";
+      delta: string;
+    }
   | {
       type: "contentDelta";
       delta: string;
@@ -94,6 +106,7 @@ class OpenAiCompatibleChatCompletionClient {
   async complete(input: OpenAiCompatibleChatCompletionInput) {
     const apiKey = this.getApiKey();
     const model = this.getModel();
+    const provider = this.getProvider();
 
     if (!apiKey || !model) {
       throw new Error("LLM_API_KEY and LLM_MODEL are required to run admin agent chat.");
@@ -106,7 +119,9 @@ class OpenAiCompatibleChatCompletionClient {
         model,
         temperature: input.temperature ?? 0.2,
         ...(input.tools?.length ? { tool_choice: "auto", tools: input.tools } : {}),
-        ...(this.getProvider() === minimaxProvider ? { thinking: { type: "disabled" } } : {}),
+        ...(provider === minimaxProvider
+          ? { reasoning_split: true, thinking: { type: "adaptive" } }
+          : {}),
       }),
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -145,6 +160,7 @@ class OpenAiCompatibleChatCompletionClient {
   ): AsyncIterable<OpenAiCompatibleChatCompletionStreamEvent> {
     const apiKey = this.getApiKey();
     const model = this.getModel();
+    const provider = this.getProvider();
 
     if (!apiKey || !model) {
       throw new Error("LLM_API_KEY and LLM_MODEL are required to run admin agent chat.");
@@ -158,7 +174,9 @@ class OpenAiCompatibleChatCompletionClient {
         stream: true,
         temperature: input.temperature ?? 0.2,
         ...(input.tools?.length ? { tool_choice: "auto", tools: input.tools } : {}),
-        ...(this.getProvider() === minimaxProvider ? { thinking: { type: "disabled" } } : {}),
+        ...(provider === minimaxProvider
+          ? { reasoning_split: true, thinking: { type: "adaptive" } }
+          : {}),
       }),
       headers: {
         Accept: "text/event-stream",
@@ -181,6 +199,10 @@ class OpenAiCompatibleChatCompletionClient {
 
     const decoder = new TextDecoder();
     const thinkBlockFilter = createThinkBlockStreamFilter();
+    const contentDeltaNormalizer =
+      provider === minimaxProvider ? createCumulativeStreamDeltaNormalizer() : null;
+    const reasoningDeltaNormalizer =
+      provider === minimaxProvider ? createCumulativeStreamDeltaNormalizer() : null;
     let lineBuffer = "";
 
     for await (const chunk of readResponseBody(response.body)) {
@@ -214,7 +236,21 @@ class OpenAiCompatibleChatCompletionClient {
             continue;
           }
 
-          const filteredToken = thinkBlockFilter.push(event.delta);
+          if (event.type === "reasoningDelta") {
+            const delta = reasoningDeltaNormalizer?.push(event.delta) ?? event.delta;
+
+            if (delta) {
+              yield {
+                delta,
+                type: "reasoningDelta",
+              };
+            }
+
+            continue;
+          }
+
+          const contentDelta = contentDeltaNormalizer?.push(event.delta) ?? event.delta;
+          const filteredToken = thinkBlockFilter.push(contentDelta);
 
           if (filteredToken) {
             yield {
@@ -236,7 +272,21 @@ class OpenAiCompatibleChatCompletionClient {
           continue;
         }
 
-        const filteredToken = thinkBlockFilter.push(event.delta);
+        if (event.type === "reasoningDelta") {
+          const delta = reasoningDeltaNormalizer?.push(event.delta) ?? event.delta;
+
+          if (delta) {
+            yield {
+              delta,
+              type: "reasoningDelta",
+            };
+          }
+
+          continue;
+        }
+
+        const contentDelta = contentDeltaNormalizer?.push(event.delta) ?? event.delta;
+        const filteredToken = thinkBlockFilter.push(contentDelta);
 
         if (filteredToken) {
           yield {
@@ -360,7 +410,23 @@ function extractStreamChunkEvents(
   return (
     chunk.choices?.flatMap((choice) => {
       const events: OpenAiCompatibleChatCompletionStreamEvent[] = [];
+      const reasoningDetails =
+        choice.delta?.reasoning_details ?? choice.message?.reasoning_details ?? [];
+      const reasoning =
+        reasoningDetails
+          .flatMap((detail) => (typeof detail.text === "string" ? [detail.text] : []))
+          .join("") ||
+        choice.delta?.reasoning_content ||
+        choice.message?.reasoning_content ||
+        "";
       const content = choice.delta?.content ?? choice.message?.content ?? "";
+
+      if (reasoning) {
+        events.push({
+          delta: reasoning,
+          type: "reasoningDelta",
+        });
+      }
 
       if (content) {
         events.push({
@@ -382,6 +448,27 @@ function extractStreamChunkEvents(
       return events;
     }) ?? []
   );
+}
+
+function createCumulativeStreamDeltaNormalizer() {
+  let accumulated = "";
+
+  return {
+    push(value: string) {
+      if (!value) {
+        return "";
+      }
+
+      if (value.startsWith(accumulated)) {
+        const delta = value.slice(accumulated.length);
+        accumulated = value;
+        return delta;
+      }
+
+      accumulated += value;
+      return value;
+    },
+  };
 }
 
 function createThinkBlockStreamFilter() {
