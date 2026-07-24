@@ -129,6 +129,13 @@ async function writeFetchResponse(response: Response, fetchResponse: globalThis.
     response.setHeader(key, value);
   });
 
+  if (fetchResponse.headers.get("content-type")?.includes("text/event-stream")) {
+    response.setHeader("Cache-Control", "no-cache, no-transform");
+    response.setHeader("X-Accel-Buffering", "no");
+    response.socket?.setNoDelay(true);
+    response.flushHeaders();
+  }
+
   if (!fetchResponse.body) {
     response.end();
     return;
@@ -142,4 +149,4 @@ async function writeFetchResponse(response: Response, fetchResponse: globalThis.
   });
 }
 
-export { AdminAgentCopilotKitController };
+export { AdminAgentCopilotKitController, writeFetchResponse };
