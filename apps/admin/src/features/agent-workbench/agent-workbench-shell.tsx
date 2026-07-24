@@ -3,16 +3,19 @@ import type { Message } from "@ag-ui/client";
 import { CopilotChatMessageView } from "@copilotkit/react-core/v2";
 import {
   BookOpenText,
+  Bot,
+  ChevronDown,
   FileClock,
+  Globe2,
   MessageSquareText,
   NotebookPen,
-  PanelLeft,
+  Paperclip,
   Plus,
   RefreshCw,
+  RotateCcw,
   Send,
   Settings2,
   Square,
-  X,
 } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { Button } from "../../components/ui/button";
@@ -32,7 +35,6 @@ type AgentWorkbenchShellProps = {
   shouldShowLanding: boolean;
   onChangePromptText: (value: string) => void;
   onClearConversation: () => void;
-  onOpenWorkbenchMenu: () => void;
   onStop: () => void;
   onSubmitPrompt: (input: string) => void;
 };
@@ -48,55 +50,44 @@ function AgentWorkbenchShell({
   shouldShowLanding,
   onChangePromptText,
   onClearConversation,
-  onOpenWorkbenchMenu,
   onStop,
   onSubmitPrompt,
 }: AgentWorkbenchShellProps) {
   return (
     <section
       aria-labelledby="agent-workbench-title"
-      className="relative flex h-[calc(100dvh-1rem)] min-h-0 flex-col overflow-hidden rounded-xl border border-border/70 bg-muted/35 shadow-(--shadow-glass) backdrop-blur-xl sm:h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-2rem)]"
+      className="relative flex h-[calc(100dvh-1rem)] min-h-0 flex-col overflow-hidden sm:h-[calc(100dvh-1.5rem)] lg:h-[calc(100dvh-2rem)]"
     >
-      <div className="flex h-16 shrink-0 items-center justify-between gap-3 px-4 sm:px-6">
+      <div className="flex h-14 shrink-0 items-center justify-between gap-3 px-4 sm:px-6">
         <h2 className="sr-only" id="agent-workbench-title">
           Agent 工作台
         </h2>
+        <div className="flex min-w-0 items-center gap-2 text-sm">
+          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+            <Bot aria-hidden="true" className="size-4" />
+          </span>
+          <nav aria-label="面包屑" className="flex min-w-0 items-center gap-1.5">
+            <span className="truncate text-muted-foreground">Agent</span>
+            <span aria-hidden="true" className="text-border">
+              /
+            </span>
+            <span aria-current="page" className="font-medium text-foreground">
+              对话
+            </span>
+          </nav>
+        </div>
+
         <Button
-          aria-label="打开工作台菜单"
-          className="relative size-10 rounded-full"
+          aria-label="重置会话上下文"
+          className="size-10 rounded-full"
           size="icon"
+          title="重置会话上下文"
           type="button"
           variant="ghost"
-          onClick={onOpenWorkbenchMenu}
+          onClick={onClearConversation}
         >
-          <PanelLeft aria-hidden="true" className="size-5" />
+          <RotateCcw aria-hidden="true" className="size-4" />
         </Button>
-
-        <div aria-hidden="true" className="min-w-10 flex-1" />
-
-        <div className="flex items-center gap-1">
-          <Button
-            aria-label="刷新状态"
-            className="size-10 rounded-full"
-            disabled={isLoading}
-            size="icon"
-            type="button"
-            variant="ghost"
-            onClick={() => onSubmitPrompt("刷新状态")}
-          >
-            <RefreshCw aria-hidden="true" className={cn("size-5", isLoading && "animate-spin")} />
-          </Button>
-          <Button
-            aria-label="清空对话"
-            className="size-10 rounded-full"
-            size="icon"
-            type="button"
-            variant="ghost"
-            onClick={onClearConversation}
-          >
-            <X aria-hidden="true" className="size-5" />
-          </Button>
-        </div>
       </div>
 
       <div
@@ -252,7 +243,7 @@ function AgentPromptDock({
   onStop: () => void;
   onSubmitPrompt: (input: string) => void;
 }) {
-  const [areShortcutsVisible, setAreShortcutsVisible] = useState(true);
+  const [areShortcutsVisible, setAreShortcutsVisible] = useState(false);
   const shortcutActions = [
     {
       disabled: isLoading || isSendingChat,
@@ -294,53 +285,18 @@ function AgentPromptDock({
 
   return (
     <form
-      className="relative z-10 shrink-0 border-t border-border/50 bg-muted/35 px-4 pt-3 pb-4 backdrop-blur-xl sm:px-6"
+      className="relative z-10 shrink-0 bg-linear-to-b from-transparent via-muted/30 to-muted/55 px-4 pt-3 pb-4 sm:px-6"
       onSubmit={(event) => {
         event.preventDefault();
         onSubmitPrompt(promptText);
       }}
     >
-      <div className="mx-auto grid max-w-4xl gap-3">
-        <div className="flex items-center gap-2 rounded-full border border-border/55 bg-background/90 p-2 shadow-sm">
-          <Button
-            aria-label={areShortcutsVisible ? "收起能力快捷项" : "打开能力快捷项"}
-            aria-pressed={areShortcutsVisible}
-            className="size-11 shrink-0 rounded-full"
-            size="icon"
-            type="button"
-            variant="ghost"
-            onClick={() => setAreShortcutsVisible((isVisible) => !isVisible)}
-          >
-            <Plus aria-hidden="true" className="size-5" />
-          </Button>
-          <Textarea
-            aria-label="Agent 指令"
-            className="min-h-11 flex-1 resize-none border-0 bg-transparent px-1 py-3 text-base shadow-none focus-visible:ring-0"
-            disabled={isSendingChat}
-            id="agent-workbench-prompt"
-            name="agent-workbench-prompt"
-            placeholder="发消息或按住说话..."
-            rows={1}
-            value={promptText}
-            onChange={(event) => onChangePromptText(event.target.value)}
-          />
-          <Button
-            aria-label={isSendingChat ? "停止生成" : "发送"}
-            className="size-11 shrink-0 rounded-full"
-            size="icon"
-            type={isSendingChat ? "button" : "submit"}
-            onClick={isSendingChat ? onStop : undefined}
-          >
-            {isSendingChat ? (
-              <Square aria-hidden="true" className="size-4 fill-current" />
-            ) : (
-              <Send aria-hidden="true" className="size-5" />
-            )}
-          </Button>
-        </div>
-
+      <div className="mx-auto grid max-w-4xl gap-2">
         {areShortcutsVisible ? (
-          <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+          <div
+            aria-label="Agent 能力快捷项"
+            className="grid grid-cols-3 gap-2 rounded-xl border border-border/45 bg-background/55 p-2 shadow-xs sm:grid-cols-6"
+          >
             {shortcutActions.map((action) => (
               <PromptShortcutButton
                 key={action.prompt}
@@ -352,6 +308,84 @@ function AgentPromptDock({
             ))}
           </div>
         ) : null}
+
+        <div className="rounded-2xl border border-primary/35 bg-background/94 p-2 shadow-[0_14px_32px_color-mix(in_oklch,var(--primary)_12%,transparent)] transition-[border-color,box-shadow] duration-200 ease-(--ease-out-ui) focus-within:border-primary/65 focus-within:shadow-[0_16px_36px_color-mix(in_oklch,var(--primary)_20%,transparent)] motion-reduce:transition-none">
+          <Textarea
+            aria-label="Agent 指令"
+            className="max-h-48 min-h-24 resize-y border-0 bg-transparent px-3 py-2 text-base leading-7 shadow-none focus-visible:bg-transparent focus-visible:ring-0"
+            disabled={isSendingChat}
+            id="agent-workbench-prompt"
+            name="agent-workbench-prompt"
+            placeholder="描述你想完成的工作，Agent 会结合当前工作台上下文协助处理…"
+            rows={3}
+            value={promptText}
+            onChange={(event) => onChangePromptText(event.target.value)}
+          />
+
+          <div className="mt-1 flex items-center justify-between gap-3 border-t border-border/45 px-1 pt-2">
+            <div className="flex min-w-0 items-center gap-1">
+              <Button
+                aria-label={areShortcutsVisible ? "收起能力快捷项" : "打开能力快捷项"}
+                aria-pressed={areShortcutsVisible}
+                className="size-9 rounded-lg text-primary"
+                size="icon"
+                type="button"
+                variant="ghost"
+                onClick={() => setAreShortcutsVisible((isVisible) => !isVisible)}
+              >
+                <Plus aria-hidden="true" className="size-5" />
+              </Button>
+              <span aria-hidden="true" className="h-5 w-px bg-border/55" />
+              <Button
+                aria-label="添加附件（暂未开放）"
+                className="size-9 rounded-lg"
+                disabled
+                size="icon"
+                title="附件功能暂未开放"
+                type="button"
+                variant="ghost"
+              >
+                <Paperclip aria-hidden="true" className="size-4" />
+              </Button>
+              <Button
+                aria-label="联网能力（暂未开放）"
+                className="size-9 rounded-lg"
+                disabled
+                size="icon"
+                title="联网能力暂未开放"
+                type="button"
+                variant="ghost"
+              >
+                <Globe2 aria-hidden="true" className="size-4" />
+              </Button>
+              <Button
+                aria-label="选择 Agent 工作模式"
+                className="h-9 gap-1 rounded-lg px-2 text-muted-foreground"
+                size="sm"
+                type="button"
+                variant="ghost"
+                onClick={() => setAreShortcutsVisible((isVisible) => !isVisible)}
+              >
+                <span>能力</span>
+                <ChevronDown aria-hidden="true" className="size-3.5" />
+              </Button>
+            </div>
+
+            <Button
+              aria-label={isSendingChat ? "停止生成" : "发送"}
+              className="size-10 rounded-full shadow-[0_6px_16px_color-mix(in_oklch,var(--primary)_35%,transparent)]"
+              size="icon"
+              type={isSendingChat ? "button" : "submit"}
+              onClick={isSendingChat ? onStop : undefined}
+            >
+              {isSendingChat ? (
+                <Square aria-hidden="true" className="size-3.5 fill-current" />
+              ) : (
+                <Send aria-hidden="true" className="size-4.5" />
+              )}
+            </Button>
+          </div>
+        </div>
       </div>
     </form>
   );
@@ -370,12 +404,12 @@ function PromptShortcutButton({
 }) {
   return (
     <button
-      className="grid min-h-20 place-items-center gap-1 rounded-xl border border-border/55 bg-background/80 px-2 py-3 text-sm font-medium text-foreground shadow-sm transition-[background-color,border-color,box-shadow] duration-150 ease-(--ease-out-ui) hover:border-primary/35 hover:bg-background focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
+      className="grid min-h-16 place-items-center gap-1 rounded-lg p-2 text-xs font-medium text-foreground transition-[background-color,color] duration-150 ease-(--ease-out-ui) hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 motion-reduce:transition-none"
       disabled={disabled}
       type="button"
       onClick={onClick}
     >
-      <span className="flex size-9 items-center justify-center rounded-lg bg-muted text-muted-foreground [&_svg]:size-5">
+      <span className="flex size-8 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-4">
         {icon}
       </span>
       <span>{label}</span>

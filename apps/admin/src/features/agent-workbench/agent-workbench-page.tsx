@@ -106,10 +106,6 @@ function AgentWorkbenchPage() {
     }
   }
 
-  function openWorkbenchMenu() {
-    void sendChatMessage("打开工作台菜单");
-  }
-
   function submitPrompt(input: string) {
     const trimmedInput = input.trim();
 
@@ -205,7 +201,6 @@ function AgentWorkbenchPage() {
         shouldShowLanding={!hasConversation}
         onChangePromptText={setPromptText}
         onClearConversation={clearConversation}
-        onOpenWorkbenchMenu={openWorkbenchMenu}
         onStop={() => agent.abortRun()}
         onSubmitPrompt={submitPrompt}
       >
