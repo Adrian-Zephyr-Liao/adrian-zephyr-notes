@@ -36,6 +36,10 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY --from=builder /prod/server ./
+COPY --from=builder /app/packages/contracts ./packages/contracts
+
+RUN rm node_modules/@adrian-zephyr-notes/contracts && \
+  ln -s ../../packages/contracts node_modules/@adrian-zephyr-notes/contracts
 
 EXPOSE 3001
 
