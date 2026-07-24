@@ -1,0 +1,16 @@
+**
+!package.json
+!pnpm-lock.yaml
+!pnpm-workspace.yaml
+!apps/
+!apps/server/
+!apps/server/**
+!packages/
+!packages/contracts/
+!packages/contracts/**
+apps/admin
+apps/server/dist
+apps/server/node_modules
+apps/website
+packages/contracts/node_modules
+packages/markdown

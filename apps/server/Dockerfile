@@ -1,6 +1,6 @@
-# syntax=docker/dockerfile:1.7
+ARG NODE_IMAGE=public.ecr.aws/docker/library/node:24-alpine
 
-FROM node:24-alpine
+FROM ${NODE_IMAGE} AS builder
 
 WORKDIR /app
 
@@ -12,22 +12,31 @@ RUN corepack enable
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/server/package.json apps/server/package.json
-COPY apps/website/package.json apps/website/package.json
-COPY apps/admin/package.json apps/admin/package.json
 COPY packages/contracts/package.json packages/contracts/package.json
-COPY packages/markdown/package.json packages/markdown/package.json
 
 RUN --mount=type=cache,id=azn-pnpm-store,target=/pnpm/store \
   pnpm config set store-dir /pnpm/store && \
   pnpm config set registry "$NPM_CONFIG_REGISTRY" && \
-  pnpm install --frozen-lockfile
+  pnpm install --frozen-lockfile --filter @adrian-zephyr-notes/server...
 
 COPY . .
 
 RUN DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public \
   pnpm --filter @adrian-zephyr-notes/server prisma:generate
 RUN pnpm --filter @adrian-zephyr-notes/server build
+RUN pnpm --filter @adrian-zephyr-notes/server deploy --legacy --prod /prod/server
+RUN cd /prod/server && \
+  DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public \
+  ./node_modules/.bin/prisma generate --config prisma.config.ts
+
+FROM ${NODE_IMAGE} AS runner
+
+WORKDIR /app
+
+ENV NODE_ENV=production
+
+COPY --from=builder /prod/server ./
 
 EXPOSE 3001
 
-CMD ["node", "apps/server/dist/main.js"]
+CMD ["node", "dist/main.js"]

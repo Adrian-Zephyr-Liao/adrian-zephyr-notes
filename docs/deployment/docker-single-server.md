@@ -49,6 +49,9 @@ migrations, starts containers, and prints container status.
 is usually faster on Alibaba Cloud ECS in mainland China. Change it to
 `https://registry.npmjs.org` if you prefer the official npm registry.
 
+The application Dockerfiles fetch the official Node and Nginx images through
+AWS Public ECR, avoiding slow or expired Docker Hub mirror fallbacks on ECS.
+
 ## Update Deploy
 
 ```bash
@@ -56,6 +59,20 @@ cd /srv/adrian-zephyr-notes
 git pull
 ./scripts/deploy-docker.sh
 ```
+
+After the first successful deployment, the script stores the deployed commit in
+the repository's Git metadata. Later runs compare that commit with `HEAD` and
+only rebuild affected application images:
+
+- changes under one app rebuild only that app;
+- shared package or lockfile changes rebuild their consumers;
+- Compose changes rebuild and reconcile the full stack;
+- documentation-only changes skip image builds.
+
+Each rebuilt service is restarted independently, while Compose waits for its
+health check before reporting success. Use `DEPLOY_SERVICES=all` to force a full
+rebuild. For troubleshooting, `DEPLOY_SERVICES="server website"` can rebuild a
+specific subset without advancing the saved deployment baseline.
 
 ## Verify
 
