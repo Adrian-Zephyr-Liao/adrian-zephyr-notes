@@ -1656,7 +1656,10 @@ class LangGraphAdminAgentWorkflowRunner
       .map(toFindingDraft);
     const createdFindings = await this.adminAgentRepository.createFindings(state.runId, drafts);
 
-    return { findings: [...existingPendingFindings, ...createdFindings] };
+    // A review activity is bound to this run. Reusing a finding from another run
+    // would render it under the new analysis ID, then make its moderation request
+    // fail the ownership check.
+    return { findings: createdFindings };
   }
 
   private async requestHumanApproval(state: CommentModerationWorkflowState) {

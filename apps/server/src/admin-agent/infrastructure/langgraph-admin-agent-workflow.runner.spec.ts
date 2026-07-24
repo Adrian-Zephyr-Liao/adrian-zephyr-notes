@@ -286,7 +286,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     });
   });
 
-  it("keeps an existing pending risk finding in repeated analysis results", async () => {
+  it("does not expose a pending finding owned by an earlier analysis", async () => {
     const existingFinding = createFindingFromDraft(
       {
         category: "ABUSE",
@@ -345,8 +345,8 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     expect(repository.createdFindings).toEqual([]);
     expect(result).toMatchObject({
       output: {
-        findingCount: 1,
-        findingIds: ["existing-finding-1"],
+        findingCount: 0,
+        findingIds: [],
       },
       summary: "仍识别出 1 条高风险评论。",
     });
