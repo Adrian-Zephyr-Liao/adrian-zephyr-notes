@@ -66,7 +66,7 @@ describe("Pi workflow admission and durable waits", () => {
       repository,
       executor,
       model,
-      new ConfigService({}),
+      new ConfigService({ DATABASE_URL: "" }),
       audit,
       siteConfig,
       undefined,

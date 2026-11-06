@@ -60,7 +60,7 @@ describe("Pi business task SQLite recovery", () => {
       repository,
       executor,
       model,
-      new ConfigService({}),
+      new ConfigService({ DATABASE_URL: "" }),
       undefined,
       siteConfig,
       undefined,

@@ -115,9 +115,9 @@ describe("Pi durable storage ownership", () => {
   });
 
   it("requires database ownership before touching the filesystem", async () => {
-    await expect(openPiAdminAgentStorage(new ConfigService({}), "none")).rejects.toThrow(
-      "DATABASE_URL",
-    );
+    await expect(
+      openPiAdminAgentStorage(new ConfigService({ DATABASE_URL: "" }), "none"),
+    ).rejects.toThrow("DATABASE_URL");
     expect(mocks.connect).not.toHaveBeenCalled();
     expect(mocks.open).not.toHaveBeenCalled();
   });
