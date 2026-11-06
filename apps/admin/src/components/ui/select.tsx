@@ -61,7 +61,7 @@ function Select({
       <SelectPrimitive.Trigger
         aria-label={ariaLabel}
         className={cn(
-          "flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-(--glass-border) bg-background/45 px-3 text-sm text-foreground shadow-xs outline-none backdrop-blur-md transition-[background-color,border-color,box-shadow,scale] duration-200 ease-(--ease-out-ui) focus-visible:border-ring focus-visible:bg-background/70 focus-visible:ring-3 focus-visible:ring-ring/35 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100",
+          "flex h-10 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-(--glass-border) bg-background/45 px-3 text-base md:text-sm text-foreground shadow-xs outline-none backdrop-blur-md transition-[background-color,border-color,box-shadow,scale] duration-200 ease-(--ease-out-ui) focus-visible:border-ring focus-visible:bg-background/70 focus-visible:ring-3 focus-visible:ring-ring/35 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100",
           className,
         )}
         data-slot="select"
@@ -82,7 +82,7 @@ function Select({
             {options.map((option) => (
               <SelectPrimitive.Item
                 key={option.value}
-                className="relative flex cursor-pointer items-center rounded-md py-1.5 pr-8 pl-2 text-sm outline-none select-none focus:bg-accent focus:text-accent-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50"
+                className="relative flex cursor-pointer items-center rounded-md py-1.5 pr-8 pl-2 text-base outline-none select-none focus:bg-accent focus:text-accent-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50 md:text-sm"
                 disabled={option.disabled}
                 value={encodeSelectValue(option.value) ?? EMPTY_SELECT_VALUE}
               >
