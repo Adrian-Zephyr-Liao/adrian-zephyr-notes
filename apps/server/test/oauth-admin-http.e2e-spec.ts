@@ -260,6 +260,43 @@ describe.skipIf(!databaseUrl)(
       expect(await prisma.article.count({ where: { id: articleId } })).toBe(1);
     });
 
+    it("returns JSON null for a missing cloud draft and JSON content for a saved draft", async () => {
+      const path = `/api/admin/article-drafts/current?articleId=${articleId}`;
+      const empty = await http("GET", path, read);
+      expect(empty.status).toBe(200);
+      expect(empty.headers.get("content-type")).toContain("application/json");
+      expect(await empty.text()).toBe("null");
+      const emptyCookie = await http("GET", path, null, undefined, { Cookie: cookie });
+      expect(emptyCookie.headers.get("content-type")).toContain("application/json");
+      expect(await emptyCookie.json()).toBeNull();
+
+      const draft = await json("PUT", "/api/admin/article-drafts/current", {
+        articleId,
+        clientSavedAt: new Date().toISOString(),
+        values: {
+          title: "Cloud draft response fixture",
+          description: "",
+          markdown: "# Cloud draft",
+          status: "DRAFT",
+          categorySlug: "",
+          tagSlugs: [],
+          coverImageUrl: "",
+          origin: "ORIGINAL",
+          sourceAuthor: "",
+          sourceName: "",
+          sourceUrl: "",
+        },
+      });
+      try {
+        const saved = await http("GET", path, read);
+        expect(saved.status).toBe(200);
+        expect(saved.headers.get("content-type")).toContain("application/json");
+        expect(await saved.json()).toEqual(draft);
+      } finally {
+        expect((await http("DELETE", path, write)).status).toBe(204);
+      }
+    });
+
     it("uses existing taxonomy, draft, article, moderation and settings operations with the authenticated actor", async () => {
       const category = await json(
         "POST",

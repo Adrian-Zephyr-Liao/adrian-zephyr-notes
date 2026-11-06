@@ -8,8 +8,10 @@ import {
   NotFoundException,
   Put,
   Query,
+  Res,
   UseGuards,
 } from "@nestjs/common";
+import type { Response } from "express";
 import type { AdminArticleEditorDraftResponse } from "@adrian-zephyr-notes/contracts";
 import {
   AdminApiAccess,
@@ -42,13 +44,14 @@ class AdminArticleEditorDraftsController {
   async current(
     @Query() query: AdminArticleEditorDraftQueryDto,
     @CurrentAdmin() admin: AuthUser,
-  ): Promise<AdminArticleEditorDraftResponse | null> {
+    @Res() response: Response,
+  ): Promise<void> {
     const draft = await this.getCurrentDraft.execute({
       ownerUserId: admin.id,
       articleId: query.articleId,
     });
 
-    return draft ? toAdminArticleEditorDraftResponse(draft) : null;
+    response.json(draft ? toAdminArticleEditorDraftResponse(draft) : null);
   }
 
   @Put("current")
