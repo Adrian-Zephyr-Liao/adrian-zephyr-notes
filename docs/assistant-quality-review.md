@@ -70,6 +70,10 @@
 
 ## 发布复核
 
+最终图片策略热修为 `cae88c92bd1e088b7e525a0dc04d539da8a09653`，仅更新 admin 镜像 `409ffbe1423467be199999e9852ef7542edc043be10c771b9a77e63245ce7aed`，后端和数据库没有因此重启。[最后一轮 CI](https://github.com/Adrian-Zephyr-Liao/adrian-zephyr-notes/actions/runs/42188183097) 已实际通过全仓 76 文件、329 项测试，共享包安全回归已纳入。
+
+独立浏览器随后加载真实生产编译 HTML/JS/CSS（记录 SHA256），所有 API 在页面打开前替换成 fixture，未知 API 直接阻断。历史和保持打开的流式消息均无图片、图片 preload、iframe 或收集器外发，普通链接保留且不自动请求；真实业务 API、OAuth、模型请求均为 0，浏览器及收集器已关闭。该证据证明线上产物的显示策略，不冒充真实后端或模型验证。服务器 GitHub 拉取超时后通过 SSH 传送并校验同一 Git 提交包完成快进，未修改访问配置或 ERP 覆盖。
+
 2026-11-06 16:08（Asia/Shanghai），已部署 `c3d94666bec4f032cb99cc55836f76f700bd8a39`。[CI](https://github.com/Adrian-Zephyr-Liao/adrian-zephyr-notes/actions/runs/42183529437) 全通过，应用测试实际为 314 项；本地全仓 325 项及独立 PG 20 项另行记录，不合并为 CI 成绩。
 
 真实供应商的线上「查看审计日志」探针一次通过：只调用审计工具，默认筛选、20 条真实记录、公开字段、流事件与历史身份、同请求回放均符合断言；未产生评论操作。临时登录、会话和 Turn 已清理。单次容器到公网入口首事件 60ms、终端 7734ms，仅作流未被整体缓冲的证据，不代表用户延迟基准。

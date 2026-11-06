@@ -478,5 +478,341 @@
     "networks": "local fixture collector only",
     "sharedDefaultArticleImagesPreserved": true
   },
-  "unitTestEntry": "pnpm test -> vp test run, including shared packages"
+  "unitTestEntry": "pnpm test -> vp test run, including shared packages",
+  "finalFrontendSecurityRelease": {
+    "codeCommit": "cae88c92bd1e088b7e525a0dc04d539da8a09653",
+    "adminImage": "409ffbe1423467be199999e9852ef7542edc043be10c771b9a77e63245ce7aed",
+    "ci": {
+      "runId": 42188183097,
+      "conclusion": "success",
+      "files": 76,
+      "tests": 329,
+      "includesSharedPackageTests": true,
+      "includesPostgresE2e": false
+    },
+    "backendAndDatabaseRestarted": false,
+    "compiledAssetBrowser": {
+      "scope": "production assets + mocked API; fixture text only; no production API, OAuth or model requests",
+      "ok": true,
+      "errors": [],
+      "assets": [
+        {
+          "url": "https://admin.zephyrai.site/assistant?conversation=11111111-1111-4111-8111-111111111111",
+          "status": 200,
+          "resourceType": "document",
+          "sha256": "86900d9109d85e98a00229c5eb2832f4e862e3f16772ad6897fa1476615d8415"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/index-cGc7gzmp.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "963a08bef2ffd5deec29a15fd725dc0667173cbb3fca59fb1f456d94007d3856"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/index-LMaR6UI2.css",
+          "status": 200,
+          "resourceType": "stylesheet",
+          "sha256": "84414f600d4ccd48183ecf8c04ab4496b50bc1d20044167712168bda69d6a34f"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/rolldown-runtime-QTnfLwEv.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "5db5ba82eef00d1dee7e86e663098c9427d01183a88d357437daff295aec3e75"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/vendor-icons-C3XieBw5.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "d2f78013674528567eeace85739450090900396b198879a7dffb481a3b09a8a3"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/vendor-tanstack-CxLjdTnf.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "5c72ac73bc9e9488540225778d002ffce0824adc516088e86c90a83938157cbd"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/vendor-react-BZSQ6M3j.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "b4fe63df278883502eda635fe75fe95339bd5c3ff21e3d3f2179e1c9ff77b673"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/vendor-markdown-DUrwIcrx.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "1f4e8b3c59ac9e722025e53e245a6b8f7f859cf5b173178ce93a048bea150b0a"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/57030ca4cfea8732abbc0535e8152c28-CyqSMDcR.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "44435d92135486770ef187759f8a60ba3fa6f7c3d365e5dc4b2dc1ecdfbcb569"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/5a5505a618e127b6e008985a6cc134cd-Dx5eDXRt.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "af6f13c2aa5d5e29a75e086181750d597b7c4537324896e5eee5b14725acdcc9"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/713fcaace78b6e6ec8405a794f43881d-BwhXYrh4.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "9619fc964d6f978e37ec36e63b70d3f216e6dfd81caf2e883652816eb4701a71"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/e81eb3f3afa76399390df82e2f98ccc0-BkGADHAl.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "9ab766b70dff05e79f9651f8ded088db8da746ae1554563a9bb9296dba7fd5c2"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/596b1e644d3ea13847eaac7729c256b1-DzVCMyrB.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "1dcf12b1c0f14fe9434778e75e46020e497ee0845894487da8e44718f8a175c5"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/9ee51484cd9d6106b0807bfd5f4b2f7c-DvjCexHn.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "61d1f7bcb66d66dd40eb707aaf5654e5aaeaca76a1bade8c3b34a873bb357364"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/582b49353edba3461413da39ffe3bbdb-B7x3vEtL.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "96084dd2aaa06c4fe58307750d1820a99d705f510c77396ed031b3d4ac72c5e1"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/588707432dd2e9876529622b8721efbd-C8w17DaV.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "be989f63dd061af8d293616fa8578da792faa123785702457185d73ff23e91dc"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/e7c7b9346356da8c720739afd5d964e0-BWA-aVCX.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "a21be5c69e0de3e0b03b28a9a3af98449f9d05096096309ecad939bed0f334ab"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/4f4ccd193869df3e77951c1a1fb11a5f-ntDwUitg.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "2e23dd009a3fb648e37ef42c36d3013febfa28677d86945c52bbdbf2a4003c12"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/261fdbd9516eb9002ffd2e5a481cc642-ByG-QSpz.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "915c621e3cff1951753911bce194faed9fa2172204ac702b7d2d6793170cd159"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/05321b104cf8b29fa68e4847ac7e53f0-491KhHio.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "49ba29b6fde92e631827ebe1db12b9e3406eb413172130de762d8c3e26239870"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/bfb7bc5ecd3bcd25ed8c53ca8de62ed5-DQ3iJH7J.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "e6cd704590fa2c2d13f301e79e22fd7e84cb0625fbab7d4c82b763ed7df409de"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/0d3c959740b6443f10859a15929779b1-CllhNily.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "a34168b7520d1e85c0792d15c35843b220ed70cbc019b024b2ced8719a9a99b0"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/4eca2cc5c1033534a7311df59e0ab1cb-B-NkEkE5.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "13795f7dfd566f9e7cc906253141522e641c857496ba822567a86ef04e941103"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/4a1ef9115dadbcbfd63923fd7b510450-CSM7iQV9.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "151a2ec3c6731e0ef709efa3d4ff2795314be4d4aeea40b6003bcba2b63e056c"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/7d35b6ae1d1f6843ea8748cb9bceecd0-BxHyEX-w.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "4bb91132049b8e1a0c41b592dc793677aab1a65087f44d22af98c3fec0765730"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assistant?conversation=11111111-1111-4111-8111-111111111111",
+          "status": 200,
+          "resourceType": "document",
+          "sha256": "86900d9109d85e98a00229c5eb2832f4e862e3f16772ad6897fa1476615d8415"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/rolldown-runtime-QTnfLwEv.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "5db5ba82eef00d1dee7e86e663098c9427d01183a88d357437daff295aec3e75"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/vendor-tanstack-CxLjdTnf.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "5c72ac73bc9e9488540225778d002ffce0824adc516088e86c90a83938157cbd"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/index-cGc7gzmp.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "963a08bef2ffd5deec29a15fd725dc0667173cbb3fca59fb1f456d94007d3856"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/index-LMaR6UI2.css",
+          "status": 200,
+          "resourceType": "stylesheet",
+          "sha256": "84414f600d4ccd48183ecf8c04ab4496b50bc1d20044167712168bda69d6a34f"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/vendor-icons-C3XieBw5.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "d2f78013674528567eeace85739450090900396b198879a7dffb481a3b09a8a3"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/vendor-markdown-DUrwIcrx.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "1f4e8b3c59ac9e722025e53e245a6b8f7f859cf5b173178ce93a048bea150b0a"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/vendor-react-BZSQ6M3j.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "b4fe63df278883502eda635fe75fe95339bd5c3ff21e3d3f2179e1c9ff77b673"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/5a5505a618e127b6e008985a6cc134cd-Dx5eDXRt.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "af6f13c2aa5d5e29a75e086181750d597b7c4537324896e5eee5b14725acdcc9"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/596b1e644d3ea13847eaac7729c256b1-DzVCMyrB.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "1dcf12b1c0f14fe9434778e75e46020e497ee0845894487da8e44718f8a175c5"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/582b49353edba3461413da39ffe3bbdb-B7x3vEtL.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "96084dd2aaa06c4fe58307750d1820a99d705f510c77396ed031b3d4ac72c5e1"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/9ee51484cd9d6106b0807bfd5f4b2f7c-DvjCexHn.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "61d1f7bcb66d66dd40eb707aaf5654e5aaeaca76a1bade8c3b34a873bb357364"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/57030ca4cfea8732abbc0535e8152c28-CyqSMDcR.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "44435d92135486770ef187759f8a60ba3fa6f7c3d365e5dc4b2dc1ecdfbcb569"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/713fcaace78b6e6ec8405a794f43881d-BwhXYrh4.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "9619fc964d6f978e37ec36e63b70d3f216e6dfd81caf2e883652816eb4701a71"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/e81eb3f3afa76399390df82e2f98ccc0-BkGADHAl.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "9ab766b70dff05e79f9651f8ded088db8da746ae1554563a9bb9296dba7fd5c2"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/261fdbd9516eb9002ffd2e5a481cc642-ByG-QSpz.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "915c621e3cff1951753911bce194faed9fa2172204ac702b7d2d6793170cd159"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/588707432dd2e9876529622b8721efbd-C8w17DaV.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "be989f63dd061af8d293616fa8578da792faa123785702457185d73ff23e91dc"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/7d35b6ae1d1f6843ea8748cb9bceecd0-BxHyEX-w.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "4bb91132049b8e1a0c41b592dc793677aab1a65087f44d22af98c3fec0765730"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/e7c7b9346356da8c720739afd5d964e0-BWA-aVCX.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "a21be5c69e0de3e0b03b28a9a3af98449f9d05096096309ecad939bed0f334ab"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/0d3c959740b6443f10859a15929779b1-CllhNily.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "a34168b7520d1e85c0792d15c35843b220ed70cbc019b024b2ced8719a9a99b0"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/4f4ccd193869df3e77951c1a1fb11a5f-ntDwUitg.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "2e23dd009a3fb648e37ef42c36d3013febfa28677d86945c52bbdbf2a4003c12"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/05321b104cf8b29fa68e4847ac7e53f0-491KhHio.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "49ba29b6fde92e631827ebe1db12b9e3406eb413172130de762d8c3e26239870"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/4eca2cc5c1033534a7311df59e0ab1cb-B-NkEkE5.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "13795f7dfd566f9e7cc906253141522e641c857496ba822567a86ef04e941103"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/4a1ef9115dadbcbfd63923fd7b510450-CSM7iQV9.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "151a2ec3c6731e0ef709efa3d4ff2795314be4d4aeea40b6003bcba2b63e056c"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/bfb7bc5ecd3bcd25ed8c53ca8de62ed5-DQ3iJH7J.woff2",
+          "status": 200,
+          "resourceType": "font",
+          "sha256": "e6cd704590fa2c2d13f301e79e22fd7e84cb0625fbab7d4c82b763ed7df409de"
+        },
+        {
+          "url": "https://admin.zephyrai.site/assets/dist-Dx8fpSIi.js",
+          "status": 200,
+          "resourceType": "script",
+          "sha256": "e2d345ed75e86ef90c447e36c1c432940a41e1416a5e876a43549409253a0aa2"
+        }
+      ]
+    },
+    "assetBrowserApiMode": "all APIs mocked before navigation; actual business, OAuth, model requests zero",
+    "historyAndStream": {
+      "images": 0,
+      "imagePreloads": 0,
+      "iframes": 0,
+      "collectorRequests": 0,
+      "ordinaryAnchorPreserved": true
+    },
+    "ownedBrowserAndCollectorClosed": true,
+    "sourceTransfer": "verified Git bundle over existing SSH after GitHub HTTPS timeout"
+  }
 }
