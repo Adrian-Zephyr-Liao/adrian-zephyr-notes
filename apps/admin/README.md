@@ -45,6 +45,21 @@ Feature modules own their own screen-level state and composition. Shared code in
 `src/lib` should stay framework-light and covered by Vitest when it contains
 request, parsing, or state transition logic.
 
+## Editing and recovery
+
+Article editing sessions and local drafts are scoped to the administrator and
+article. Saving a submitted version preserves later input; newly created articles
+immediately use their returned ID for further edits and draft storage. Drafts
+based on the current server version can restore automatically. Older versions
+remain available through an explicit confirmation instead of replacing the server
+content on load. An unconfirmed write requires checking the article list before
+retrying; writes are not automatically replayed.
+
+Cloud draft cleanup waits for this session's earlier synchronization requests.
+The API currently has no request timeout or conditional draft deletion, so a
+stalled cloud request can keep cleanup pending, and simultaneous editing across
+tabs or devices does not provide full conflict protection.
+
 ## Commands
 
 | Command                                                | Description                    |

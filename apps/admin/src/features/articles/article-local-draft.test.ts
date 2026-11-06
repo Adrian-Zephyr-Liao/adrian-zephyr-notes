@@ -7,7 +7,6 @@ import {
   pickLatestRestorableArticleDraft,
   readArticleLocalDraft,
   removeArticleLocalDraft,
-  shouldRestoreArticleLocalDraft,
   writeArticleLocalDraft,
 } from "./article-local-draft";
 
@@ -45,19 +44,33 @@ describe("article local draft", () => {
     expect(readArticleLocalDraft(storage, "draft-key")).toBeNull();
   });
 
-  it("restores only when the local draft is newer than the server article", () => {
-    const newerDraft = createArticleLocalDraftRecord({
-      savedAt: new Date("2026-07-03T00:10:00.000Z"),
-      values: createValues(),
-    });
-    const olderDraft = createArticleLocalDraftRecord({
-      savedAt: new Date("2026-07-03T00:01:00.000Z"),
-      values: createValues(),
-    });
+  it("restores a draft on the same server version even when the client clock is behind", () => {
+    const candidate = {
+      baseArticleUpdatedAt: "2026-07-03T00:05:00.000Z",
+      savedAt: "2026-07-03T00:01:00.000Z",
+      source: "local" as const,
+      values: createValues({ markdown: "# Later input" }),
+    };
+    expect(
+      pickLatestRestorableArticleDraft([candidate], createValues(), candidate.baseArticleUpdatedAt),
+    ).toBe(candidate);
+  });
 
-    expect(shouldRestoreArticleLocalDraft(newerDraft, "2026-07-03T00:05:00.000Z")).toBe(true);
-    expect(shouldRestoreArticleLocalDraft(olderDraft, "2026-07-03T00:05:00.000Z")).toBe(false);
-    expect(shouldRestoreArticleLocalDraft(olderDraft, null)).toBe(true);
+  it("does not automatically restore a draft from another base even if its client time is newer", () => {
+    expect(
+      pickLatestRestorableArticleDraft(
+        [
+          {
+            baseArticleUpdatedAt: "2026-07-03T00:01:00.000Z",
+            savedAt: "2026-07-03T00:10:00.000Z",
+            source: "cloud",
+            values: createValues({ markdown: "# Older base" }),
+          },
+        ],
+        createValues(),
+        "2026-07-03T00:05:00.000Z",
+      ),
+    ).toBeUndefined();
   });
 
   it("treats tag ordering as equivalent", () => {
@@ -77,11 +90,13 @@ describe("article local draft", () => {
         [
           {
             source: "local",
+            baseArticleUpdatedAt: "2026-07-03T00:05:00.000Z",
             savedAt: "2026-07-03T00:10:00.000Z",
             values: createValues({ markdown: "# Local" }),
           },
           {
             source: "cloud",
+            baseArticleUpdatedAt: "2026-07-03T00:05:00.000Z",
             savedAt: "2026-07-03T00:12:00.000Z",
             values: createValues({ markdown: "# Cloud" }),
           },
@@ -95,7 +110,7 @@ describe("article local draft", () => {
     });
   });
 
-  it("ignores drafts older than the server article or equal to server values", () => {
+  it("ignores drafts from another server version or equal to server values", () => {
     const serverValues = createValues({ markdown: "# Server" });
 
     expect(
@@ -103,11 +118,13 @@ describe("article local draft", () => {
         [
           {
             source: "local",
+            baseArticleUpdatedAt: "2026-07-03T00:01:00.000Z",
             savedAt: "2026-07-03T00:01:00.000Z",
             values: createValues({ markdown: "# Local" }),
           },
           {
             source: "cloud",
+            baseArticleUpdatedAt: "2026-07-03T00:05:00.000Z",
             savedAt: "2026-07-03T00:12:00.000Z",
             values: serverValues,
           },
