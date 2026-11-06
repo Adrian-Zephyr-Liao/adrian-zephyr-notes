@@ -44,6 +44,7 @@ function deploy(extra: Record<string, string | undefined> = {}) {
       elif [[ "$1" == exec && "$2" == -i ]]; then
         cat > /dev/null
       elif [[ "$1" == compose ]]; then
+        if [[ "$*" == *' run '* && "$*" == *'--pull'* ]]; then exit 16; fi
         if [[ "$*" == *'ps -q caddy' ]]; then echo caddy-id
         elif [[ "$*" == *'ps -q website' ]]; then echo old-website
         elif [[ "$*" == *'ps -q admin' ]]; then echo old-admin

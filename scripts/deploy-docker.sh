@@ -89,7 +89,7 @@ rollback() {
     if [[ -n "$candidate" ]]; then docker rm -f "$candidate" >/dev/null || true; fi
     if [[ "$server_changed" == true ]]; then
       printf 'services:\n  server:\n    image: %s\n' "$old_server_image" > "$work_dir/server-rollback.yml"
-      "${compose[@]}" -f "$work_dir/server-rollback.yml" up -d --no-build --no-deps --pull never --wait --wait-timeout 180 server ||
+      "${compose[@]}" -f "$work_dir/server-rollback.yml" up -d --no-build --no-deps --wait --wait-timeout 180 server ||
         echo "CRITICAL: server rollback failed. See $work_dir" >&2
     fi
     echo "Deployment failed; rolled back the in-progress service. Previously completed services remain deployed. Evidence: $work_dir" >&2
@@ -108,7 +108,7 @@ for service in "${services[@]}"; do
     old_server_image="$(docker inspect --format '{{.Image}}' "$server_id")"
     printf 'services:\n  server:\n    image: %s\n' "$image" > "$work_dir/server.yml"
     server_changed=true
-    "${compose[@]}" -f "$work_dir/server.yml" up -d --no-build --no-deps --pull never --wait --wait-timeout 180 server
+    "${compose[@]}" -f "$work_dir/server.yml" up -d --no-build --no-deps --wait --wait-timeout 180 server
     curl --fail --silent --show-error --max-time 20 https://zephyrai.site/api/site-config > /dev/null
     server_changed=false
     continue
@@ -125,7 +125,7 @@ for service in "${services[@]}"; do
   docker inspect "$old_container" > /dev/null
   candidate="azn-$service-${SHA:0:12}-$(date +%s)"
   printf 'services:\n  %s:\n    image: %s\n' "$service" "$image" > "$work_dir/$service.yml"
-  "${compose[@]}" -f "$work_dir/$service.yml" run -d --no-deps --pull never --name "$candidate" "$service" > /dev/null
+  "${compose[@]}" -f "$work_dir/$service.yml" run -d --no-deps --name "$candidate" "$service" > /dev/null
   wait_healthy "$candidate" || { echo "Candidate $candidate failed health checks." >&2; exit 1; }
   # Existing browser tabs can still request the previous build's hashed chunks.
   asset_path=/usr/share/nginx/html/assets
