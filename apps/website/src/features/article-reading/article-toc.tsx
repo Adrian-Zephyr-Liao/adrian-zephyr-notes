@@ -11,7 +11,9 @@ function ArticleToc({
   if (mobile) {
     return (
       <details className="mb-8 border-y border-border py-4 min-[901px]:hidden [&[open]>summary]:mb-4">
-        <summary className="cursor-pointer text-[0.9rem] text-primary">浏览文章目录</summary>
+        <summary className="min-h-11 cursor-pointer py-2.5 text-[0.9rem] text-primary">
+          浏览文章目录
+        </summary>
         <PostToc headings={headings} />
       </details>
     );

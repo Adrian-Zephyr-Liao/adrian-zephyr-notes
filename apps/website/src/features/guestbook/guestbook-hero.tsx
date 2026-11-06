@@ -31,7 +31,7 @@ function GuestbookHero({
         <div className="flex shrink-0 items-end gap-0 min-[1051px]:gap-6">
           <GuestbookMascot compact className="hidden min-[801px]:block" />
           <div className="grid gap-[0.65rem] pt-2 pb-1 text-right text-[0.65rem] whitespace-nowrap text-muted-foreground min-[601px]:pt-0 min-[601px]:text-[0.8rem] min-[801px]:pb-2">
-            <span className="font-display text-[3.5rem] leading-[0.8] tracking-[-0.07em] text-[color-mix(in_oklch,var(--primary)_40%,var(--background))] italic min-[601px]:text-[clamp(4rem,9vw,8rem)]">
+            <span className="font-display text-[3.5rem] leading-[0.8] tracking-[-0.07em] text-primary italic min-[601px]:text-[clamp(4rem,9vw,8rem)]">
               {totalMessages === null ? "—" : String(totalMessages).padStart(2, "0")}
             </span>
             <span>条相遇的记录</span>

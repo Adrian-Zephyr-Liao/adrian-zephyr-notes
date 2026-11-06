@@ -68,6 +68,7 @@ vp run -F @adrian-zephyr-notes/website test:browser
 
 The suite starts the actual standalone website on port 3104 and a fixed-response
 API fixture on port 4311. It covers layout, keyboard navigation, theme persistence,
-touch cover navigation, archive URLs, and discussion read failures. It does not
+touch cover navigation, archive URLs, discussion read failures, light/dark axe
+accessibility scans, and keyboard access to reading navigation and wide tables. It does not
 verify database behavior or production authentication. Failed tests retain traces
 and screenshots in `test-results/`; CI uploads those artifacts for seven days.

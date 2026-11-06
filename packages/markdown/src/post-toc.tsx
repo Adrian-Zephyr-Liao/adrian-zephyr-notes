@@ -112,12 +112,7 @@ function PostToc({ headings }: { headings: MarkdownHeading[] }) {
               href={`#${heading.id}`}
               onClick={() => setActiveHeadingId(heading.id)}
             >
-              <span
-                className={cx(
-                  "min-w-5 shrink-0 pt-0.5 text-xs tabular-nums transition motion-reduce:transition-none",
-                  activeHeadingId === heading.id ? "text-primary" : "text-primary/75",
-                )}
-              >
+              <span className="min-w-5 shrink-0 pt-0.5 text-xs text-primary tabular-nums">
                 {heading.order}
               </span>
               <span className="min-w-0 wrap-anywhere">{heading.text}</span>

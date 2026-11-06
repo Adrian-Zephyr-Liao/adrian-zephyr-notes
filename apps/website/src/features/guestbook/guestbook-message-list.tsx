@@ -112,7 +112,11 @@ function GuestbookMessageItem({
             size="sm"
             onClick={() => onToggleLike(message)}
             disabled={isLiking}
-            aria-label={`给 ${authorName} 的留言点赞`}
+            aria-label={
+              message.likedByMe
+                ? `取消给 ${authorName} 的留言点赞，当前 ${message.likeCount} 个赞`
+                : `给 ${authorName} 的留言点赞，当前 ${message.likeCount} 个赞`
+            }
             aria-pressed={message.likedByMe}
           >
             <Heart

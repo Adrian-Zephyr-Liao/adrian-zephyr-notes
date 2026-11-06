@@ -40,7 +40,7 @@ function ArticleArchive({
         className="relative mb-0 gap-3 border-b-0 pr-52 pb-10 max-[600px]:pr-24 max-[600px]:pb-7 min-[681px]:mb-0 min-[681px]:gap-3 min-[681px]:pb-10"
       >
         <div className="absolute right-0 bottom-10 grid justify-items-end gap-1 pb-[0.45rem] text-[0.9rem] whitespace-nowrap max-[600px]:top-2 max-[600px]:bottom-auto max-[600px]:gap-2 max-[600px]:text-[0.65rem]">
-          <span className="font-display text-[clamp(5rem,12vw,11rem)] leading-[0.8] tracking-[-0.085em] text-[color-mix(in_oklch,var(--primary)_32%,var(--background))] italic tabular-nums max-[600px]:text-[4rem]">
+          <span className="font-display text-[clamp(5rem,12vw,11rem)] leading-[0.8] tracking-[-0.085em] text-primary italic tabular-nums max-[600px]:text-[4rem]">
             {String(articles.pagination.totalItems).padStart(2, "0")}
           </span>
           <span>{hasFilters ? "篇匹配的公开文章" : "篇公开文章"}</span>

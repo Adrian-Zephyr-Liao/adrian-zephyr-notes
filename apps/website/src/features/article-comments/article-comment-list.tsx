@@ -167,8 +167,8 @@ function CommentItem({
               disabled={likingCommentIds.has(comment.id)}
               aria-label={
                 comment.likedByMe
-                  ? `取消给 ${authorName} 的评论点赞`
-                  : `给 ${authorName} 的评论点赞`
+                  ? `取消给 ${authorName} 的评论点赞，当前 ${comment.likeCount} 个赞`
+                  : `给 ${authorName} 的评论点赞，当前 ${comment.likeCount} 个赞`
               }
               aria-pressed={comment.likedByMe}
             >
