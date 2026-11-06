@@ -2,16 +2,18 @@ import Markdown, {
   MarkdownAsync,
   MarkdownHooks,
   type Components,
+  type ExtraProps,
   type Options,
 } from "react-markdown";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
-import { isValidElement, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, type ComponentProps, type ReactNode } from "react";
 import type { PluggableList } from "unified";
 
 import { CodeCopyButton } from "./code-copy-button";
+import { MarkdownImage } from "./markdown-image";
 import { cx } from "./utils";
 
 type MarkdownRendererProps = {
@@ -64,9 +66,12 @@ const markdownComponents = {
         rel={isExternalLink(href) ? "noreferrer" : undefined}
         {...props}
       >
-        {children}
+        {preserveLinkedImages(children)}
       </a>
     );
+  },
+  img({ node: _node, ...props }) {
+    return <MarkdownImage {...props} />;
   },
   li({ className, children, node: _node, ...props }) {
     if (typeof className === "string" && className.includes("task-list-item")) {
@@ -106,6 +111,23 @@ const markdownComponents = {
     );
   },
 } satisfies Components;
+
+function preserveLinkedImages(children: ReactNode): ReactNode {
+  return Children.map(children, (child) => {
+    if (!isValidElement<ComponentProps<"img"> & ExtraProps>(child)) {
+      return child;
+    }
+
+    if (child.props.node?.tagName === "img") {
+      const { node: _node, ...props } = child.props;
+      return <img {...props} alt={props.alt ?? ""} />;
+    }
+
+    return child.props.children
+      ? cloneElement(child, undefined, preserveLinkedImages(child.props.children))
+      : child;
+  });
+}
 
 function getCodeLanguage(props: Record<string, unknown>, children: ReactNode) {
   const language = props["data-language"];

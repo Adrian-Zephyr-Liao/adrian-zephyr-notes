@@ -1,3 +1,4 @@
+@import "react-medium-image-zoom/dist/styles.css" layer(components);
 @reference "tailwindcss";
 @custom-variant dark (&:is(.dark *));
 
@@ -216,8 +217,65 @@
     @apply rounded-lg border border-primary/15 bg-primary/10 px-1.5 py-0.5 font-mono text-[0.9em] text-primary;
   }
 
-  .markdown-body img {
+  .markdown-body img,
+  .markdown-body [data-rmiz-content] {
     @apply my-7 h-auto max-h-[28rem] w-full rounded-2xl border border-(--glass-border) bg-white/60 object-contain p-5 shadow-(--shadow-glass) dark:bg-white/5;
+  }
+
+  .markdown-body [data-rmiz],
+  .markdown-body [data-rmiz-content] {
+    display: block;
+  }
+
+  .markdown-body [data-rmiz-content] img {
+    max-height: calc(28rem - 2.5rem - 2px);
+  }
+
+  .markdown-body [data-rmiz-content] img,
+  .markdown-image-dialog [data-rmiz-modal-img] {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .markdown-image-dialog [data-rmiz-modal-img] {
+    max-width: none;
+    max-height: none;
+  }
+
+  .markdown-image-dialog [data-rmiz-modal-overlay="visible"] {
+    background: color-mix(in oklab, var(--background) 96%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .markdown-body [data-rmiz-btn-zoom],
+  .markdown-image-dialog [data-rmiz-btn-unzoom] {
+    width: 44px;
+    height: 44px;
+    padding: 10px;
+    color: var(--foreground);
+    background: var(--glass-surface-strong);
+    border: 1px solid var(--glass-border);
+    box-shadow: var(--shadow-glass);
+  }
+
+  .markdown-body [data-rmiz-btn-zoom] svg,
+  .markdown-image-dialog [data-rmiz-btn-unzoom] svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .markdown-body [data-rmiz-btn-zoom]:focus-visible,
+  .markdown-image-dialog [data-rmiz-btn-unzoom]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 4px;
+  }
+
+  .markdown-image-dialog [data-rmiz-btn-unzoom] {
+    inset: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) auto auto;
   }
 
   .markdown-body figure[data-rehype-pretty-code-figure] {
@@ -530,8 +588,13 @@
       @apply my-5 rounded-xl px-4 py-3;
     }
 
-    .markdown-body img {
+    .markdown-body img,
+    .markdown-body [data-rmiz-content] {
       @apply my-5 rounded-xl p-3;
+    }
+
+    .markdown-body [data-rmiz-content] img {
+      max-height: calc(28rem - 1.5rem - 2px);
     }
 
     .markdown-body figure[data-rehype-pretty-code-figure],

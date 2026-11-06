@@ -1,17 +1,15 @@
 // @vitest-environment jsdom
 
-import { flushSync } from "react-dom";
-import { createRoot } from "react-dom/client";
-import { renderToStaticMarkup } from "react-dom/server";
-import { describe, expect, it, vi } from "vitest";
-import { MarkdownPreview } from "./markdown-renderer";
+import { renderToReadableStream, renderToStaticMarkup } from "react-dom/server";
+import { describe, expect, it } from "vitest";
+import { MarkdownPreview, MarkdownRenderer } from "./markdown-renderer";
 
 describe("MarkdownPreview", () => {
   it("filters disallowed images before rendering or preloading them while preserving links", () => {
     const html = renderToStaticMarkup(
       <MarkdownPreview
         content={
-          "![外部图片](https://collector.example.test/image.png)\n\n[核对链接](https://example.test/review)"
+          "![外部图片](https://collector.example.test/image.png)\n\n[![链接图片](https://collector.example.test/linked.png)](https://example.test/review)"
         }
         disallowedElements={["img"]}
         variant="stream"
@@ -21,24 +19,39 @@ describe("MarkdownPreview", () => {
     expect(html).not.toContain("<img");
     expect(html).not.toContain('rel="preload"');
     expect(html).not.toContain("https://collector.example.test/image.png");
+    expect(html).not.toContain("https://collector.example.test/linked.png");
+    expect(html).not.toContain("data-rmiz");
     expect(html).toContain('href="https://example.test/review"');
   });
 
-  it("keeps article images enabled in document previews by default", async () => {
+  it("keeps server-rendered article images zoomable without invalid paragraph markup", async () => {
+    const stream = await renderToReadableStream(
+      await MarkdownRenderer({ content: "![文章图片](https://example.test/article.png)" }),
+    );
+    await stream.allReady;
+    const html = await new Response(stream).text();
+
+    expect(html).toContain('src="https://example.test/article.png"');
+    expect(html).toContain('<span data-rmiz=""');
+    expect(html).not.toContain("<div");
+    expect(html).not.toContain("node=");
+  });
+
+  it.each([
+    "[![图片](https://example.test/article.png)](https://example.test/original)",
+    "[*![图片](https://example.test/article.png)*](https://example.test/original)",
+  ])("preserves linked images as links without nested zoom controls: %s", (content) => {
+    const html = renderToStaticMarkup(<MarkdownPreview content={content} variant="stream" />);
     const container = document.createElement("div");
-    const root = createRoot(container);
-    try {
-      flushSync(() =>
-        root.render(<MarkdownPreview content="![文章图片](https://example.test/article.png)" />),
-      );
-      await vi.waitFor(() => {
-        expect(container.querySelector("img")?.getAttribute("src")).toBe(
-          "https://example.test/article.png",
-        );
-      });
-    } finally {
-      root.unmount();
-    }
+    container.innerHTML = html;
+    const link = container.querySelector("a");
+
+    expect(link?.getAttribute("href")).toBe("https://example.test/original");
+    expect(link?.querySelector("img")?.getAttribute("src")).toBe(
+      "https://example.test/article.png",
+    );
+    expect(link?.querySelector("button, [data-rmiz]")).toBeNull();
+    expect(html).not.toContain("node=");
   });
 
   it("renders stream markdown with GFM, code blocks, and skipped raw HTML", () => {
