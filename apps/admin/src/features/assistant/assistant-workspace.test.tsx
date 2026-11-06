@@ -62,6 +62,53 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("AssistantWorkspace", () => {
+  it.each(["history", "stream"] as const)(
+    "keeps %s assistant markdown passive while preserving ordinary links",
+    async (source) => {
+      const markdown =
+        "![外部图片](https://collector.example.test/image.png)\n\n[核对链接](https://example.test/review)";
+      let finish: ((result: AssistantStreamResult) => void) | undefined;
+      if (source === "history") {
+        api.getAssistantHistory.mockResolvedValue({
+          conversation: conversation(),
+          turns: [
+            turn({
+              messages: [{ id: "assistant-markdown", role: "assistant", content: markdown }],
+            }),
+          ],
+          nextBefore: null,
+        });
+      } else {
+        transport.streamAssistantTurn.mockImplementation((request) => {
+          request.onStarted?.();
+          request.onTextDelta(markdown, "assistant-markdown");
+          return {
+            abort: vi.fn(),
+            finished: new Promise((resolve) => (finish = resolve)),
+          };
+        });
+      }
+      render(
+        <AssistantWorkspace
+          conversationId={source === "history" ? "conversation-1" : undefined}
+          onConversationChange={() => {}}
+        />,
+      );
+      await waitFor(() =>
+        expect((screen.getByLabelText("你的问题") as HTMLTextAreaElement).disabled).toBe(false),
+      );
+      if (source === "stream") ask("核对这条记录");
+      try {
+        const link = await screen.findByRole("link", { name: "核对链接" });
+        expect(link.getAttribute("href")).toBe("https://example.test/review");
+        expect(document.querySelector("img")).toBeNull();
+        expect(document.querySelector('link[rel="preload"][as="image"]')).toBeNull();
+      } finally {
+        if (finish) await act(async () => finish?.({ terminal: "finished" }));
+      }
+    },
+  );
+
   it("recovers failed history before allowing another request in the existing conversation", async () => {
     api.getAssistantHistory.mockRejectedValueOnce(new Error("offline"));
     render(<AssistantWorkspace conversationId="conversation-1" onConversationChange={() => {}} />);

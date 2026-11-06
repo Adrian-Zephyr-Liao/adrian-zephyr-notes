@@ -224,6 +224,7 @@ function AssistantWorkspace({
                         <MarkdownPreview
                           className="text-sm"
                           content={conversation.pending.text}
+                          disallowedElements={["img"]}
                           variant="stream"
                         />
                       </div>

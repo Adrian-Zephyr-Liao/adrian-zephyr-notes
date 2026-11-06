@@ -5,8 +5,9 @@
     "check": "passed",
     "unitAndComponent": {
       "files": 76,
-      "tests": 325,
-      "passed": 325
+      "tests": 329,
+      "passed": 329,
+      "earlierRoundPassed": 325
     },
     "postgresE2e": {
       "files": 5,
@@ -259,5 +260,223 @@
     "No production comment writes authorized for acceptance.",
     "Real phone software keyboards and full screen-reader audit were not performed.",
     "The first browser cleanup timing check failed; its original evidence is retained separately and the complete run was repeated successfully."
-  ]
+  ],
+  "deployment": {
+    "verifiedAt": "2026-11-06T16:08:16+08:00",
+    "codeCommit": "c3d94666bec4f032cb99cc55836f76f700bd8a39",
+    "ci": {
+      "runId": 42183529437,
+      "conclusion": "success",
+      "applicationTests": 314,
+      "includesDatabaseE2e": false
+    },
+    "node": "24.18.0",
+    "images": {
+      "server": "b673409537be1b06759202bf031042534527cd959cfec2f1b62ba497bc794514",
+      "admin": "20e128dcd6d1331cfe921cc1fb769686692089b6277af5ebd52ce1e03d04f1be",
+      "website": "7f1ed7c74930ca96e475c8d91b0a6b17281535115838660d15546bcd0f9fae8d"
+    },
+    "health": {
+      "server": "healthy",
+      "admin": "healthy",
+      "website": "healthy",
+      "restartCounts": 0,
+      "oom": false
+    },
+    "readOnlySmoke": {
+      "stage": "assistant-production-smoke",
+      "passed": true,
+      "runId": "production-smoke-3f5f45c7-0d58-4750-b910-7233ded76e83",
+      "checks": {
+        "anonymousDenied": true,
+        "authenticated": true,
+        "exactCapabilitiesAndReadOnlyLabels": true,
+        "firstEventBeforeTerminal": true,
+        "defaultFilters": {
+          "actionAll": true,
+          "actorUnspecified": true,
+          "searchUnspecified": true
+        },
+        "auditRecordExists": true,
+        "publicAuditFieldsSafe": true,
+        "streamMatchesHistory": true,
+        "noReasoningEvents": true,
+        "sameRequestReplay": true,
+        "historyIdsStable": true
+      },
+      "counts": {
+        "capabilities": 3,
+        "firstEventMs": 60,
+        "terminalMs": 7734,
+        "initialEvents": 56,
+        "textDeltas": 48,
+        "messages": 2,
+        "auditRows": 20,
+        "assistantActions": 0,
+        "replayEvents": 5,
+        "turns": 1
+      },
+      "toolNames": ["list_audit_logs"],
+      "cleanup": {
+        "session": true,
+        "conversation": true
+      },
+      "toolResultKind": "audit_logs"
+    },
+    "anonymousBrowser": {
+      "passed": true,
+      "checks": {
+        "initialCookiesEmpty": true,
+        "loginGateVisible": true,
+        "loginHeadingVisible": true,
+        "noAssistantInput": true,
+        "noSessionCookie": true,
+        "locationUnchanged": true,
+        "noMutationAttempted": true,
+        "noAssistantOrLoginFlowAttempted": true,
+        "htmlLoaded": true,
+        "javascriptLoaded": true,
+        "cssLoaded": true
+      },
+      "counts": {
+        "scripts": 6,
+        "stylesheets": 1,
+        "consoleErrors": 0,
+        "pageErrors": 0,
+        "requestFailures": 0
+      },
+      "cleanup": true,
+      "browserVersion": "156.0.8078.81",
+      "status": 200
+    },
+    "publicStatuses": {
+      "website": 200,
+      "assistantPage": 200,
+      "anonymousAssistantApi": 401
+    },
+    "businessWritesPerformed": false,
+    "database": {
+      "migrationApplied": true,
+      "remainingOwnSmokeTurns": 0,
+      "activeTurnsAtVerification": 0
+    },
+    "productionOverridesPreserved": true,
+    "backupVerified": true,
+    "localServerUpdated": true,
+    "temporaryInfrastructureRemoved": true
+  },
+  "markdownImageSafety": {
+    "scope": "local fixture text and local network only; actual assistant route and shared article renderer",
+    "before": {
+      "source": "actual shared MarkdownPreview stream renderer + Chrome collector before fix",
+      "generatedImage": true,
+      "generatedImagePreload": true,
+      "automaticRequests": ["/collect?data=fixture-only"],
+      "generatedIframe": false
+    },
+    "after": [
+      {
+        "mode": "history",
+        "imgCount": 0,
+        "iframeCount": 0,
+        "anchorCount": 1,
+        "imagePreloadCount": 0,
+        "collectorResources": [],
+        "html": "<div class=\"mx-auto w-full max-w-3xl space-y-5 pb-3 wrap-anywhere\"><div aria-label=\"会话记录\" class=\"space-y-5\" role=\"log\"><article class=\"min-w-0 space-y-4 border-b border-border/45 pb-5 wrap-anywhere last:border-0\"><div class=\"flex flex-wrap items-center gap-2 text-xs text-muted-foreground\"><time datetime=\"2026-11-06T08:00:00Z\">2026/11/6 16:00</time><span data-slot=\"badge\" class=\"inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-medium whitespace-nowrap border-border text-muted-foreground\">回答完成</span></div><div class=\"ml-auto w-fit max-w-[90%] min-w-0 rounded-lg bg-primary/10 px-4 py-3 wrap-anywhere\"><p class=\"mb-1 text-xs font-medium text-muted-foreground\">你</p><p class=\"text-sm whitespace-pre-wrap\">Fixture question</p></div><div class=\"space-y-1\"><p class=\"text-xs font-medium text-muted-foreground\">助手</p><article class=\"markdown-body markdown-body-stream text-sm\"><p>fixture-history-marker</p>\n<p></p>\n<p><a class=\"markdown-link\" href=\"http://127.0.0.1:62922/manual-history?data=fixture-only\" target=\"_blank\" rel=\"noreferrer\">manual-history</a></p>\n</article></div></article></div></div>",
+        "requests": [],
+        "api": [
+          {
+            "method": "GET",
+            "path": "/api/admin/auth/me"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/auth/me"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/capabilities"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/conversations/11111111-1111-4111-8111-111111111111"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/capabilities"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/capabilities"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/conversations/11111111-1111-4111-8111-111111111111"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/capabilities"
+          }
+        ]
+      },
+      {
+        "mode": "stream",
+        "imgCount": 0,
+        "iframeCount": 0,
+        "anchorCount": 1,
+        "imagePreloadCount": 0,
+        "collectorResources": [],
+        "html": "<div class=\"mx-auto w-full max-w-3xl space-y-5 pb-3 wrap-anywhere\"><div aria-label=\"会话记录\" class=\"space-y-5\" role=\"log\"><article class=\"space-y-4\"><div class=\"ml-auto w-fit max-w-[90%] min-w-0 rounded-lg bg-primary/10 px-4 py-3 wrap-anywhere\"><p class=\"mb-1 text-xs font-medium text-muted-foreground\">你</p><p class=\"text-sm whitespace-pre-wrap\">Fixture streaming question</p></div><div class=\"space-y-1\"><p class=\"text-xs font-medium text-muted-foreground\">助手</p><article class=\"markdown-body markdown-body-stream text-sm\"><p>fixture-stream-marker</p>\n<p></p>\n<p><a class=\"markdown-link\" href=\"http://127.0.0.1:62922/manual-stream?data=fixture-only\" target=\"_blank\" rel=\"noreferrer\">manual-stream</a></p>\n</article></div><p class=\"flex items-center gap-2 text-xs text-muted-foreground\" role=\"status\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-loader-circle size-3.5 animate-spin\" aria-hidden=\"true\"><path d=\"M21 12a9 9 0 1 1-6.219-8.56\"></path></svg>正在处理请求</p></article></div></div>",
+        "requests": [],
+        "api": [
+          {
+            "method": "GET",
+            "path": "/api/admin/auth/me"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/auth/me"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/capabilities"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/conversations/11111111-1111-4111-8111-111111111111"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/capabilities"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/capabilities"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/conversations/11111111-1111-4111-8111-111111111111"
+          },
+          {
+            "method": "GET",
+            "path": "/api/admin/assistant/capabilities"
+          }
+        ]
+      },
+      {
+        "mode": "default-article",
+        "imgCount": 1,
+        "iframeCount": 0,
+        "anchorCount": 1,
+        "requests": ["/collect-article?data=fixture-only"],
+        "html": "<link rel=\"preload\" as=\"image\" href=\"http://127.0.0.1:62922/collect-article?data=fixture-only\"/><article class=\"markdown-body\"><p>fixture-article-marker</p>\n<p><img src=\"http://127.0.0.1:62922/collect-article?data=fixture-only\" alt=\"fixture\"/></p>\n<p><a class=\"markdown-link\" href=\"http://127.0.0.1:62922/manual-article?data=fixture-only\" target=\"_blank\" rel=\"noreferrer\">manual-article</a></p>\n<!-- --></article>"
+      }
+    ],
+    "errors": [],
+    "passed": true,
+    "realBrowserUsed": true,
+    "networks": "local fixture collector only",
+    "sharedDefaultArticleImagesPreserved": true
+  },
+  "unitTestEntry": "pnpm test -> vp test run, including shared packages"
 }

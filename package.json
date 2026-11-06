@@ -15,7 +15,7 @@
     "format:check": "vp fmt . --check --disable-nested-config",
     "lint": "vp lint .",
     "prepare": "husky",
-    "test": "pnpm -r --filter './apps/*' test",
+    "test": "vp test run",
     "typecheck": "pnpm --filter @adrian-zephyr-notes/contracts typecheck && pnpm --filter @adrian-zephyr-notes/markdown typecheck && pnpm --filter @adrian-zephyr-notes/admin exec tsc --noEmit --pretty false && pnpm --filter @adrian-zephyr-notes/website typecheck && pnpm --filter @adrian-zephyr-notes/server typecheck"
   },
   "devDependencies": {

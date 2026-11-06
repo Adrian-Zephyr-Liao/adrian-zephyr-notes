@@ -45,7 +45,12 @@ function AssistantTurn({
         ) : (
           <div className="space-y-1" key={message.id}>
             <p className="text-xs font-medium text-muted-foreground">助手</p>
-            <MarkdownPreview className="text-sm" content={message.content} variant="stream" />
+            <MarkdownPreview
+              className="text-sm"
+              content={message.content}
+              disallowedElements={["img"]}
+              variant="stream"
+            />
           </div>
         ),
       )}

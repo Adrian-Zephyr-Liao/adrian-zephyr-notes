@@ -1,4 +1,9 @@
-import Markdown, { MarkdownAsync, MarkdownHooks, type Components } from "react-markdown";
+import Markdown, {
+  MarkdownAsync,
+  MarkdownHooks,
+  type Components,
+  type Options,
+} from "react-markdown";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
@@ -14,6 +19,7 @@ type MarkdownRendererProps = {
   className?: string;
   variant?: "document" | "stream";
 };
+type MarkdownPreviewProps = MarkdownRendererProps & Pick<Options, "disallowedElements">;
 
 const documentRehypePlugins: PluggableList = [
   rehypeSlug,
@@ -160,7 +166,12 @@ async function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   );
 }
 
-function MarkdownPreview({ content, className, variant = "document" }: MarkdownRendererProps) {
+function MarkdownPreview({
+  content,
+  className,
+  variant = "document",
+  disallowedElements,
+}: MarkdownPreviewProps) {
   const previewClassName = cx(
     "markdown-body",
     variant === "stream" && "markdown-body-stream",
@@ -171,6 +182,7 @@ function MarkdownPreview({ content, className, variant = "document" }: MarkdownR
     return (
       <article className={previewClassName}>
         <Markdown
+          disallowedElements={disallowedElements}
           remarkPlugins={[remarkGfm]}
           rehypePlugins={streamRehypePlugins}
           components={markdownComponents}
@@ -185,6 +197,7 @@ function MarkdownPreview({ content, className, variant = "document" }: MarkdownR
   return (
     <article className={previewClassName}>
       <MarkdownHooks
+        disallowedElements={disallowedElements}
         remarkPlugins={[remarkGfm]}
         rehypePlugins={documentRehypePlugins}
         components={markdownComponents}
