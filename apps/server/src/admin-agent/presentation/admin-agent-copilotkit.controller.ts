@@ -50,7 +50,14 @@ class AdminAgentCopilotKitController {
     @CurrentAdmin() admin: AuthUser,
   ) {
     try {
-      await this.sendChatMessage.abortConversation(admin.id, conversationId);
+      await this.sendChatMessage.abortConversation(
+        admin.id,
+        conversationId,
+        this.commentTools.create({
+          actor: toAdminOperationActor(admin),
+          startedByUserId: admin.id,
+        }),
+      );
     } catch (error) {
       if (error instanceof AdminAgentConversationAccessError)
         throw new ForbiddenException(error.message);
@@ -65,6 +72,10 @@ class AdminAgentCopilotKitController {
     @Res() response: Response,
     @CurrentAdmin() admin: AuthUser,
   ): Promise<void> {
+    const connection = new AbortController();
+    response.once("close", () => {
+      if (!response.writableFinished) connection.abort();
+    });
     const runtime = new CopilotSseRuntime({
       a2ui: {
         agents: ["admin-agent"],
@@ -77,6 +88,7 @@ class AdminAgentCopilotKitController {
       agents: {
         "admin-agent": new AdminAgentAgUiAgent({
           actorUserId: admin.id,
+          signal: connection.signal,
           chatMessageRepository: this.chatMessageRepository,
           sendChatMessage: this.sendChatMessage,
           serverTools: this.commentTools.create({
@@ -93,13 +105,13 @@ class AdminAgentCopilotKitController {
       mode: "single-route",
       runtime,
     });
-    const copilotKitResponse = await handler(toFetchRequest(request));
+    const copilotKitResponse = await handler(toFetchRequest(request, connection.signal));
 
     await writeFetchResponse(response, copilotKitResponse);
   }
 }
 
-function toFetchRequest(request: Request) {
+function toFetchRequest(request: Request, signal: AbortSignal) {
   const headers = new Headers();
 
   for (const [key, value] of Object.entries(request.headers)) {
@@ -126,6 +138,7 @@ function toFetchRequest(request: Request) {
     duplex: body instanceof ReadableStream ? "half" : undefined,
     headers,
     method,
+    signal,
   } as RequestInit);
 }
 
@@ -167,12 +180,23 @@ async function writeFetchResponse(response: Response, fetchResponse: globalThis.
     return;
   }
 
-  await new Promise<void>((resolve, reject) => {
-    Readable.fromWeb(fetchResponse.body as unknown as Parameters<typeof Readable.fromWeb>[0])
-      .on("error", reject)
-      .on("end", resolve)
-      .pipe(response);
-  });
+  const source = Readable.fromWeb(
+    fetchResponse.body as unknown as Parameters<typeof Readable.fromWeb>[0],
+  );
+  let onClose!: () => void;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      onClose = () => {
+        source.destroy();
+        resolve();
+      };
+      response.once("close", onClose);
+      source.once("error", reject).once("end", resolve).pipe(response);
+      if (response.destroyed) onClose();
+    });
+  } finally {
+    response.off("close", onClose);
+  }
 }
 
 export { AdminAgentCopilotKitController, writeFetchResponse };

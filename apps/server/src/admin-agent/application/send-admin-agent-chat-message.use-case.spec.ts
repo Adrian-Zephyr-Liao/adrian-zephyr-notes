@@ -3,6 +3,53 @@ import type { AdminAgentChatRunnerEvent } from "../domain/admin-agent-chat-runne
 import { SendAdminAgentChatMessageUseCase } from "./send-admin-agent-chat-message.use-case";
 
 describe("SendAdminAgentChatMessageUseCase", () => {
+  it("rejects another administrator's Stop before touching the runner", async () => {
+    const abortConversation = vi.fn();
+    const useCase = new SendAdminAgentChatMessageUseCase(
+      {
+        streamReply: vi.fn(),
+        abortConversation,
+      },
+      {
+        assertConversationAccess: vi.fn().mockRejectedValue(new Error("another administrator")),
+      } as never,
+    );
+
+    await expect(useCase.abortConversation("other-admin", "conversation-1")).rejects.toThrow(
+      "another administrator",
+    );
+    expect(abortConversation).not.toHaveBeenCalled();
+  });
+
+  it("passes trusted cancellation capabilities after access checks and propagates Stop failure", async () => {
+    const assertConversationAccess = vi.fn().mockResolvedValue(undefined);
+    const abortConversation = vi.fn().mockRejectedValue(new Error("business cancellation failed"));
+    const serverTools = [
+      {
+        name: "analyze_comments",
+        description: "Analyze comments",
+        parameters: { type: "object" },
+        execute: vi.fn(),
+        cancel: vi.fn(),
+      },
+    ];
+    const useCase = new SendAdminAgentChatMessageUseCase(
+      {
+        streamReply: vi.fn(),
+        abortConversation,
+      },
+      { assertConversationAccess } as never,
+    );
+
+    await expect(
+      useCase.abortConversation("admin-1", "conversation-1", serverTools),
+    ).rejects.toThrow("business cancellation failed");
+    expect(abortConversation).toHaveBeenCalledWith("admin-1", "conversation-1", serverTools);
+    expect(assertConversationAccess.mock.invocationCallOrder[0]).toBeLessThan(
+      abortConversation.mock.invocationCallOrder[0]!,
+    );
+  });
+
   it("rejects another administrator's conversation before persisting user input or running a model", async () => {
     const streamReply = vi.fn();
     const recordMessage = vi.fn();

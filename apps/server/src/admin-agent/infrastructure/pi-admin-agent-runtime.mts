@@ -1,5 +1,5 @@
 // Node 24's require(ESM) bridge keeps Nest CommonJS while resolving Pi's import-only exports.
-export { BACKGROUND_CONTEXT } from "@earendil-works/chord/context";
+export { BACKGROUND_CONTEXT, withAbortSignal } from "@earendil-works/chord/context";
 export { createModels } from "@earendil-works/pi-ai/models";
 export {
   defineDoc,

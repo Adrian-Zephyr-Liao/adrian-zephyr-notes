@@ -33,6 +33,66 @@ import {
 import type { RepairAdminAgentDecisionEffectsUseCase } from "./repair-admin-agent-decision-effects.use-case";
 
 describe("ManageAdminAgentWorkflowsUseCase", () => {
+  it("cancels only the active chat analysis found by its durable dedupe key", async () => {
+    const repository = new RecordingAdminAgentRepository([
+      createRun({
+        id: "analysis",
+        dedupeKey: "chat-analysis:one",
+        startedByUserId: "admin-1",
+        workflowName: "COMMENT_MODERATION_ANALYSIS",
+        status: "RUNNING",
+      }),
+    ]);
+    const useCase = createUseCase(repository);
+    await useCase.cancelChatAnalysis({
+      dedupeKey: "chat-analysis:other-conversation",
+      startedByUserId: "admin-1",
+    });
+    expect((await repository.findRunById("analysis"))?.status).toBe("RUNNING");
+    await useCase.cancelChatAnalysis({
+      dedupeKey: "chat-analysis:one",
+      startedByUserId: "admin-1",
+    });
+    expect((await repository.findRunById("analysis"))?.status).toBe("CANCELLED");
+  });
+
+  it.each(["COMPLETED", "FAILED", "CANCELLED"] as const)(
+    "ignores a late cancellation for a %s chat analysis",
+    async (status) => {
+      const repository = new RecordingAdminAgentRepository([
+        createRun({
+          dedupeKey: "chat-analysis:one",
+          startedByUserId: "admin-1",
+          workflowName: "COMMENT_MODERATION_ANALYSIS",
+          status,
+        }),
+      ]);
+      const cancel = vi.spyOn(repository, "cancelRun");
+      await createUseCase(repository).cancelChatAnalysis({
+        dedupeKey: "chat-analysis:one",
+        startedByUserId: "admin-1",
+      });
+      expect(cancel).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    { startedByUserId: "other-admin", workflowName: "COMMENT_MODERATION_ANALYSIS" as const },
+    { startedByUserId: "admin-1", workflowName: "SITE_CONFIG_REVIEW" as const },
+  ])("rejects a chat cancellation that does not match saved ownership: %j", async (owner) => {
+    const repository = new RecordingAdminAgentRepository([
+      createRun({ dedupeKey: "chat-analysis:one", ...owner }),
+    ]);
+    const cancel = vi.spyOn(repository, "cancelRun");
+    await expect(
+      createUseCase(repository).cancelChatAnalysis({
+        dedupeKey: "chat-analysis:one",
+        startedByUserId: "admin-1",
+      }),
+    ).rejects.toThrow("saved owner and workflow");
+    expect(cancel).not.toHaveBeenCalled();
+  });
+
   it("lists workflow runs with normalized pagination and filters", async () => {
     const repository = new RecordingAdminAgentRepository([
       createRun({
@@ -1407,6 +1467,10 @@ class RecordingAdminAgentRepository implements AdminAgentRepository {
 
   async findRunById(id: string) {
     return this.runs.get(id) ?? null;
+  }
+
+  async findRunByDedupeKey(dedupeKey: string) {
+    return [...this.runs.values()].find((run) => run.dedupeKey === dedupeKey) ?? null;
   }
 
   async findRunByThreadId(threadId: string) {

@@ -47,6 +47,9 @@ type AdminAgentChatTool = {
 };
 
 type AdminAgentServerTool = AdminAgentChatTool & {
+  cancel?: (
+    context: Pick<AdminAgentServerToolExecutionContext, "conversationId" | "toolCallId">,
+  ) => Promise<void>;
   execute: (
     argumentsValue: Record<string, unknown>,
     context: AdminAgentServerToolExecutionContext,
@@ -101,7 +104,11 @@ type AdminAgentChatRunnerEvent =
 
 interface AdminAgentChatRunner {
   streamReply(input: AdminAgentChatReplyInput): AsyncIterable<AdminAgentChatRunnerEvent>;
-  abortConversation?(actorUserId: string, conversationId: string): Promise<void>;
+  abortConversation?(
+    actorUserId: string,
+    conversationId: string,
+    serverTools?: AdminAgentServerTool[],
+  ): Promise<void>;
 }
 
 const ADMIN_AGENT_CHAT_RUNNER = Symbol("ADMIN_AGENT_CHAT_RUNNER");

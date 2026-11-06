@@ -2179,6 +2179,10 @@ class RecordingAdminAgentRepository implements AdminAgentRepository {
     return this.runs.get(id) ?? null;
   }
 
+  async findRunByDedupeKey(dedupeKey: string) {
+    return [...this.runs.values()].find((run) => run.dedupeKey === dedupeKey) ?? null;
+  }
+
   async findRunByThreadId(threadId: string) {
     return [...this.runs.values()].find((run) => run.threadId === threadId) ?? null;
   }

@@ -115,7 +115,7 @@ describe("AdminAgentCommentTools", () => {
         commentIds: ["comment-1", "comment-1", "comment-2"],
         objective: "MODERATION_RISK",
       },
-      executionContext,
+      { ...executionContext, signal: AbortSignal.abort() },
     );
     const content = JSON.parse(result.content) as {
       result: { analysisId: string; findingIds: string[] };
@@ -129,8 +129,10 @@ describe("AdminAgentCommentTools", () => {
           objective: "MODERATION_RISK",
         },
         workflowName: "COMMENT_MODERATION_ANALYSIS",
+        waitSignal: expect.any(AbortSignal),
       }),
     );
+    expect(startWorkflow.mock.calls[0]![0]).not.toHaveProperty("signal");
     expect(listFindingsByIds).toHaveBeenCalledWith(["finding-1"]);
     expect(content.result).toEqual({
       analysisId: "run-1",
@@ -148,6 +150,27 @@ describe("AdminAgentCommentTools", () => {
     expect(serializedActivity).toContain("CommentAnalysisReview");
     expect(serializedActivity).toContain('"findingId":"finding-1"');
     expect(result.content).not.toContain("a2ui_operations");
+  });
+
+  it("cancels only the saved analysis identity for the same actor, conversation and tool call", async () => {
+    const startWorkflow = vi.fn().mockResolvedValue({
+      run: { id: "run-1" },
+      output: { findingIds: [] },
+      summary: "Done",
+      interruption: null,
+    });
+    const cancelChatAnalysis = vi.fn().mockResolvedValue(undefined);
+    const analyze = getTool(createTools({ startWorkflow, cancelChatAnalysis }), "analyze_comments");
+    await analyze.execute({ commentIds: ["comment-1"] }, executionContext);
+    await analyze.cancel!(executionContext);
+    expect(cancelChatAnalysis).toHaveBeenLastCalledWith({
+      dedupeKey: startWorkflow.mock.calls[0]![0].dedupeKey,
+      startedByUserId: "admin-1",
+    });
+    await analyze.cancel!({ ...executionContext, conversationId: "other-conversation" });
+    expect(cancelChatAnalysis.mock.calls[1]![0].dedupeKey).not.toBe(
+      startWorkflow.mock.calls[0]![0].dedupeKey,
+    );
   });
 
   it("hides reviewed findings as one atomic tool call and returns the replaced activity", async () => {
@@ -221,11 +244,15 @@ function createTools(
     listFindingsByIds?: ReturnType<typeof vi.fn>;
     moderateCommentAnalysis?: { execute: ReturnType<typeof vi.fn> };
     startWorkflow?: ReturnType<typeof vi.fn>;
+    cancelChatAnalysis?: ReturnType<typeof vi.fn>;
   } = {},
 ) {
   const commentTools = new AdminAgentCommentTools(
     (overrides.listComments ?? { execute: vi.fn() }) as never,
-    { startWorkflow: overrides.startWorkflow ?? vi.fn() } as never,
+    {
+      startWorkflow: overrides.startWorkflow ?? vi.fn(),
+      cancelChatAnalysis: overrides.cancelChatAnalysis ?? vi.fn(),
+    } as never,
     (overrides.moderateCommentAnalysis ?? { execute: vi.fn() }) as never,
     {
       listFindingsByIds: overrides.listFindingsByIds ?? vi.fn().mockResolvedValue([]),

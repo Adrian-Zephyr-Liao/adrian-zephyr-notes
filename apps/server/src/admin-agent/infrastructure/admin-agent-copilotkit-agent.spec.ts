@@ -123,4 +123,41 @@ describe("AdminAgentAgUiAgent", () => {
     const events = await lastValueFrom(agent.run(input()).pipe(toArray()));
     expect(events.map((event) => event.type)).toEqual([EventType.RUN_STARTED, EventType.RUN_ERROR]);
   });
+
+  it.each(["connection", "subscription"] as const)(
+    "forwards %s cancellation through a request's cloned agent",
+    async (cause) => {
+      const connection = new AbortController();
+      let signal: AbortSignal | undefined;
+      const disposed = vi.fn();
+      const stream = vi.fn(async function* (input: { signal: AbortSignal }) {
+        signal = input.signal;
+        try {
+          yield { type: "textDelta" as const, delta: "开始回复" };
+          if (!signal.aborted)
+            await new Promise<void>((resolve) =>
+              signal!.addEventListener("abort", () => resolve(), { once: true }),
+            );
+        } finally {
+          disposed();
+        }
+      });
+      const agent = new AdminAgentAgUiAgent({
+        signal: connection.signal,
+        chatMessageRepository: {} as never,
+        sendChatMessage: { stream } as never,
+      });
+      const subscription = agent.clone().run(input()).subscribe();
+      try {
+        await vi.waitFor(() => expect(stream).toHaveBeenCalledOnce());
+        if (cause === "connection") connection.abort();
+        else subscription.unsubscribe();
+        expect(signal?.aborted).toBe(true);
+        await vi.waitFor(() => expect(disposed).toHaveBeenCalledOnce());
+      } finally {
+        connection.abort();
+        subscription.unsubscribe();
+      }
+    },
+  );
 });

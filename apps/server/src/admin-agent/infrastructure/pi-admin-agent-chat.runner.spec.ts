@@ -10,6 +10,7 @@ import {
   fauxThinking,
   fauxToolCall,
 } from "@earendil-works/pi-ai";
+import { estimateMessageTokens } from "@earendil-works/pi-ai/utils/estimate";
 import { openNodeSqliteStorage } from "@earendil-works/pi-durable/storage/sqlite/node";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PiAdminAgentModelClient } from "./ai/pi-admin-agent-model.client";
@@ -17,7 +18,10 @@ import type {
   AdminAgentChatMessageRepository,
   AdminAgentMessage,
 } from "../domain/admin-agent-chat-message.repository";
-import type { AdminAgentChatReplyInput } from "../domain/admin-agent-chat-runner";
+import type {
+  AdminAgentChatReplyInput,
+  AdminAgentServerTool,
+} from "../domain/admin-agent-chat-runner";
 import { PiAdminAgentChatRunner } from "./pi-admin-agent-chat.runner";
 
 const directories: string[] = [];
@@ -27,10 +31,12 @@ afterEach(async () => {
   );
 });
 
-async function fixture() {
+async function fixture({ contextWindow = 32768, maxOutputTokens = 8192 } = {}) {
   const directory = await mkdtemp(join(tmpdir(), "az-pi-chat-"));
   directories.push(directory);
-  const faux = fauxProvider();
+  const faux = fauxProvider({
+    models: [{ id: "faux-1", contextWindow, maxTokens: maxOutputTokens }],
+  });
   const models = createModels();
   models.setProvider(faux.provider);
   const records = new Map<string, AdminAgentMessage>();
@@ -47,6 +53,8 @@ async function fixture() {
     assertConfigured: () => {},
     models,
     modelRef: { provider: "faux", modelId: "faux-1" },
+    contextWindow,
+    maxOutputTokens,
   } as unknown as PiAdminAgentModelClient;
   const openStorage = async () => {
     const storage = await openNodeSqliteStorage(join(directory, "session.sqlite"));
@@ -60,9 +68,11 @@ async function fixture() {
       },
     };
   };
-  const create = () =>
-    new PiAdminAgentChatRunner(client, new ConfigService(), repository, { openStorage });
-  return { runner: create(), create, faux, records, repository, ownership };
+  const create = (storageFactory = openStorage) =>
+    new PiAdminAgentChatRunner(client, new ConfigService(), repository, {
+      openStorage: storageFactory,
+    });
+  return { runner: create(), create, faux, records, repository, ownership, openStorage };
 }
 
 const input = (overrides: Partial<AdminAgentChatReplyInput> = {}): AdminAgentChatReplyInput => ({
@@ -81,7 +91,343 @@ async function collect<T>(stream: AsyncIterable<T>) {
   return result;
 }
 
+async function suspendGeneration(f: Awaited<ReturnType<typeof fixture>>) {
+  let reached!: () => void;
+  const started = new Promise<void>((resolve) => {
+    reached = resolve;
+  });
+  f.faux.setResponses([
+    (_context, options) =>
+      new Promise((_, reject) => {
+        reached();
+        options!.signal!.addEventListener("abort", () => reject(options!.signal!.reason), {
+          once: true,
+        });
+      }),
+  ]);
+  const detach = new AbortController();
+  const interrupted = collect(f.runner.streamReply(input({ signal: detach.signal })));
+  await started;
+  detach.abort();
+  await expect(interrupted).rejects.toThrow();
+}
+
+async function runningAnalysis(
+  f: Awaited<ReturnType<typeof fixture>>,
+  cancel: NonNullable<AdminAgentServerTool["cancel"]> = vi.fn(async () => {}),
+) {
+  let reached!: () => void;
+  const started = new Promise<void>((resolve) => {
+    reached = resolve;
+  });
+  const execute = vi.fn<AdminAgentServerTool["execute"]>(
+    (_args, context) =>
+      new Promise<{ content: string }>((_, reject) => {
+        reached();
+        context.signal!.addEventListener("abort", () => reject(context.signal!.reason), {
+          once: true,
+        });
+      }),
+  );
+  const tool: AdminAgentServerTool = {
+    name: "analyze_comments",
+    description: "Analyze",
+    parameters: { type: "object" },
+    execute,
+    cancel,
+  };
+  f.faux.setResponses([
+    fauxAssistantMessage([fauxToolCall("analyze_comments", {}, { id: "analysis-call" })], {
+      stopReason: "toolUse",
+    }),
+  ]);
+  const detach = new AbortController();
+  const run = collect(f.runner.streamReply(input({ serverTools: [tool], signal: detach.signal })));
+  await started;
+  return { tool, detach, run, execute, cancel };
+}
+
 describe("PiAdminAgentChatRunner", () => {
+  it.each([false, true])(
+    "durably cancels a queued write request after Stop, disconnected=%s",
+    async (disconnected) => {
+      const f = await fixture();
+      const analysis = await runningAnalysis(f);
+      const execute = vi.fn(async () => ({ content: "Hidden" }));
+      const write: AdminAgentServerTool = {
+        name: "hide_comments",
+        description: "Hide",
+        parameters: { type: "object" },
+        execute,
+      };
+      const queuedInput = input({
+        requestId: "queued-write",
+        message: "请隐藏这些评论",
+        serverTools: [write],
+      });
+      const queuedSignal = new AbortController();
+      const queued = collect(
+        f.runner.streamReply({ ...queuedInput, signal: queuedSignal.signal }),
+      ).catch((error: unknown) => error);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      if (disconnected) queuedSignal.abort();
+      await f.runner.abortConversation("admin-1", "conversation-1", [analysis.tool]);
+      expect(await queued).toContainEqual({ type: "cancelled" });
+      await analysis.run;
+      f.faux.setResponses([
+        fauxAssistantMessage([fauxToolCall("hide_comments", {}, { id: "write-replay" })], {
+          stopReason: "toolUse",
+        }),
+        fauxAssistantMessage("已隐藏。"),
+      ]);
+      const replay = await collect(f.create().streamReply(queuedInput));
+      expect(replay).toContainEqual({ type: "cancelled" });
+      expect(execute).not.toHaveBeenCalled();
+      expect(f.faux.state.callCount).toBe(1);
+      await expect(
+        collect(f.create().streamReply({ ...queuedInput, message: "不同的内容" })),
+      ).rejects.toThrow("cannot be reused");
+      f.faux.setResponses([fauxAssistantMessage("新请求正常完成。")]);
+      expect(
+        await collect(
+          f.create().streamReply(input({ requestId: "fresh-user", message: "新问题" })),
+        ),
+      ).toContainEqual({ type: "textDelta", delta: "新请求正常完成。" });
+      expect(f.faux.state.callCount).toBe(2);
+    },
+  );
+
+  it.each([false, true])(
+    "cancels all HTTP requests already queued before Stop, including cancellation failure=%s",
+    async (failCancellation) => {
+      const f = await fixture();
+      const cancel = vi.fn(async () => {});
+      if (failCancellation) cancel.mockRejectedValueOnce(new Error("Cancellation failed"));
+      const analysis = await runningAnalysis(f, cancel);
+      const queuedTool: AdminAgentServerTool = {
+        name: "search_comments",
+        description: "Search",
+        parameters: { type: "object" },
+        execute: vi.fn(async () => ({ content: "Queued search executed" })),
+      };
+      f.faux.appendResponses([
+        fauxAssistantMessage([fauxToolCall("search_comments", {}, { id: "queued-1" })], {
+          stopReason: "toolUse",
+        }),
+        fauxAssistantMessage("Queued answer one"),
+        fauxAssistantMessage([fauxToolCall("search_comments", {}, { id: "queued-2" })], {
+          stopReason: "toolUse",
+        }),
+        fauxAssistantMessage("Queued answer two"),
+      ]);
+      const queued = ["user-2", "user-3"].map((requestId) =>
+        collect(
+          f.runner.streamReply(
+            input({
+              requestId,
+              message: `Queued ${requestId}`,
+              serverTools: [analysis.tool, queuedTool],
+            }),
+          ),
+        ),
+      );
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      const stopped = await f.runner
+        .abortConversation("admin-1", "conversation-1", [analysis.tool])
+        .catch((error: unknown) => error);
+      for (const events of await Promise.all([analysis.run, ...queued])) {
+        expect(events).toContainEqual({ type: "cancelled" });
+      }
+      expect(queuedTool.execute).not.toHaveBeenCalled();
+      expect(f.faux.state.callCount).toBe(1);
+      expect(cancel).toHaveBeenCalledOnce();
+      if (failCancellation) {
+        expect(stopped).toMatchObject({ message: "Cancellation failed" });
+        await f.create().abortConversation("admin-1", "conversation-1", [analysis.tool]);
+        expect(cancel).toHaveBeenCalledTimes(2);
+      } else expect(stopped).toBeUndefined();
+      f.faux.setResponses([fauxAssistantMessage("Stop 后的新问题正常回答。")]);
+      const fresh = await collect(
+        f.runner.streamReply(input({ requestId: "user-4", message: "新问题" })),
+      );
+      expect(fresh).toContainEqual({ type: "textDelta", delta: "Stop 后的新问题正常回答。" });
+      expect(f.faux.state.callCount).toBe(2);
+    },
+  );
+
+  it("suspends an analysis tool on disconnect without cancelling its durable business run", async () => {
+    const f = await fixture();
+    const analysis = await runningAnalysis(f);
+    analysis.detach.abort();
+    await expect(analysis.run).rejects.toThrow();
+    expect(analysis.cancel).not.toHaveBeenCalled();
+    expect(analysis.execute).toHaveBeenCalledOnce();
+  });
+
+  it("shares concurrent active Stops and waits for durable business cancellation before closing", async () => {
+    const f = await fixture();
+    let reached!: () => void;
+    const cancelling = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    let finish!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      finish = resolve;
+    });
+    const cancel = vi.fn(async () => {
+      reached();
+      await gate;
+    });
+    const analysis = await runningAnalysis(f, cancel);
+    const first = f.runner.abortConversation("admin-1", "conversation-1", [analysis.tool]);
+    const second = f.runner.abortConversation("admin-1", "conversation-1", [analysis.tool]);
+    await cancelling;
+    expect(cancel).toHaveBeenCalledOnce();
+    finish();
+    await Promise.all([first, second, analysis.run]);
+    expect(cancel).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: "conversation-1",
+        toolCallId: expect.stringMatching(/^[0-9]+:analysis-call$/),
+      }),
+    );
+    await f.create().abortConversation("admin-1", "conversation-1", [analysis.tool]);
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it("cancels a suspended analysis through offline Stop without replaying its execution", async () => {
+    const f = await fixture();
+    const analysis = await runningAnalysis(f);
+    analysis.detach.abort();
+    await expect(analysis.run).rejects.toThrow();
+    await f.create().abortConversation("admin-1", "conversation-1", [analysis.tool]);
+    expect(analysis.cancel).toHaveBeenCalledOnce();
+    expect(analysis.execute).toHaveBeenCalledOnce();
+    expect(f.faux.state.callCount).toBe(1);
+  });
+
+  it("shares an in-flight cancellation failure with a Stop arriving during stream teardown", async () => {
+    const f = await fixture();
+    let reached!: () => void;
+    const cancelling = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    let rejectCancellation!: (error: Error) => void;
+    const gate = new Promise<void>((_, reject) => {
+      rejectCancellation = reject;
+    });
+    const cancel = vi.fn(async () => {
+      reached();
+      await gate;
+    });
+    const analysis = await runningAnalysis(f, cancel);
+    const first = f.runner
+      .abortConversation("admin-1", "conversation-1", [analysis.tool])
+      .catch((error: unknown) => error);
+    await cancelling;
+    const second = f.runner
+      .abortConversation("admin-1", "conversation-1", [analysis.tool])
+      .catch((error: unknown) => error);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+    rejectCancellation(new Error("Cancellation storage failed"));
+    expect(await first).toMatchObject({ message: "Cancellation storage failed" });
+    expect(await second).toMatchObject({ message: "Cancellation storage failed" });
+    await analysis.run;
+    expect(cancel).toHaveBeenCalledOnce();
+  });
+
+  it.each(["stop", "stream"])(
+    "retries a persisted failed business cancellation on %s reopen",
+    async (mode) => {
+      const f = await fixture();
+      const cancel = vi.fn(async () => {});
+      cancel.mockRejectedValueOnce(new Error("Business cancellation unavailable"));
+      const analysis = await runningAnalysis(f, cancel);
+      await expect(
+        f.runner.abortConversation("admin-1", "conversation-1", [analysis.tool]),
+      ).rejects.toThrow("Business cancellation unavailable");
+      await analysis.run;
+      if (mode === "stop") {
+        await expect(f.create().abortConversation("admin-1", "conversation-1")).rejects.toThrow(
+          "Pending cancellation requires the registered analyze_comments tool",
+        );
+        await f.create().abortConversation("admin-1", "conversation-1", [analysis.tool]);
+      } else {
+        f.faux.setResponses([fauxAssistantMessage("继续处理新问题。")]);
+        await collect(
+          f
+            .create()
+            .streamReply(
+              input({ requestId: "user-2", message: "新问题", serverTools: [analysis.tool] }),
+            ),
+        );
+      }
+      expect(cancel).toHaveBeenCalledTimes(2);
+      expect(cancel.mock.calls[0]).toEqual(cancel.mock.calls[1]);
+      await f.create().abortConversation("admin-1", "conversation-1", [analysis.tool]);
+      expect(cancel).toHaveBeenCalledTimes(2);
+    },
+  );
+
+  it("drains and verifies cancellations after Stop waits for a chat that is still opening", async () => {
+    const f = await fixture();
+    const cancel = vi.fn(async () => {});
+    cancel.mockRejectedValueOnce(new Error("First cancellation attempt failed"));
+    const analysis = await runningAnalysis(f, cancel);
+    analysis.detach.abort();
+    await expect(analysis.run).rejects.toThrow();
+    let reached!: () => void;
+    const opening = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const runner = f.create(async () => {
+      reached();
+      await gate;
+      return f.openStorage();
+    });
+    const stream = collect(
+      runner.streamReply(input({ requestId: "user-2", serverTools: [analysis.tool] })),
+    );
+    const streamResult = stream.catch((error: unknown) => error);
+    await opening;
+    const stopping = runner
+      .abortConversation("admin-1", "conversation-1", [analysis.tool])
+      .catch((error: unknown) => error);
+    release();
+    expect(await streamResult).toContainEqual({ type: "cancelled" });
+    expect(await stopping).toMatchObject({ message: "First cancellation attempt failed" });
+    expect(cancel).toHaveBeenCalledOnce();
+    await f.create().abortConversation("admin-1", "conversation-1", [analysis.tool]);
+    expect(cancel).toHaveBeenCalledTimes(2);
+    expect(analysis.execute).toHaveBeenCalledOnce();
+  });
+
+  it("does not cancel an analysis that already completed, including repeated offline Stops", async () => {
+    const f = await fixture();
+    const tool: AdminAgentServerTool = {
+      name: "analyze_comments",
+      description: "Analyze",
+      parameters: { type: "object" },
+      execute: vi.fn(async () => ({ content: "Analysis completed" })),
+      cancel: vi.fn(async () => {}),
+    };
+    f.faux.setResponses([
+      fauxAssistantMessage([fauxToolCall("analyze_comments", {}, { id: "analysis-call" })], {
+        stopReason: "toolUse",
+      }),
+      fauxAssistantMessage("分析完成。"),
+    ]);
+    await collect(f.runner.streamReply(input({ serverTools: [tool] })));
+    await f.create().abortConversation("admin-1", "conversation-1", [tool]);
+    await f.create().abortConversation("admin-1", "conversation-1", [tool]);
+    expect(tool.cancel).not.toHaveBeenCalled();
+    expect(tool.execute).toHaveBeenCalledOnce();
+  });
+
   it.each([
     "分析今天的评论",
     "不要隐藏这些评论",
@@ -369,4 +715,154 @@ describe("PiAdminAgentChatRunner", () => {
     expect(resumed).toContainEqual({ type: "textDelta", delta: "恢复后完成" });
     expect(f.faux.state.callCount).toBe(2);
   });
+
+  it("recovers the interrupted request before answering a new request after refresh", async () => {
+    const f = await fixture();
+    await suspendGeneration(f);
+    f.faux.setResponses([
+      (context) => {
+        expect(JSON.stringify(context)).toContain("分析今天的评论");
+        expect(JSON.stringify(context)).not.toContain("刷新后的新问题");
+        return fauxAssistantMessage("旧请求恢复完成");
+      },
+      (context) => {
+        expect(JSON.stringify(context)).toContain("旧请求恢复完成");
+        expect(JSON.stringify(context)).toContain("刷新后的新问题");
+        return fauxAssistantMessage("新请求处理完成");
+      },
+    ]);
+    const resumed = await collect(
+      f.create().streamReply(input({ requestId: "user-2", message: "刷新后的新问题" })),
+    );
+    expect(resumed).toContainEqual({ type: "textDelta", delta: "旧请求恢复完成" });
+    expect(resumed).toContainEqual({ type: "textDelta", delta: "新请求处理完成" });
+    expect(f.records.get("user-2")).toMatchObject({ content: "刷新后的新问题" });
+    expect(f.faux.state.callCount).toBe(3);
+  });
+
+  it("answers a queued new request even when the recovered model run fails", async () => {
+    const f = await fixture();
+    await suspendGeneration(f);
+    f.faux.setResponses([
+      fauxAssistantMessage("", { stopReason: "error", errorMessage: "Invalid request" }),
+      fauxAssistantMessage("新问题仍然得到回答"),
+    ]);
+    const resumed = await collect(
+      f.create().streamReply(input({ requestId: "user-2", message: "刷新后的新问题" })),
+    );
+    expect(resumed).toContainEqual({ type: "textDelta", delta: "新问题仍然得到回答" });
+    expect(f.faux.state.callCount).toBe(3);
+  });
+
+  it("does not use a queued confirmation to authorize the recovered request's write", async () => {
+    const f = await fixture();
+    await suspendGeneration(f);
+    const execute = vi.fn(async () => ({ content: "changed" }));
+    f.faux.setResponses([
+      fauxAssistantMessage(
+        [fauxToolCall("hide_comments", { findingIds: ["finding-1"] }, { id: "write-1" })],
+        { stopReason: "toolUse" },
+      ),
+      fauxAssistantMessage("旧请求没有获得隐藏授权。"),
+      fauxAssistantMessage("新请求已排队。"),
+    ]);
+    await collect(
+      f.create().streamReply(
+        input({
+          requestId: "user-2",
+          message: "请隐藏这些评论",
+          serverTools: [
+            { name: "hide_comments", description: "Hide", parameters: { type: "object" }, execute },
+          ],
+        }),
+      ),
+    );
+    expect(execute).not.toHaveBeenCalled();
+    expect(f.faux.state.callCount).toBe(4);
+  });
+
+  it("stops the recovered run and withdraws the new input queued behind it", async () => {
+    const f = await fixture();
+    await suspendGeneration(f);
+    const reopened = f.create();
+    let reached!: () => void;
+    const started = new Promise<void>((resolve) => {
+      reached = resolve;
+    });
+    f.faux.setResponses([
+      (_context, options) =>
+        new Promise((_, reject) => {
+          reached();
+          options!.signal!.addEventListener("abort", () => reject(options!.signal!.reason), {
+            once: true,
+          });
+        }),
+    ]);
+    const pending = collect(
+      reopened.streamReply(input({ requestId: "user-2", message: "新问题" })),
+    );
+    await started;
+    await reopened.abortConversation("admin-1", "conversation-1");
+    expect(await pending).toContainEqual({ type: "cancelled" });
+    await collect(f.create().streamReply(input({ requestId: "user-2", message: "新问题" })));
+    expect(f.faux.state.callCount).toBe(2);
+  });
+
+  it.each([
+    { contextWindow: 32768, maxOutputTokens: 8192, ratio: 0.8 },
+    { contextWindow: 8192, maxOutputTokens: 1024, ratio: 0.8 },
+    { contextWindow: 32768, maxOutputTokens: 8192, ratio: 1.1 },
+    { contextWindow: 8192, maxOutputTokens: 1024, ratio: 1.1 },
+  ])(
+    "compacts within the model budget $contextWindow/$maxOutputTokens at $ratio input",
+    async (budget) => {
+      const f = await fixture(budget);
+      const inputBudget = budget.contextWindow - budget.maxOutputTokens;
+      const segment = "a".repeat(Math.ceil((inputBudget * budget.ratio * 4) / 6));
+      for (let index = 0; index < 6; index++) {
+        f.records.set(`old-user-${index}`, {
+          id: `old-user-${index}`,
+          role: "user",
+          content: `old-turn-${index}: ${segment}`,
+        });
+        f.records.set(`old-answer-${index}`, {
+          id: `old-answer-${index}`,
+          role: "assistant",
+          content: "已回答。",
+        });
+      }
+      let summaries = 0;
+      let answers = 0;
+      const respond: Parameters<typeof f.faux.setResponses>[0][number] = (context, options) => {
+        if (JSON.stringify(context.messages[0]).includes("context summarization assistant")) {
+          summaries++;
+          expect(options?.maxTokens).toBe(Math.floor(0.8 * budget.maxOutputTokens));
+          return fauxAssistantMessage("早期讨论的压缩摘要。");
+        }
+        answers++;
+        expect(
+          context.messages.reduce((total, message) => total + estimateMessageTokens(message), 0),
+        ).toBeLessThan(inputBudget);
+        if (budget.ratio > 1) {
+          expect(JSON.stringify(context)).toContain("早期讨论的压缩摘要");
+          expect(JSON.stringify(context)).not.toContain("old-turn-0");
+        }
+        return fauxAssistantMessage("继续完成。");
+      };
+      f.faux.setResponses([respond, respond]);
+      const events = await collect(f.runner.streamReply(input()));
+      expect(events).toContainEqual({ type: "textDelta", delta: "继续完成。" });
+      expect(summaries).toBe(1);
+      expect(answers).toBe(1);
+    },
+  );
+
+  it.each([8192, 16384])(
+    "rejects output budget %s that leaves no room for input",
+    async (maxOutputTokens) => {
+      const f = await fixture({ contextWindow: 8192, maxOutputTokens });
+      await expect(collect(f.runner.streamReply(input()))).rejects.toThrow("model token budget");
+      expect(f.faux.state.callCount).toBe(0);
+    },
+  );
 });

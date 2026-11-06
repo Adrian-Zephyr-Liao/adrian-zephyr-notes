@@ -177,6 +177,37 @@ describe.skipIf(!databaseUrl)("Pi action receipts on PostgreSQL", () => {
     ).toBe(1);
   });
 
+  it("preserves committed terminal outcomes against late cancellation and completion", async () => {
+    const completed = await fixture("Already completed");
+    await repository.completeRun(completed.runId, "Finished analysis", { findings: [] });
+    expect(await repository.cancelRun(completed.runId, "Late Stop")).toMatchObject({
+      status: "COMPLETED",
+      summary: "Finished analysis",
+      output: { findings: [] },
+    });
+    expect(
+      await prisma.adminAgentWorkflowEvent.count({
+        where: { runId: completed.runId, type: "CANCELLED" },
+      }),
+    ).toBe(0);
+
+    const cancelled = await fixture("Already cancelled");
+    await repository.cancelRun(cancelled.runId, "Stopped analysis");
+    expect(
+      await repository.completeRun(cancelled.runId, "Late model completion", { findings: [] }),
+    ).toMatchObject({ status: "CANCELLED", summary: "Stopped analysis", output: null });
+    expect(
+      await prisma.adminAgentWorkflowEvent.count({
+        where: { runId: cancelled.runId, type: "COMPLETED" },
+      }),
+    ).toBe(0);
+    expect(
+      await prisma.adminAgentWorkflowEvent.count({
+        where: { runId: cancelled.runId, type: "CANCELLED" },
+      }),
+    ).toBe(1);
+  });
+
   function executor(client: PrismaService) {
     return new ExecuteAdminAgentWorkflowActionUseCase(
       [],

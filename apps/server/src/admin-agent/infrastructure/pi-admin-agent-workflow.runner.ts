@@ -122,6 +122,7 @@ import { PiAdminAgentModelClient } from "./ai/pi-admin-agent-model.client";
 import type { Storage, TaskId, ConversationId, TaskRuntime } from "@earendil-works/pi-durable";
 import {
   BACKGROUND_CONTEXT,
+  withAbortSignal,
   defineDoc,
   defineTask,
   createRegistry,
@@ -131,6 +132,7 @@ import {
 } from "./pi-admin-agent-runtime.mjs";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { openPiAdminAgentStorage } from "./pi-admin-agent-storage";
+import { reportPiAdminAgentError } from "./pi-admin-agent-report";
 import { encodePiSnapshot, decodePiSnapshot } from "./pi-admin-agent-snapshot";
 import { loadLegacyWorkflowImports } from "./pi-legacy-workflow-import";
 import { AdminAgentWorkflowActionExecutionInProgressError } from "../domain/admin-agent-workflow-action-execution.entity";
@@ -302,7 +304,7 @@ class PiAdminAgentWorkflowRunner
         }
         harness = await Harness.open(
           this.options.storage ?? handle!.storage,
-          { models: createModels(), registry },
+          { models: createModels(), registry, onReport: reportPiAdminAgentError },
           context,
         );
         const current = harness;
@@ -572,14 +574,18 @@ class PiAdminAgentWorkflowRunner
     input.signal?.addEventListener("abort", abort, { once: true });
     if (input.signal?.aborted) abort();
     try {
-      return await this.wait(run.id, id);
+      return await this.wait(run.id, id, input.waitSignal);
     } finally {
       input.signal?.removeEventListener("abort", abort);
     }
   }
-  private async wait(runId: string, id: TaskId<null>): Promise<AdminAgentWorkflowResult> {
+  private async wait(
+    runId: string,
+    id: TaskId<null>,
+    signal?: AbortSignal,
+  ): Promise<AdminAgentWorkflowResult> {
     const harness = await this.open();
-    const task = await harness.waitForTask(id, context);
+    const task = await harness.waitForTask(id, signal ? withAbortSignal(signal, context) : context);
     const run = (await this.adminAgentRepository.findRunById(runId))!;
     if (task.state.outcome.status === "faulted" || task.state.outcome.status === "failed")
       throw new AdminAgentWorkflowExecutionError(
@@ -611,7 +617,7 @@ class PiAdminAgentWorkflowRunner
   ): Promise<AdminAgentWorkflowResult> {
     const run = await this.requireResumeRun(input);
     const { conversation, doc } = await this.snapshot(run.id);
-    const state = decodePiSnapshot<WorkflowState>(doc.checkpoint.snapshot);
+    let state = decodePiSnapshot<WorkflowState>(doc.checkpoint.snapshot);
     let resume: GenericApprovalResume;
     if (state.legacyCommentApproval) {
       const pending = toStoredCommentModerationApprovalInterruption(run.interruption);
@@ -638,6 +644,13 @@ class PiAdminAgentWorkflowRunner
         this.parseGenericApprovalResume(input),
         run,
       );
+    // The business waiting projection can precede the analysis task's durable terminal commit.
+    if (doc.taskId && !state.approval) {
+      await this.wait(run.id, doc.taskId);
+      state = decodePiSnapshot<WorkflowState>(
+        (await this.snapshot(run.id)).doc.checkpoint.snapshot,
+      );
+    }
     state.approval = { ...resume, actor: input.actor, requestContext: input.requestContext };
     const path = paths[run.workflowName];
     const node = state.legacyCommentApproval
@@ -707,7 +720,8 @@ class PiAdminAgentWorkflowRunner
   }
   async cancelWorkflow(runId: string) {
     const harness = await this.open();
-    await this.adminAgentRepository.cancelRun(runId, "业务处理已取消。");
+    const run = await this.adminAgentRepository.cancelRun(runId, "业务处理已取消。");
+    if (run.status !== "CANCELLED") return;
     const index = await harness.snapshot(IndexDoc, context);
     const conversation = index?.runs[runId];
     const doc = conversation

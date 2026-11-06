@@ -118,6 +118,11 @@ class AdminAgentCommentTools {
           "Analyze selected visible comments for moderation risk. Accepts only trusted comment IDs from search_comments or explicit administrator context. Persists findings, never changes visibility, and emits a durable A2UI review activity.",
         execute: (argumentsValue, executionContext) =>
           this.analyzeComments(argumentsValue, context, executionContext),
+        cancel: (executionContext) =>
+          this.manageAdminAgentWorkflows.cancelChatAnalysis({
+            dedupeKey: chatAnalysisDedupeKey(context.startedByUserId, executionContext),
+            startedByUserId: context.startedByUserId,
+          }),
         name: "analyze_comments",
         parameters: {
           additionalProperties: false,
@@ -266,16 +271,8 @@ class AdminAgentCommentTools {
     }
 
     const result = await this.manageAdminAgentWorkflows.startWorkflow({
-      ...(executionContext.signal ? { signal: executionContext.signal } : {}),
-      dedupeKey: `chat-analysis:${createHash("sha256")
-        .update(
-          JSON.stringify([
-            context.startedByUserId,
-            executionContext.conversationId,
-            executionContext.toolCallId,
-          ]),
-        )
-        .digest("hex")}`,
+      ...(executionContext.signal ? { waitSignal: executionContext.signal } : {}),
+      dedupeKey: chatAnalysisDedupeKey(context.startedByUserId, executionContext),
       actor: context.actor,
       input: {
         commentIds,
@@ -375,6 +372,17 @@ class AdminAgentCommentTools {
       }),
     };
   }
+}
+
+function chatAnalysisDedupeKey(
+  actorUserId: string,
+  executionContext: Pick<AdminAgentServerToolExecutionContext, "conversationId" | "toolCallId">,
+) {
+  return `chat-analysis:${createHash("sha256")
+    .update(
+      JSON.stringify([actorUserId, executionContext.conversationId, executionContext.toolCallId]),
+    )
+    .digest("hex")}`;
 }
 
 function normalizeFindingIds(value: unknown) {

@@ -240,9 +240,13 @@ class SendAdminAgentChatMessageUseCase {
     if (!completedTurn || content || reasoningContent || hasToolCall) await persistTurn();
   }
 
-  async abortConversation(actorUserId: string, conversationId: string) {
+  async abortConversation(
+    actorUserId: string,
+    conversationId: string,
+    serverTools: AdminAgentServerTool[] = [],
+  ) {
     await this.chatMessageRepository.assertConversationAccess({ conversationId, actorUserId });
-    await this.adminAgentChatRunner.abortConversation?.(actorUserId, conversationId);
+    await this.adminAgentChatRunner.abortConversation?.(actorUserId, conversationId, serverTools);
   }
 
   private async buildChatContext(

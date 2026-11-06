@@ -60,6 +60,10 @@ class RecordingAdminAgentRepository implements AdminAgentRepository {
   ) {}
 
   async createRun(input: Parameters<AdminAgentRepository["createRun"]>[0]) {
+    if (input.dedupeKey) {
+      const existing = [...this.runs.values()].find((run) => run.dedupeKey === input.dedupeKey);
+      if (existing) return existing;
+    }
     this.createdRuns.push(input);
     const run = createRun({
       dedupeKey: input.dedupeKey ?? null,
@@ -212,6 +216,10 @@ class RecordingAdminAgentRepository implements AdminAgentRepository {
     return this.runs.get(id) ?? null;
   }
 
+  async findRunByDedupeKey(dedupeKey: string) {
+    return [...this.runs.values()].find((run) => run.dedupeKey === dedupeKey) ?? null;
+  }
+
   async findRunByThreadId(threadId: string) {
     return [...this.runs.values()].find((run) => run.threadId === threadId) ?? null;
   }
@@ -359,6 +367,8 @@ class RecordingAdminAgentRepository implements AdminAgentRepository {
   }
 
   async cancelRun(id: string, summary: string) {
+    const run = this.requireRun(id);
+    if (!["PENDING", "RUNNING", "WAITING_FOR_APPROVAL"].includes(run.status)) return run;
     await this.createWorkflowEvent(createAdminAgentWorkflowCancelledEvent({ runId: id, summary }));
     return this.updateRun(id, {
       currentNode: "cancelled",

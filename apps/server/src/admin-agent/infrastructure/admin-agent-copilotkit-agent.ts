@@ -14,6 +14,7 @@ type AdminAgentAgUiAgentDeps = {
   chatMessageRepository: AdminAgentChatMessageRepository;
   sendChatMessage: SendAdminAgentChatMessageUseCase;
   serverTools?: AdminAgentServerTool[];
+  signal?: AbortSignal;
 };
 
 /** Transport only: pi-durable owns the conversation and executes registered server tools. */
@@ -30,11 +31,14 @@ class AdminAgentAgUiAgent extends AbstractAgent {
   run(input: RunAgentInput): Observable<BaseEvent> {
     return new Observable<BaseEvent>((observer) => {
       const detach = new AbortController();
+      const signal = this.deps.signal
+        ? AbortSignal.any([detach.signal, this.deps.signal])
+        : detach.signal;
       const emit = (event: BaseEvent) => {
         if (!observer.closed) observer.next(event);
       };
       emit(events.runStarted(input));
-      void this.stream(input, detach.signal, emit)
+      void this.stream(input, signal, emit)
         .then(() => {
           emit(events.runFinished(input.runId, input.threadId));
           observer.complete();

@@ -8,6 +8,16 @@ describe("PiAdminAgentModelClient", () => {
     vi.unstubAllGlobals();
   });
 
+  it("exposes conservative default token budgets and configured overrides", () => {
+    const defaults = configured();
+    expect(defaults.contextWindow).toBe(32768);
+    expect(defaults.maxOutputTokens).toBe(8192);
+
+    const custom = configured({ LLM_CONTEXT_WINDOW: "65536", LLM_MAX_TOKENS: "4096" });
+    expect(custom.contextWindow).toBe(65536);
+    expect(custom.maxOutputTokens).toBe(4096);
+  });
+
   it("uses pi-ai for the configured endpoint and retains MiniMax request options", async () => {
     const fetch = vi
       .fn()
@@ -40,7 +50,7 @@ describe("PiAdminAgentModelClient", () => {
     });
   });
 
-  it("normalizes cumulative MiniMax text and thinking without duplicating persisted content", async () => {
+  it("preserves MiniMax text and thinking deltas in persisted content", async () => {
     vi.stubGlobal(
       "fetch",
       vi
@@ -48,9 +58,9 @@ describe("PiAdminAgentModelClient", () => {
         .mockResolvedValue(
           response([
             { choices: [{ delta: { reasoning_content: "检查" } }] },
-            { choices: [{ delta: { reasoning_content: "检查评论" } }] },
+            { choices: [{ delta: { reasoning_content: "评论" } }] },
             { choices: [{ delta: { content: "已" } }] },
-            { choices: [{ delta: { content: "已完成" } }] },
+            { choices: [{ delta: { content: "完成" } }] },
             { choices: [{ delta: {}, finish_reason: "stop" }] },
           ]),
         ),
@@ -72,6 +82,41 @@ describe("PiAdminAgentModelClient", () => {
     expect((await stream.result()).content).toMatchObject([
       { type: "thinking", thinking: "检查评论" },
       { type: "text", text: "已完成" },
+    ]);
+  });
+
+  it("preserves repeated MiniMax text and thinking deltas", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValue(
+          response([
+            { choices: [{ delta: { reasoning_content: "想" } }] },
+            { choices: [{ delta: { reasoning_content: "想" } }] },
+            { choices: [{ delta: { content: "哈" } }] },
+            { choices: [{ delta: { content: "哈" } }] },
+            { choices: [{ delta: {}, finish_reason: "stop" }] },
+          ]),
+        ),
+    );
+    const client = configured({ LLM_PROVIDER: "minimax" });
+    await client.ready();
+    const model = client.models.getModel(client.modelRef.provider, client.modelRef.modelId)!;
+    const stream = client.models.streamSimple(model, {
+      messages: [{ role: "user", content: "test", timestamp: 1 }],
+    });
+    const text: string[] = [];
+    const thinking: string[] = [];
+    for await (const event of stream) {
+      if (event.type === "text_delta") text.push(event.delta);
+      if (event.type === "thinking_delta") thinking.push(event.delta);
+    }
+    expect(text).toEqual(["哈", "哈"]);
+    expect(thinking).toEqual(["想", "想"]);
+    expect((await stream.result()).content).toMatchObject([
+      { type: "thinking", thinking: "想想" },
+      { type: "text", text: "哈哈" },
     ]);
   });
 

@@ -53,6 +53,14 @@ class PiAdminAgentModelClient {
     };
   }
 
+  get contextWindow(): number {
+    return this.model.contextWindow;
+  }
+
+  get maxOutputTokens(): number {
+    return this.model.maxTokens;
+  }
+
   get models(): Models {
     if (!this.modelCollection)
       throw new Error("Pi model client must be initialized before accessing models.");
@@ -89,20 +97,14 @@ class PiAdminAgentModelClient {
     });
     const streams: ProviderStreams = {
       stream: (model, context, options) =>
-        normalizeProviderStream(
-          model,
-          api.stream(model, context, requestOptions(options)),
-          minimax,
-          lazyStream,
-        ),
+        filterThinkTags(model, api.stream(model, context, requestOptions(options)), lazyStream),
       streamSimple: (model, context, options) =>
-        normalizeProviderStream(
+        filterThinkTags(
           model,
           api.streamSimple(model, context, {
             ...options,
             ...requestOptions(options),
           }),
-          minimax,
           lazyStream,
         ),
     };
@@ -171,11 +173,10 @@ class PiAdminAgentModelClient {
   }
 }
 
-/** Normalizes provider-specific text after pi-ai has parsed the transport and tool protocol. */
-function normalizeProviderStream(
+/** Filters inline thinking tags after pi-ai has parsed the transport and tool protocol. */
+function filterThinkTags(
   model: Model<string>,
   source: AssistantMessageEventStream,
-  cumulative: boolean,
   lazyStream: (
     model: Model<string>,
     setup: () => Promise<AsyncIterable<AssistantMessageEvent>>,
@@ -185,7 +186,7 @@ function normalizeProviderStream(
     async function* events(): AsyncIterable<AssistantMessageEvent> {
       const blocks = new Map<
         number,
-        { raw: string; text: string; filter?: ReturnType<typeof createThinkFilter> }
+        { text: string; filter: ReturnType<typeof createThinkFilter> }
       >();
       const message = (value: AssistantMessage): AssistantMessage => ({
         ...value,
@@ -193,30 +194,22 @@ function normalizeProviderStream(
           const normalized = blocks.get(index);
           if (!normalized) return block;
           if (block.type === "text") return { ...block, text: normalized.text };
-          if (block.type === "thinking") return { ...block, thinking: normalized.text };
           return block;
         }),
       });
       for await (const event of source) {
-        if (event.type === "text_delta" || event.type === "thinking_delta") {
+        if (event.type === "text_delta") {
           const block = blocks.get(event.contentIndex) ?? {
-            raw: "",
             text: "",
-            ...(event.type === "text_delta" ? { filter: createThinkFilter() } : {}),
+            filter: createThinkFilter(),
           };
-          const rawDelta =
-            cumulative && event.delta.startsWith(block.raw)
-              ? event.delta.slice(block.raw.length)
-              : event.delta;
-          block.raw =
-            cumulative && event.delta.startsWith(block.raw) ? event.delta : block.raw + event.delta;
-          const delta = block.filter ? block.filter.push(rawDelta) : rawDelta;
+          const delta = block.filter.push(event.delta);
           block.text += delta;
           blocks.set(event.contentIndex, block);
           yield { ...event, delta, partial: message(event.partial) };
-        } else if (event.type === "text_end" || event.type === "thinking_end") {
+        } else if (event.type === "text_end") {
           const block = blocks.get(event.contentIndex);
-          if (block?.filter) block.text += block.filter.flush();
+          if (block) block.text += block.filter.flush();
           yield {
             ...event,
             content: block?.text ?? event.content,

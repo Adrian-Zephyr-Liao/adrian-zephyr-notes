@@ -87,6 +87,7 @@ interface AdminAgentRepository {
   createRun(input: CreateAdminAgentRunInput): Promise<AdminAgentRun>;
   createWorkflowEvent(input: CreateAdminAgentWorkflowEventInput): Promise<AdminAgentWorkflowEvent>;
   findRunById(id: string): Promise<AdminAgentRun | null>;
+  findRunByDedupeKey(dedupeKey: string): Promise<AdminAgentRun | null>;
   findRunByThreadId(threadId: string): Promise<AdminAgentRun | null>;
   listLatestWorkflowEventsByRunIds(runIds: string[]): Promise<AdminAgentWorkflowEvent[]>;
   listWorkflowEventsByRunId(runId: string): Promise<AdminAgentWorkflowEvent[]>;

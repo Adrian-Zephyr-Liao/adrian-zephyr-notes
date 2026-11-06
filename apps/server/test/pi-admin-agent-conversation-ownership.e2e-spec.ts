@@ -135,10 +135,11 @@ describe.skipIf(!databaseUrl)("Pi conversation ownership on PostgreSQL", () => {
       { streamReply: vi.fn(), abortConversation },
       repository,
     );
-    const stop = new AdminAgentCopilotKitController(send, {} as never, repository).stopConversation(
-      conversationId,
-      otherAdmin,
-    );
+    const stop = new AdminAgentCopilotKitController(
+      send,
+      { create: () => [] } as never,
+      repository,
+    ).stopConversation(conversationId, otherAdmin);
     await expect(stop).rejects.toBeInstanceOf(ForbiddenException);
     expect(abortConversation).not.toHaveBeenCalled();
   });

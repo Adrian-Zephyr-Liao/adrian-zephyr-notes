@@ -21,6 +21,7 @@ import type {
   AdminAgentChatReplyInput,
   AdminAgentChatRunner,
   AdminAgentChatRunnerEvent,
+  AdminAgentServerTool,
   AdminAgentServerToolResult,
 } from "../domain/admin-agent-chat-runner";
 import { PiAdminAgentModelClient } from "./ai/pi-admin-agent-model.client";
@@ -29,6 +30,7 @@ import {
   buildAdminAgentContextPrompt,
 } from "./pi-admin-agent-chat-prompt";
 import { openPiAdminAgentStorage } from "./pi-admin-agent-storage";
+import { reportPiAdminAgentError } from "./pi-admin-agent-report";
 
 type StorageHandle = Awaited<ReturnType<typeof openPiAdminAgentStorage>>;
 type ChatOptions = { openStorage?: (key: string) => Promise<StorageHandle> };
@@ -36,7 +38,9 @@ const PI_ADMIN_AGENT_CHAT_OPTIONS = Symbol("PI_ADMIN_AGENT_CHAT_OPTIONS");
 type ChatRequests = {
   requests: Record<string, { id: string; content: string }>;
   durations: Record<string, number>;
+  pendingCancellations?: Record<string, { toolName: string }>;
 };
+type ActiveConversation = { root: Conversation; stopping?: Promise<void> };
 const piModules = async () => {
   const [pi, chord] = await Promise.all([
     import("@earendil-works/pi-durable"),
@@ -58,7 +62,7 @@ const piModules = async () => {
 /** Pi owns generation and tool rounds; this class translates committed state to our UI protocol. */
 @Injectable()
 class PiAdminAgentChatRunner implements AdminAgentChatRunner {
-  private readonly active = new Map<string, Conversation>();
+  private readonly active = new Map<string, ActiveConversation>();
   private readonly pendingStops = new Set<string>();
   private readonly queues = new Map<string, Promise<void>>();
 
@@ -73,6 +77,12 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
   async *streamReply(input: AdminAgentChatReplyInput): AsyncIterable<AdminAgentChatRunnerEvent> {
     await this.modelClient.ready();
     this.modelClient.assertConfigured();
+    const inputTokenBudget = this.modelClient.contextWindow - this.modelClient.maxOutputTokens;
+    if (!Number.isSafeInteger(inputTokenBudget) || inputTokenBudget < 4) {
+      throw new Error(
+        "Invalid model token budget: context must leave room for conversation input.",
+      );
+    }
     const { pi, context, requests: RequestsDoc } = await piModules();
     if (!input.actorUserId || !input.conversationId || !input.requestId) {
       throw new Error("Authenticated conversation and request IDs are required.");
@@ -86,68 +96,29 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
     let handle: StorageHandle | undefined;
     let harness: Harness | undefined;
     let chatRoot: Conversation | undefined;
+    let active: ActiveConversation | undefined;
     let detach: (() => void) | undefined;
     let ownershipLost: (() => void) | undefined;
     try {
-      input.signal?.throwIfAborted();
+      if (!this.pendingStops.has(key)) input.signal?.throwIfAborted();
       handle = await this.openStorage(key);
-      const registry = pi.createRegistry();
-      registry.install(
-        pi.defineExtension({
-          name: "az.admin-business",
-          tools: (input.serverTools ?? []).map((tool) =>
-            pi.defineTool({
-              name: tool.name,
-              description: tool.description,
-              parameters: tool.parameters,
-              // Side-effecting calls must use the business receipt before they can opt into replay.
-              ...(tool.name === "search_comments" || tool.name === "analyze_comments"
-                ? { replay: "safe" as const }
-                : {}),
-              execute: async (args, api, toolContext) => {
-                if (tool.name === "hide_comments" || tool.name === "restore_comments") {
-                  const history = await chatRoot!.entries(
-                    { order: "descending" },
-                    100,
-                    undefined,
-                    toolContext,
-                  );
-                  const user = history.items.find((entry) => entry.kind === "pi.user")?.model?.[0];
-                  if (
-                    !user ||
-                    user.role !== "user" ||
-                    !hasExplicitWriteIntent(tool.name, textOf(user))
-                  ) {
-                    throw new Error(
-                      "Explicit administrator confirmation is required before changing comments. Use the review card to confirm the selected comments.",
-                    );
-                  }
-                }
-                const result = await tool.execute(args as Record<string, unknown>, {
-                  conversationId: input.conversationId!,
-                  runId: input.runId ?? input.requestId!,
-                  toolCallId: `${api.taskId}:${api.callId}`,
-                  signal: toolContext.abortSignal,
-                });
-                return {
-                  output: [{ type: "text", text: result.content }],
-                  ...(result.activity
-                    ? { details: { activity: result.activity } as unknown as JsonValue }
-                    : {}),
-                };
-              },
-            }),
-          ),
-        }),
-      );
+      const registry = await this.createRegistry(input, () => chatRoot!);
       harness = await pi.Harness.open(
         handle.storage,
         {
           models: this.modelClient.models,
           registry,
           identity: { attribution: null },
+          onReport: reportPiAdminAgentError,
           settings: {
             toolExecution: "sequential",
+            // A failed recovered request must not strand the new input queued behind it.
+            afterFailedRun: "continue",
+            compaction: {
+              reserveTokens: this.modelClient.maxOutputTokens,
+              keepRecentTokens: Math.floor(inputTokenBudget / 3),
+              backgroundTokens: Math.floor(inputTokenBudget / 4),
+            },
             retry: { maxRetries: 2 },
             progress: { partialIntervalMs: 30, persistWithinMs: 100 },
           },
@@ -163,7 +134,33 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
         agent: { model: this.modelClient.modelRef, maxTurns: 12 },
       });
       chatRoot = root;
-      this.active.set(key, root);
+      const cancellationKey = `cancelled:${input.requestId}`;
+      const { existing, cancelled: previouslyCancelled } = await root.commit(async (tx) => {
+        const existing = await tx.submissionByRequest(root.id, input.requestId!);
+        const doc = await tx.doc(RequestsDoc, root.id);
+        const cancelled = doc.requests[cancellationKey];
+        const previous = cancelled ?? (existing ? doc.requests[String(existing.id)] : undefined);
+        if (previous && previous.content !== input.message)
+          throw new Error("A chat request ID cannot be reused with different content.");
+        const stopping = this.pendingStops.has(key);
+        if (stopping && !existing && !cancelled)
+          doc.requests[cancellationKey] = { id: input.requestId!, content: input.message };
+        return { existing, cancelled: stopping || !!cancelled };
+      }, context);
+      if (previouslyCancelled) {
+        await this.repairProjection(
+          root,
+          input.conversationId,
+          input.actorUserId,
+          RequestsDoc,
+          context,
+        );
+        yield { type: "cancelled" };
+        return;
+      }
+      await this.drainCancellations(root, input.conversationId, input.serverTools ?? []);
+      active = { root };
+      this.active.set(key, active);
       await root.configure(
         {
           model: this.modelClient.modelRef,
@@ -183,10 +180,6 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
         context,
       );
 
-      const existing = await root.commit(
-        (tx) => tx.submissionByRequest(root.id, input.requestId!),
-        context,
-      );
       const updates = new AsyncQueue<ConversationView>();
       const observation = await harness.observeConversation(
         root.id,
@@ -204,8 +197,16 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
       const renderer = new ChatEventProjection(input.conversationId);
       renderer.skip(observation.value.entries);
 
-      if (this.pendingStops.delete(key)) {
+      if (this.pendingStops.has(key)) {
+        if (!existing)
+          await root.commit(async (tx) => {
+            (await tx.doc(RequestsDoc, root.id)).requests[cancellationKey] = {
+              id: input.requestId!,
+              content: input.message,
+            };
+          }, context);
         await root.abort(context);
+        await this.drainCancellations(root, input.conversationId, input.serverTools ?? []);
         yield { type: "cancelled" };
         return;
       }
@@ -214,7 +215,7 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
           type: "input",
           content: input.message,
           requestId: input.requestId,
-          whenBusy: "reject",
+          whenBusy: "followUp",
         });
         const requests = await tx.doc(RequestsDoc, root.id);
         const previous = requests.requests[String(id)];
@@ -291,10 +292,12 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
     } finally {
       detach?.();
       if (ownershipLost) handle?.ownershipLost.removeEventListener("abort", ownershipLost);
-      this.active.delete(key);
-      this.pendingStops.delete(key);
+      // Stops arriving after teardown starts must queue unless they can join the stop already draining.
+      if (!active?.stopping) this.active.delete(key);
       // Closing suspends unfinished work; an authenticated reconnect can resume it.
       try {
+        await active?.stopping?.catch(() => undefined);
+        this.active.delete(key);
         await harness?.close(context);
       } finally {
         await handle?.close();
@@ -303,32 +306,54 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
     }
   }
 
-  async abortConversation(actorUserId: string, conversationId: string) {
+  async abortConversation(
+    actorUserId: string,
+    conversationId: string,
+    serverTools: AdminAgentServerTool[] = [],
+  ) {
     await this.modelClient.ready();
     const { pi, context } = await piModules();
     const key = chatKey(actorUserId, conversationId);
     this.pendingStops.add(key);
     const active = this.active.get(key);
     if (active) {
-      await active.abort(context);
-      return;
-    }
-    const queued = this.queues.get(key);
-    if (queued) {
-      await queued;
+      const queued = this.queues.get(key);
+      if (!active.stopping) {
+        const stopping = (async () => {
+          await active.root.abort(context);
+          await this.drainCancellations(active.root, conversationId, serverTools);
+        })().finally(() => {
+          if (active.stopping === stopping) active.stopping = undefined;
+        });
+        active.stopping = stopping;
+      }
+      try {
+        await active.stopping;
+      } finally {
+        // The active stream waits only for stopping; HTTP requests already queued must also see the stop flag.
+        await queued;
+        this.pendingStops.delete(key);
+      }
       return;
     }
     const release = await this.acquire(key);
     let handle: StorageHandle | undefined;
     let harness: Harness | undefined;
+    let root: Conversation | undefined;
     try {
       handle = await this.openStorage(key);
       harness = await pi.Harness.open(
         handle.storage,
-        { models: this.modelClient.models, registry: pi.createRegistry() },
+        {
+          models: this.modelClient.models,
+          registry: await this.createRegistry({ conversationId, serverTools }, () => root!),
+          onReport: reportPiAdminAgentError,
+        },
         context,
       );
-      await (await harness.root(context)).abort(context);
+      root = await harness.root(context);
+      await root.abort(context);
+      await this.drainCancellations(root, conversationId, serverTools);
     } finally {
       try {
         await harness?.close(context);
@@ -337,6 +362,106 @@ class PiAdminAgentChatRunner implements AdminAgentChatRunner {
         this.pendingStops.delete(key);
         release();
       }
+    }
+  }
+
+  private async createRegistry(
+    input: Pick<AdminAgentChatReplyInput, "serverTools" | "conversationId" | "runId" | "requestId">,
+    readRoot: () => Conversation,
+  ) {
+    const { pi, requests: RequestsDoc } = await piModules();
+    const serverTools = input.serverTools ?? [];
+    const registry = pi.createRegistry();
+    registry.install(
+      pi.defineExtension({
+        name: "az.admin-business",
+        hooks: [
+          pi.hook(pi.ToolTask, {
+            afterTool: async (call, result, api, hookContext) => {
+              if (
+                !serverTools.some((tool) => tool.name === call.name && tool.cancel) ||
+                !result.diagnostics?.some((diagnostic) => diagnostic.code === "aborted")
+              )
+                return;
+              const root = readRoot();
+              await root.commit(async (tx) => {
+                const doc = await tx.doc(RequestsDoc, root.id);
+                doc.pendingCancellations ??= {};
+                doc.pendingCancellations[`${api.taskId}:${call.id}`] = { toolName: call.name };
+              }, hookContext);
+            },
+          }),
+        ],
+        tools: serverTools.map((tool) =>
+          pi.defineTool({
+            name: tool.name,
+            description: tool.description,
+            parameters: tool.parameters,
+            // Side-effecting calls must use the business receipt before they can opt into replay.
+            ...(tool.name === "search_comments" || tool.name === "analyze_comments"
+              ? { replay: "safe" as const }
+              : {}),
+            execute: async (args, api, toolContext) => {
+              if (tool.name === "hide_comments" || tool.name === "restore_comments") {
+                const history = await readRoot().entries(
+                  { order: "descending" },
+                  100,
+                  undefined,
+                  toolContext,
+                );
+                const user = history.items.find((entry) => entry.kind === "pi.user")?.model?.[0];
+                if (
+                  !user ||
+                  user.role !== "user" ||
+                  !hasExplicitWriteIntent(tool.name, textOf(user))
+                ) {
+                  throw new Error(
+                    "Explicit administrator confirmation is required before changing comments. Use the review card to confirm the selected comments.",
+                  );
+                }
+              }
+              const result = await tool.execute(args as Record<string, unknown>, {
+                conversationId: input.conversationId!,
+                runId: input.runId ?? input.requestId!,
+                toolCallId: `${api.taskId}:${api.callId}`,
+                signal: toolContext.abortSignal,
+              });
+              return {
+                output: [{ type: "text", text: result.content }],
+                ...(result.activity
+                  ? { details: { activity: result.activity } as unknown as JsonValue }
+                  : {}),
+              };
+            },
+          }),
+        ),
+      }),
+    );
+    return registry;
+  }
+
+  private async drainCancellations(
+    root: Conversation,
+    conversationId: string,
+    serverTools: AdminAgentServerTool[],
+  ) {
+    const { context, requests: RequestsDoc } = await piModules();
+    const pending = await root.commit(
+      async (tx) =>
+        Object.entries((await tx.doc(RequestsDoc, root.id)).pendingCancellations ?? {}).map(
+          ([toolCallId, receipt]) => [toolCallId, receipt.toolName] as const,
+        ),
+      context,
+    );
+    for (const [toolCallId, toolName] of pending) {
+      const tool = serverTools.find((candidate) => candidate.name === toolName);
+      if (!tool?.cancel)
+        throw new Error(`Pending cancellation requires the registered ${toolName} tool.`);
+      await tool.cancel({ conversationId, toolCallId });
+      await root.commit(async (tx) => {
+        const doc = await tx.doc(RequestsDoc, root.id);
+        if (doc.pendingCancellations) delete doc.pendingCancellations[toolCallId];
+      }, context);
     }
   }
 

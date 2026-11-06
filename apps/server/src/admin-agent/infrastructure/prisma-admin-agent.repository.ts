@@ -254,6 +254,11 @@ class PrismaAdminAgentRepository implements AdminAgentRepository, AdminAgentComm
     return record ? toAdminAgentRun(record) : null;
   }
 
+  async findRunByDedupeKey(dedupeKey: string) {
+    const record = await this.prisma.adminAgentRun.findUnique({ where: { dedupeKey } });
+    return record ? toAdminAgentRun(record) : null;
+  }
+
   async findRunByThreadId(threadId: string) {
     const record = await this.prisma.adminAgentRun.findUnique({
       where: { threadId },
@@ -450,13 +455,7 @@ class PrismaAdminAgentRepository implements AdminAgentRepository, AdminAgentComm
 
   async completeRun(id: string, summary: string, output: Record<string, unknown> | null = null) {
     const [record] = await this.prisma.$transaction(async (tx) => {
-      const existingRun = await tx.adminAgentRun.findUnique({ where: { id } });
-
-      if (existingRun?.status === "CANCELLED") {
-        return [existingRun];
-      }
-
-      const updatedRun = await tx.adminAgentRun.update({
+      const completed = await tx.adminAgentRun.updateMany({
         data: {
           currentNode: "completed",
           errorMessage: null,
@@ -465,8 +464,11 @@ class PrismaAdminAgentRepository implements AdminAgentRepository, AdminAgentComm
           status: "COMPLETED",
           summary,
         },
-        where: { id },
+        where: { id, status: { not: "CANCELLED" } },
       });
+
+      const updatedRun = await tx.adminAgentRun.findUniqueOrThrow({ where: { id } });
+      if (completed.count === 0) return [updatedRun];
 
       await createWorkflowEventRecord(
         tx,
@@ -492,7 +494,7 @@ class PrismaAdminAgentRepository implements AdminAgentRepository, AdminAgentComm
           status: "CANCELLED",
           summary,
         },
-        where: { id, status: { not: "CANCELLED" } },
+        where: { id, status: { in: ["PENDING", "RUNNING", "WAITING_FOR_APPROVAL"] } },
       });
 
       const updatedRun = await tx.adminAgentRun.findUniqueOrThrow({ where: { id } });

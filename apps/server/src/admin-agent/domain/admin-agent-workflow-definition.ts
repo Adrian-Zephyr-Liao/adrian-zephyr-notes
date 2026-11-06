@@ -12,6 +12,7 @@ import type {
 type StartAdminAgentWorkflowInput = {
   dedupeKey?: string;
   signal?: AbortSignal;
+  waitSignal?: AbortSignal;
   input?: Record<string, unknown> | null;
   parentRunId?: string | null;
   startedByUserId: string | null;

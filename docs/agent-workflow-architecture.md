@@ -45,6 +45,22 @@ pi-durable 的 Harness 执行对话与业务任务；阶段需要的输入和结
 请求闭包或内存 Promise 中。pi-ai 为聊天和只读业务分析提供同一套模型接入。流式消息转换为
 AG-UI 事件，界面与领域模型不依赖 pi 的内部数据结构。
 
+模型流按供应商协议的增量语义追加，不通过前缀相同来猜测和去重累计内容。`LLM_CONTEXT_WINDOW`
+和 `LLM_MAX_TOKENS` 是应用选择的上下文与输出预算，默认保持 32768 和 8192；它们不表示
+MiniMax 模型的完整能力。聊天的压缩预留、保留最近内容和后台提前量跟随这些预算计算，避免
+直接套用不适合小窗口的固定阈值。
+
+Harness 的 `onReport` 接入服务端日志，记录故障类别、任务及会话标识、宿主回调和阶段原因。
+报告中的原始 error、模型输入、工具参数和供应商响应不进入日志，避免泄露密钥与业务正文。
+
+HTTP 意外断开会取消本次观察并关闭聊天 Harness，未完成的对话任务仍可恢复。已启动的只读
+业务分析使用单独的等待信号，继续运行；新消息通过 Pi 的 follow-up 队列进入，重连复用原来的
+分析身份。旧请求失败后，队列继续处理新输入，不把新消息的授权用于旧工具调用。
+
+显式 Stop 使用 Pi 的工具取消结果记录持久化取消意图，再取消对应的业务分析。业务取消成功后
+才清除意图并确认停止；失败保留意图并向调用方报错，重试或重连可以继续完成。该意图是原有
+聊天文档中的可选字段，旧文档仍可读取。关闭连接不会生成这类取消意图。
+
 业务数据保存在 PostgreSQL，运行状态保存在 SQLite。两者不共享事务；写操作必须拥有可重放的
 业务身份和成功回执，恢复时先查询已提交的业务记录，再决定是否执行。pi 的 `replay: "safe"`
 是工具实现需要满足的契约，不是跨数据库“只执行一次”的保证。
@@ -82,6 +98,7 @@ SQLite 运行状态由单个写入进程持有。服务通过 PostgreSQL 所有�
 - retry 创建有原任务关联的新任务，保留原任务记录。
 - branch 从持久化业务快照创建新任务，不覆盖源任务；新分支重新生成自己的审批身份。
 - 用户点击确认后，后台校验并持久化授权，再进入执行阶段；不重复确认同一动作。
+- 等待审批的业务投影早于 Pi 分析任务结束时，先等待该任务结束并重读快照，再原子接收审批。
 
 ## 人工审批与幂等
 
@@ -143,6 +160,7 @@ checkpoint，加载相应版本的 channel blob，并合并已保存的节点结
 - `vp check`、`vp test`、server 与 admin 的类型检查和构建。
 - 真实 pi Harness 的工具循环、消息顺序、A2UI 更新和历史消息恢复。
 - SQLite 关闭重开、运行中断恢复、审批前后重启、重复提交和取消传播。
+- 真实 HTTP 断线后继续同一分析、离线 Stop、取消失败重试，以及 Stop 撤销已排队请求。
 - 成功写入后崩溃的幂等恢复，以及过期 action execution 租约恢复。
 - 多任务子任务去重、分支隔离和单任务失败隔离。
 - 历史 checkpoint 导入的成功路径、损坏数据和未知格式的失败路径。
@@ -151,3 +169,14 @@ checkpoint，加载相应版本的 channel blob，并合并已保存的节点结
 真实 PostgreSQL 所有权与历史迁移测试通过 `PI_AGENT_POSTGRES_TEST_URL` 指向专用测试数据库
 运行；测试只创建并清理随机命名的 schema，不使用生产数据库。该测试会终止它自己创建的
 所有权连接，以验证运行中取消和重新获取所有权后的恢复。
+
+`PI_ATOMIC_TEST_DATABASE_URL` 用于 `apps/server/test` 中的真实 PostgreSQL 测试，只能指向已迁移
+的独立测试数据库。`pi-admin-agent-http-recovery.e2e-spec.ts` 会启动编译后的 Nest 服务和本地
+模型替身，创建并清理随机管理员、会话、文章和评论，验证真实 HTTP 到业务任务的断线与取消
+链路。运行前先构建 server；该测试拒绝接管含其他活动任务的数据库。
+
+```bash
+vp run -F @adrian-zephyr-notes/server build
+PI_ATOMIC_TEST_DATABASE_URL=postgresql://test:test@localhost:5432/pi_test \
+  vp run -F @adrian-zephyr-notes/server test:e2e test/pi-admin-agent-http-recovery.e2e-spec.ts
+```

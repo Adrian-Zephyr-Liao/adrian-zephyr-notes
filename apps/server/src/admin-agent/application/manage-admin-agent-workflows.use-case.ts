@@ -52,6 +52,7 @@ type ListAdminAgentWorkflowRunsInput = {
 type StartAdminAgentWorkflowControlInput = {
   dedupeKey?: string;
   signal?: AbortSignal;
+  waitSignal?: AbortSignal;
   actor?: AdminOperationActor;
   input?: Record<string, unknown> | null;
   requestContext?: AdminOperationRequestContext;
@@ -144,6 +145,7 @@ class ManageAdminAgentWorkflowsUseCase {
     const result = await definition.start({
       ...(input.dedupeKey ? { dedupeKey: input.dedupeKey } : {}),
       ...(input.signal ? { signal: input.signal } : {}),
+      ...(input.waitSignal ? { waitSignal: input.waitSignal } : {}),
       input: input.input ?? null,
       startedByUserId: input.startedByUserId,
       startReason: "MANUAL",
@@ -162,6 +164,18 @@ class ManageAdminAgentWorkflowsUseCase {
     });
 
     return this.withBusinessTimeline(result);
+  }
+
+  async cancelChatAnalysis(input: { dedupeKey: string; startedByUserId: string }) {
+    const run = await this.adminAgentRepository.findRunByDedupeKey(input.dedupeKey);
+    if (!run) return;
+    if (
+      run.workflowName !== "COMMENT_MODERATION_ANALYSIS" ||
+      run.startedByUserId !== input.startedByUserId
+    )
+      throw new Error("Chat analysis cancellation does not match its saved owner and workflow.");
+    if (["PENDING", "RUNNING", "WAITING_FOR_APPROVAL"].includes(run.status))
+      await this.cancelRun(run);
   }
 
   private async retryRun(

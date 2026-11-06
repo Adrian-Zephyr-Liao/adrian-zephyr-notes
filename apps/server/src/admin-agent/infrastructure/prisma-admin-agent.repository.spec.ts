@@ -3,25 +3,30 @@ import { Prisma } from "@prisma/client";
 import { PrismaAdminAgentRepository } from "./prisma-admin-agent.repository";
 
 describe("PrismaAdminAgentRepository", () => {
-  it("does not append another cancellation event when a run is already cancelled", async () => {
-    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
-    const createEvent = vi.fn();
-    const transaction = {
-      adminAgentRun: {
-        updateMany,
-        findUniqueOrThrow: vi.fn().mockResolvedValue(createRunRecord({ status: "CANCELLED" })),
-      },
-      adminAgentWorkflowEvent: { create: createEvent },
-    };
-    const repository = new PrismaAdminAgentRepository({
-      $transaction: (callback: (tx: typeof transaction) => unknown) => callback(transaction),
-    } as never);
-    expect((await repository.cancelRun("run-1", "Cancelled again")).status).toBe("CANCELLED");
-    expect(updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { id: "run-1", status: { not: "CANCELLED" } } }),
-    );
-    expect(createEvent).not.toHaveBeenCalled();
-  });
+  it.each(["COMPLETED", "FAILED", "CANCELLED"] as const)(
+    "does not overwrite a %s run with a late cancellation",
+    async (status) => {
+      const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+      const createEvent = vi.fn();
+      const transaction = {
+        adminAgentRun: {
+          updateMany,
+          findUniqueOrThrow: vi.fn().mockResolvedValue(createRunRecord({ status })),
+        },
+        adminAgentWorkflowEvent: { create: createEvent },
+      };
+      const repository = new PrismaAdminAgentRepository({
+        $transaction: (callback: (tx: typeof transaction) => unknown) => callback(transaction),
+      } as never);
+      expect((await repository.cancelRun("run-1", "Cancelled again")).status).toBe(status);
+      expect(updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: "run-1", status: { in: ["PENDING", "RUNNING", "WAITING_FOR_APPROVAL"] } },
+        }),
+      );
+      expect(createEvent).not.toHaveBeenCalled();
+    },
+  );
   it("cannot downgrade a committed action after a lost transaction response", async () => {
     const receipt = createWorkflowActionExecutionRecord({
       status: "SUCCEEDED",
@@ -436,7 +441,7 @@ describe("PrismaAdminAgentRepository", () => {
         }),
         where: {
           id: "run-1",
-          status: { not: "CANCELLED" },
+          status: { in: ["PENDING", "RUNNING", "WAITING_FOR_APPROVAL"] },
         },
       }),
     );
@@ -460,6 +465,7 @@ describe("PrismaAdminAgentRepository", () => {
     });
     const findUnique = vi.fn().mockResolvedValue(cancelledRun);
     const runUpdate = vi.fn();
+    const runUpdateMany = vi.fn().mockResolvedValue({ count: 0 });
     const eventCreate = vi.fn();
     const prisma = {
       adminAgentRun: {
@@ -470,6 +476,8 @@ describe("PrismaAdminAgentRepository", () => {
         callback({
           adminAgentRun: {
             findUnique,
+            findUniqueOrThrow: vi.fn().mockResolvedValue(cancelledRun),
+            updateMany: runUpdateMany,
             update: runUpdate,
           },
           adminAgentWorkflowEvent: {
@@ -506,7 +514,10 @@ describe("PrismaAdminAgentRepository", () => {
       summary: "已取消评论治理分析。",
     });
 
-    expect(findUnique).toHaveBeenCalledTimes(6);
+    expect(findUnique).toHaveBeenCalledTimes(5);
+    expect(runUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "run-1", status: { not: "CANCELLED" } } }),
+    );
     expect(runUpdate).not.toHaveBeenCalled();
     expect(eventCreate).not.toHaveBeenCalled();
   });

@@ -14,7 +14,10 @@ import type {
 } from "../../audit/domain/admin-operation-log";
 
 type StartAdminAgentWorkflowRunnerInput = {
+  /** Explicitly cancels the business run. */
   signal?: AbortSignal;
+  /** Interrupts only this wait, after the run and its task have been durably admitted. */
+  waitSignal?: AbortSignal;
   dedupeKey?: string | null;
   input?: Record<string, unknown> | null;
   parentRunId?: string | null;

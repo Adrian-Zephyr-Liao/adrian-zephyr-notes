@@ -375,6 +375,10 @@ class MemoryAdminAgentRepository implements AdminAgentRepository {
     throw new Error("not used");
   }
 
+  async findRunByDedupeKey(): Promise<AdminAgentRun | null> {
+    throw new Error("not used");
+  }
+
   async findRunByThreadId(): Promise<AdminAgentRun | null> {
     throw new Error("not used");
   }
