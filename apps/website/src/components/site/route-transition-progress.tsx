@@ -83,7 +83,8 @@ function RouteTransitionProgress() {
       if (
         !anchor ||
         (anchor.target && anchor.target !== "_self") ||
-        anchor.hasAttribute("download")
+        anchor.hasAttribute("download") ||
+        anchor.hasAttribute("data-native-navigation")
       ) {
         return;
       }

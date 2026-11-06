@@ -11,9 +11,15 @@ function HeaderLink({ item, compact = false }: { item: NavChild; compact?: boole
     compact ? "px-3 py-2" : "px-3.5 py-2.5",
   );
 
-  if (item.external) {
+  if (item.external || item.document) {
     return (
-      <a className={className} href={item.href} target="_blank" rel="noreferrer">
+      <a
+        className={className}
+        href={item.href}
+        target={item.external ? "_blank" : undefined}
+        rel={item.external ? "noreferrer" : undefined}
+        data-native-navigation={item.document || undefined}
+      >
         <Icon className="size-4" />
         <span>{item.label}</span>
       </a>

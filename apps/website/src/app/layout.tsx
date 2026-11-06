@@ -4,11 +4,16 @@ import { PageScrollControls } from "@/components/site/page-scroll-controls";
 import { RouteTransitionProgress } from "@/components/site/route-transition-progress";
 import { SiteHeader } from "@/components/site/site-header";
 import { ThemeProvider } from "@/components/site/theme-provider";
+import { site } from "@/lib/site";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Adrian Zephyr Notes",
-  description: "A personal blog for notes, essays, and experiments.",
+  metadataBase: new URL(site.url),
+  title: site.title,
+  description: site.description,
+  alternates: {
+    types: { "application/rss+xml": "/rss.xml" },
+  },
 };
 
 export default function RootLayout({

@@ -7,6 +7,7 @@ type NavChild = {
   label: string;
   icon: SiteIcon;
   external?: boolean;
+  document?: boolean;
 };
 
 type PortalLink = NavChild & {

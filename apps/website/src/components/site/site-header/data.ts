@@ -13,6 +13,7 @@ import {
   Music2,
   Plane,
   Radio,
+  Rss,
   Send,
   Sparkles,
   Tags,
@@ -60,6 +61,7 @@ const navGroups: NavGroup[] = [
       { href: "/archives", label: "文章归档", icon: Archive },
       { href: "/categories", label: "分类目录", icon: FolderOpen },
       { href: "/tags", label: "标签浏览", icon: Tags },
+      { href: "/rss.xml", label: "RSS 订阅", icon: Rss, document: true },
     ],
   },
   {
