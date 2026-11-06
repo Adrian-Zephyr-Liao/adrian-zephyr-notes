@@ -12,7 +12,7 @@ type UpdateAdminSiteAnnouncementInput = UpdateSiteAnnouncementInput;
 class UpdateAdminSiteAnnouncementUseCase {
   constructor(
     @Inject(SITE_CONFIG_REPOSITORY)
-    private readonly siteConfigRepository: SiteConfigRepository,
+    private readonly siteConfigRepository: Pick<SiteConfigRepository, "updateAnnouncement">,
   ) {}
 
   async execute(input: UpdateAdminSiteAnnouncementInput) {

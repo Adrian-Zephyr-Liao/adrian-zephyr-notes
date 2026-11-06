@@ -12,7 +12,7 @@ type RecordAdminOperationCommand = Omit<RecordAdminOperationInput, "summary">;
 class RecordAdminOperationUseCase {
   constructor(
     @Inject(ADMIN_OPERATION_LOG_REPOSITORY)
-    private readonly adminOperationLogRepository: AdminOperationLogRepository,
+    private readonly adminOperationLogRepository: Pick<AdminOperationLogRepository, "record">,
   ) {}
 
   execute(input: RecordAdminOperationCommand) {

@@ -1,11 +1,13 @@
-import { Inject, Injectable } from "@nestjs/common";
+import { Inject, Injectable, Optional } from "@nestjs/common";
 import {
   ADMIN_AGENT_WORKFLOW_ACTION_HANDLERS,
+  ADMIN_AGENT_ATOMIC_ACTION_EXECUTOR,
   AdminAgentWorkflowActionUnsupportedError,
   type AdminAgentWorkflowActionExecutionResult,
   type AdminAgentWorkflowActionExecutor,
   type AdminAgentWorkflowActionHandler,
   type ExecuteAdminAgentWorkflowActionInput,
+  type AdminAgentAtomicActionExecutor,
 } from "../domain/admin-agent-workflow-action-executor";
 
 @Injectable()
@@ -13,7 +15,14 @@ class ExecuteAdminAgentWorkflowActionUseCase implements AdminAgentWorkflowAction
   constructor(
     @Inject(ADMIN_AGENT_WORKFLOW_ACTION_HANDLERS)
     private readonly handlers: AdminAgentWorkflowActionHandler[],
+    @Optional()
+    @Inject(ADMIN_AGENT_ATOMIC_ACTION_EXECUTOR)
+    private readonly atomicExecutor?: AdminAgentAtomicActionExecutor,
   ) {}
+
+  async executeActionWithReceipt(input: ExecuteAdminAgentWorkflowActionInput, executionId: string) {
+    return this.atomicExecutor?.execute(input, executionId) ?? null;
+  }
 
   async executeAction(
     input: ExecuteAdminAgentWorkflowActionInput,

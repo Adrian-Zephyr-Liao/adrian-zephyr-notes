@@ -85,6 +85,7 @@ enum AdminAgentDecisionEffectStatus {
 enum AdminAgentMessageRole {
   USER
   ASSISTANT
+  REASONING
   TOOL
   ACTIVITY
 }
@@ -182,6 +183,7 @@ model User {
   articleEditorDrafts AdminArticleEditorDraft[]
   adminAgentRuns AdminAgentRun[]
   adminAgentMessages AdminAgentMessage[]
+  adminAgentConversations AdminAgentConversation[]
 
   @@map("users")
 }
@@ -432,11 +434,22 @@ model AdminAgentRun {
   @@map("admin_agent_runs")
 }
 
+model AdminAgentConversation {
+  id String @id
+  ownerUserId String @map("owner_user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  owner User @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+
+  @@index([ownerUserId, createdAt])
+  @@map("admin_agent_conversations")
+}
+
 model AdminAgentMessage {
   id             String                @id
   conversationId String                @map("conversation_id")
   role           AdminAgentMessageRole
   message        Json
+  durationMs     Int?                  @map("duration_ms")
   actorUserId    String?               @map("actor_user_id") @db.Uuid
   createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)

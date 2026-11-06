@@ -231,11 +231,15 @@ class PrismaAdminAgentRepository implements AdminAgentRepository, AdminAgentComm
   }
 
   async markWorkflowActionExecutionFailed(id: string, errorMessage: string) {
-    const record = await this.prisma.adminAgentWorkflowActionExecution.update({
+    await this.prisma.adminAgentWorkflowActionExecution.updateMany({
       data: {
         errorMessage,
         status: "FAILED",
       },
+      where: { id, status: { not: "SUCCEEDED" } },
+    });
+
+    const record = await this.prisma.adminAgentWorkflowActionExecution.findUniqueOrThrow({
       where: { id },
     });
 
@@ -480,7 +484,7 @@ class PrismaAdminAgentRepository implements AdminAgentRepository, AdminAgentComm
 
   async cancelRun(id: string, summary: string) {
     const [record] = await this.prisma.$transaction(async (tx) => {
-      const updatedRun = await tx.adminAgentRun.update({
+      const cancelled = await tx.adminAgentRun.updateMany({
         data: {
           currentNode: "cancelled",
           errorMessage: null,
@@ -488,8 +492,11 @@ class PrismaAdminAgentRepository implements AdminAgentRepository, AdminAgentComm
           status: "CANCELLED",
           summary,
         },
-        where: { id },
+        where: { id, status: { not: "CANCELLED" } },
       });
+
+      const updatedRun = await tx.adminAgentRun.findUniqueOrThrow({ where: { id } });
+      if (cancelled.count === 0) return [updatedRun];
 
       await createWorkflowEventRecord(
         tx,

@@ -21,7 +21,7 @@ import { type ReactNode, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { Textarea } from "../../components/ui/textarea";
 import { cn } from "../../lib/utils";
-import { AgentReasoningMessage } from "./agent-reasoning-message";
+import { AgentReasoningDurationProvider, AgentReasoningMessage } from "./agent-reasoning-message";
 import type { AgentLandingCapabilitySuggestion } from "./agent-workbench-types";
 
 type AgentWorkbenchShellProps = {
@@ -32,6 +32,7 @@ type AgentWorkbenchShellProps = {
   landingSuggestions: AgentLandingCapabilitySuggestion[];
   messages: Message[];
   promptText: string;
+  reasoningDurations: Record<string, number>;
   shouldShowLanding: boolean;
   onChangePromptText: (value: string) => void;
   onClearConversation: () => void;
@@ -47,6 +48,7 @@ function AgentWorkbenchShell({
   landingSuggestions,
   messages,
   promptText,
+  reasoningDurations,
   shouldShowLanding,
   onChangePromptText,
   onClearConversation,
@@ -110,12 +112,18 @@ function AgentWorkbenchShell({
             />
           ) : (
             <div className="mx-auto flex min-h-full w-full max-w-4xl flex-col justify-end gap-3 py-4">
-              <CopilotChatMessageView
-                className="grid gap-3"
+              <AgentReasoningDurationProvider
+                durations={reasoningDurations}
                 isRunning={isSendingChat}
                 messages={messages}
-                reasoningMessage={AgentReasoningMessage}
-              />
+              >
+                <CopilotChatMessageView
+                  className="grid gap-3"
+                  isRunning={isSendingChat}
+                  messages={messages}
+                  reasoningMessage={AgentReasoningMessage}
+                />
+              </AgentReasoningDurationProvider>
 
               {errorMessage ? (
                 <div

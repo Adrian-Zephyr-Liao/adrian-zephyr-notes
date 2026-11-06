@@ -50,16 +50,17 @@ async function executeCommentModerationApprovalAction(
   }
 
   if (executionClaim.claimStatus === "IN_PROGRESS") {
-    throw new AdminAgentWorkflowActionExecutionInProgressError(approvalId);
+    throw new AdminAgentWorkflowActionExecutionInProgressError(approvalId, execution.updatedAt);
   }
 
+  let result: AdminAgentWorkflowActionExecutionResult;
   try {
     const currentFindings = await input.repository.listFindingsByIds(input.approval.findingIds);
     const findingIds = toExecutableCommentModerationFindingIds(
       input.approval.findingIds,
       currentFindings,
     );
-    const result =
+    result =
       findingIds.length > 0
         ? await input.actionExecutor.executeAction({
             action: "HIDE_COMMENT",
@@ -71,10 +72,6 @@ async function executeCommentModerationApprovalAction(
             subject: "ARTICLE_COMMENT",
           })
         : toRecoveredCommentModerationResult(input.approval.findingIds, currentFindings);
-
-    await input.repository.markWorkflowActionExecutionSucceeded(execution.id, result);
-
-    return result;
   } catch (error) {
     await input.repository.markWorkflowActionExecutionFailed(
       execution.id,
@@ -82,6 +79,8 @@ async function executeCommentModerationApprovalAction(
     );
     throw error;
   }
+  await input.repository.markWorkflowActionExecutionSucceeded(execution.id, result);
+  return result;
 }
 
 function toRecoveredCommentModerationResult(

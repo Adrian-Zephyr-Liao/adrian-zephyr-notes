@@ -58,21 +58,27 @@ async function executeAdminAgentGenericApprovalAction(
   }
 
   if (executionClaim.claimStatus === "IN_PROGRESS") {
-    throw new AdminAgentWorkflowActionExecutionInProgressError(approval.approvalId);
+    throw new AdminAgentWorkflowActionExecutionInProgressError(
+      approval.approvalId,
+      execution.updatedAt,
+    );
   }
 
+  const actionInput = {
+    action: approval.action,
+    actor: approval.actor,
+    payload: approval.payload ?? {},
+    requestContext: approval.requestContext,
+    subject: approval.subject,
+  };
+  let result: AdminAgentWorkflowActionExecutionResult;
   try {
-    const result = await input.actionExecutor.executeAction({
-      action: approval.action,
-      actor: approval.actor,
-      payload: approval.payload ?? {},
-      requestContext: approval.requestContext,
-      subject: approval.subject,
-    });
-
-    await input.repository.markWorkflowActionExecutionSucceeded(execution.id, result);
-
-    return result;
+    const committed = await input.actionExecutor.executeActionWithReceipt?.(
+      actionInput,
+      execution.id,
+    );
+    if (committed) return committed;
+    result = await input.actionExecutor.executeAction(actionInput);
   } catch (error) {
     await input.repository.markWorkflowActionExecutionFailed(
       execution.id,
@@ -80,6 +86,9 @@ async function executeAdminAgentGenericApprovalAction(
     );
     throw error;
   }
+  // An unknown receipt write outcome must not turn an already successful effect into FAILED.
+  await input.repository.markWorkflowActionExecutionSucceeded(execution.id, result);
+  return result;
 }
 
 export { executeAdminAgentGenericApprovalAction };

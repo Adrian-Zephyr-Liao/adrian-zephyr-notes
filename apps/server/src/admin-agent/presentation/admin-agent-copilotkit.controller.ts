@@ -1,4 +1,14 @@
-import { All, Controller, Inject, Req, Res, UseGuards } from "@nestjs/common";
+import {
+  All,
+  Controller,
+  ForbiddenException,
+  Inject,
+  Param,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+} from "@nestjs/common";
 import type { Request, Response } from "express";
 import { Readable } from "node:stream";
 import {
@@ -15,6 +25,7 @@ import {
 } from "../../audit/presentation/admin-audit-context";
 import { SendAdminAgentChatMessageUseCase } from "../application/send-admin-agent-chat-message.use-case";
 import {
+  AdminAgentConversationAccessError,
   ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY,
   type AdminAgentChatMessageRepository,
 } from "../domain/admin-agent-chat-message.repository";
@@ -32,6 +43,21 @@ class AdminAgentCopilotKitController {
     @Inject(ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY)
     private readonly chatMessageRepository: AdminAgentChatMessageRepository,
   ) {}
+
+  @Post("admin/agent/conversations/:conversationId/stop")
+  async stopConversation(
+    @Param("conversationId") conversationId: string,
+    @CurrentAdmin() admin: AuthUser,
+  ) {
+    try {
+      await this.sendChatMessage.abortConversation(admin.id, conversationId);
+    } catch (error) {
+      if (error instanceof AdminAgentConversationAccessError)
+        throw new ForbiddenException(error.message);
+      throw error;
+    }
+    return { stopped: true };
+  }
 
   @All("copilotkit")
   async handle(

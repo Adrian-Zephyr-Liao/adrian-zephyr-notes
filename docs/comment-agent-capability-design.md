@@ -17,7 +17,7 @@
 
 ### 能力不等于工作流
 
-Agent 看到的是业务动作，例如 `search_comments` 和 `analyze_comments`。LangGraph 可以在服务端编排一个能力的内部步骤，但 workflow 名称不是 Agent 工具，也不是前端契约。
+Agent 看到的是业务动作，例如 `search_comments` 和 `analyze_comments`。pi-durable 在服务端执行能力的持久化阶段，但内部工作流名称不是 Agent 工具，也不是前端契约。当前执行与迁移边界见 [Agent 工作台执行架构](./agent-workflow-architecture.md)。
 
 一个能力满足以下条件：
 
@@ -268,13 +268,13 @@ apps/server/src/admin-agent
   domain                   finding、分析策略、审批策略
   application              AnalyzeComments、ModerateComments 等能力用例
   infrastructure/tools     CopilotKit server tool 定义和 A2UI envelope
-  infrastructure/workflows 仅保留需要持久化、恢复或审批的 LangGraph 编排
+  infrastructure/workflows 保留需要持久化、恢复或审批的 pi-durable 业务任务
 
 apps/admin/src/features/agent-workbench
   a2ui                     固定 catalog、评论 finding 的确认操作与执行状态
 ```
 
-共享 HTTP/展示契约放在 `packages/contracts`；LangGraph state、CopilotKit tool 定义和 Prisma 模型不进入共享契约。
+共享 HTTP/展示契约放在 `packages/contracts`；pi 运行状态、CopilotKit tool 定义和 Prisma 模型不进入共享契约。
 
 ## 第一阶段迁移
 

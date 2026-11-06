@@ -150,6 +150,13 @@ async function listAdminAgentConversationMessages(conversationId: string) {
   );
 }
 
+async function stopAdminAgentConversation(conversationId: string) {
+  return requestAdminApi<{ stopped: boolean }>(
+    `/api/admin/agent/conversations/${encodeURIComponent(conversationId)}/stop`,
+    { method: "POST" },
+  );
+}
+
 async function listAdminAgentTasks(query: AdminAgentTaskListQuery = {}) {
   return requestAdminApi<AdminAgentTaskListResponse>(
     withAdminQuery("/api/admin/agent/tasks", query),
@@ -345,6 +352,7 @@ export {
   hideAdminAgentCommentAnalysisFindings,
   listAdminAgentTasks,
   listAdminAgentConversationMessages,
+  stopAdminAgentConversation,
   listAdminArticleComments,
   listAdminArticleCategories,
   listAdminArticleTaxonomies,

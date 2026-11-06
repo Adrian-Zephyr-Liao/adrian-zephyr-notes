@@ -43,8 +43,10 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.minimaxi.com/v1}
       LLM_MODEL: ${LLM_MODEL:-MiniMax-M3}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-60000}
-      LANGGRAPH_CHECKPOINT_SCHEMA: ${LANGGRAPH_CHECKPOINT_SCHEMA:-public}
-      LANGGRAPH_CHECKPOINT_SETUP_ON_START: ${LANGGRAPH_CHECKPOINT_SETUP_ON_START:-false}
+      PI_AGENT_STORAGE_DIR: /app/data/pi
+      PI_AGENT_LEGACY_CHECKPOINT_SCHEMA: ${PI_AGENT_LEGACY_CHECKPOINT_SCHEMA:-public}
+    volumes:
+      - agent-runtime-data:/app/data/pi
     depends_on:
       postgres:
         condition: service_healthy
@@ -117,5 +119,6 @@ services:
 
 volumes:
   postgres-data:
+  agent-runtime-data:
   caddy-data:
   caddy-config:

@@ -24,6 +24,7 @@ function AgentWorkbenchPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [promptText, setPromptText] = useState("");
+  const [reasoningDurations, setReasoningDurations] = useState<Record<string, number>>({});
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const homeLoadPromiseRef = useRef<Promise<void> | null>(null);
   const { agent } = useAgent({
@@ -119,10 +120,21 @@ function AgentWorkbenchPage() {
   }
 
   function clearConversation() {
+    void agentClient.stopConversation(conversationId).catch(() => undefined);
     agent.abortRun();
     agent.setMessages([]);
+    setReasoningDurations({});
     setConversationId(resetAgentConversationId());
     setErrorMessage(null);
+  }
+
+  async function stopConversation() {
+    try {
+      await agentClient.stopConversation(conversationId);
+      agent.abortRun();
+    } catch {
+      setErrorMessage("停止请求未成功，请重试。");
+    }
   }
 
   useEffect(() => {
@@ -161,6 +173,7 @@ function AgentWorkbenchPage() {
 
         const messages: Message[] = response.data;
 
+        setReasoningDurations(response.reasoningDurations ?? {});
         agent.setMessages(messages);
       } catch {
         // Conversation recovery should never block the workbench from opening.
@@ -198,10 +211,11 @@ function AgentWorkbenchPage() {
         landingSuggestions={contextRegistry.suggestions}
         messages={agent.messages}
         promptText={promptText}
+        reasoningDurations={reasoningDurations}
         shouldShowLanding={!hasConversation}
         onChangePromptText={setPromptText}
         onClearConversation={clearConversation}
-        onStop={() => agent.abortRun()}
+        onStop={() => void stopConversation()}
         onSubmitPrompt={submitPrompt}
       >
         <div ref={conversationEndRef} aria-hidden="true" className="h-px" />

@@ -24,7 +24,8 @@ COPY . .
 RUN DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public \
   pnpm --filter @adrian-zephyr-notes/server prisma:generate
 RUN pnpm --filter @adrian-zephyr-notes/server build
-RUN pnpm --filter @adrian-zephyr-notes/server deploy --legacy --prod /prod/server
+RUN --mount=type=cache,id=azn-pnpm-store,target=/pnpm/store \
+  pnpm --filter @adrian-zephyr-notes/server deploy --legacy --prod /prod/server
 RUN cd /prod/server && \
   DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public \
   ./node_modules/.bin/prisma generate --config prisma.config.ts
@@ -39,7 +40,8 @@ COPY --from=builder /prod/server ./
 COPY --from=builder /app/packages/contracts ./packages/contracts
 
 RUN rm node_modules/@adrian-zephyr-notes/contracts && \
-  ln -s ../../packages/contracts node_modules/@adrian-zephyr-notes/contracts
+  ln -s ../../packages/contracts node_modules/@adrian-zephyr-notes/contracts && \
+  test ! -e .env && test ! -d .data
 
 EXPOSE 3001
 

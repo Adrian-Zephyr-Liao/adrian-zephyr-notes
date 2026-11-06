@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   ConflictException,
+  ForbiddenException,
   Controller,
   Get,
   Inject,
@@ -40,6 +41,7 @@ import {
   ModerateAdminAgentCommentAnalysisUseCase,
 } from "../application/moderate-admin-agent-comment-analysis.use-case";
 import {
+  AdminAgentConversationAccessError,
   ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY,
   type AdminAgentChatMessageRepository,
 } from "../domain/admin-agent-chat-message.repository";
@@ -149,12 +151,20 @@ class AdminAgentController {
   @Get("conversations/:conversationId/messages")
   async listConversationMessages(
     @Param("conversationId") conversationId: string,
+    @CurrentAdmin() admin: AuthUser,
   ): Promise<AdminAgentConversationMessagesResponse> {
-    return toAdminAgentConversationMessagesResponse(
-      await this.listAdminAgentConversationMessages.execute({
-        conversationId,
-      }),
-    );
+    try {
+      return toAdminAgentConversationMessagesResponse(
+        await this.listAdminAgentConversationMessages.execute({
+          conversationId,
+          actorUserId: admin.id,
+        }),
+      );
+    } catch (error) {
+      if (error instanceof AdminAgentConversationAccessError)
+        throw new ForbiddenException(error.message);
+      throw error;
+    }
   }
 
   @Post("conversations/:conversationId/comment-analyses/:analysisId/hide")
@@ -172,6 +182,10 @@ class AdminAgentController {
     }
 
     try {
+      await this.chatMessageRepository.assertConversationAccess({
+        conversationId,
+        actorUserId: admin.id,
+      });
       const moderation = await this.moderateCommentAnalysis.execute({
         action: "HIDE",
         actor: toAdminOperationActor(admin),
@@ -218,6 +232,8 @@ class AdminAgentController {
         ),
       };
     } catch (error) {
+      if (error instanceof AdminAgentConversationAccessError)
+        throw new ForbiddenException(error.message);
       if (error instanceof AdminAgentCommentAnalysisNotFoundError) {
         throw new NotFoundException(error.message);
       }

@@ -116,22 +116,30 @@ class PrismaSiteConfigRepository implements SiteConfigRepository {
   }
 
   async updateAnnouncement(input: UpdateSiteAnnouncementInput) {
-    try {
-      const record = await this.prisma.siteAnnouncement.update({
-        where: {
-          id: input.id,
-        },
-        data: toSiteAnnouncementUpdateData(input),
-      });
+    return updatePrismaSiteAnnouncement(this.prisma.siteAnnouncement, input);
+  }
+}
 
-      return toDomainSiteAnnouncement(record);
-    } catch (error) {
-      if (isPrismaRecordNotFound(error)) {
-        return null;
-      }
+/** Uses the caller's connection so an Agent effect and its receipt can share one transaction. */
+async function updatePrismaSiteAnnouncement(
+  announcements: Prisma.TransactionClient["siteAnnouncement"],
+  input: UpdateSiteAnnouncementInput,
+) {
+  try {
+    const record = await announcements.update({
+      where: {
+        id: input.id,
+      },
+      data: toSiteAnnouncementUpdateData(input),
+    });
 
-      throw error;
+    return toDomainSiteAnnouncement(record);
+  } catch (error) {
+    if (isPrismaRecordNotFound(error)) {
+      return null;
     }
+
+    throw error;
   }
 }
 
@@ -193,4 +201,4 @@ function isPrismaRecordNotFound(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
 }
 
-export { PrismaSiteConfigRepository };
+export { PrismaSiteConfigRepository, updatePrismaSiteAnnouncement };

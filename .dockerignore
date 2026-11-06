@@ -7,6 +7,9 @@ apps/*/dist
 apps/*/.next
 apps/*/coverage
 *.tsbuildinfo
+.data
+apps/*/.data
+apps/server/data
 .env
 .env.*
 !.env.example

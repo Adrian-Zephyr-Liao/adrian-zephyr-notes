@@ -118,6 +118,12 @@ describe("AdminAgentController", () => {
         role: "user",
       },
       {
+        content: "先确认评论范围，再识别风险。",
+        durationMs: 65_000,
+        id: "reasoning-1",
+        role: "reasoning",
+      },
+      {
         activityType: "a2ui-surface",
         content: { a2ui_operations: [{ op: "beginRendering" }] },
         id: "comment-analysis-activity-analysis-1",
@@ -126,12 +132,19 @@ describe("AdminAgentController", () => {
     ]);
     const controller = createController({}, { execute });
 
-    await expect(controller.listConversationMessages("conversation-1")).resolves.toEqual({
+    await expect(
+      controller.listConversationMessages("conversation-1", createAdminUser()),
+    ).resolves.toEqual({
       data: [
         {
           content: "上次的问题",
           id: "message-1",
           role: "user",
+        },
+        {
+          content: "先确认评论范围，再识别风险。",
+          id: "reasoning-1",
+          role: "reasoning",
         },
         {
           activityType: "a2ui-surface",
@@ -140,8 +153,14 @@ describe("AdminAgentController", () => {
           role: "activity",
         },
       ],
+      reasoningDurations: {
+        "reasoning-1": 65_000,
+      },
     });
-    expect(execute).toHaveBeenCalledWith({ conversationId: "conversation-1" });
+    expect(execute).toHaveBeenCalledWith({
+      conversationId: "conversation-1",
+      actorUserId: "admin-1",
+    });
   });
 
   it("hides selected comment findings once and persists the replaced activity", async () => {
@@ -614,7 +633,7 @@ function createController(
       ...overrides,
     } as never,
     moderateCommentAnalysis as never,
-    chatMessageRepository as never,
+    { assertConversationAccess: vi.fn(), ...chatMessageRepository } as never,
   );
 }
 

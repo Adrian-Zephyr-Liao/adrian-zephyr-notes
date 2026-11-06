@@ -1,4 +1,5 @@
 import { Inject, Injectable } from "@nestjs/common";
+import { createHash } from "node:crypto";
 import { ListAdminArticleCommentsUseCase } from "../../../comments/application/list-admin-article-comments.use-case";
 import type {
   AdminOperationActor,
@@ -115,7 +116,8 @@ class AdminAgentCommentTools {
       {
         description:
           "Analyze selected visible comments for moderation risk. Accepts only trusted comment IDs from search_comments or explicit administrator context. Persists findings, never changes visibility, and emits a durable A2UI review activity.",
-        execute: (argumentsValue) => this.analyzeComments(argumentsValue, context),
+        execute: (argumentsValue, executionContext) =>
+          this.analyzeComments(argumentsValue, context, executionContext),
         name: "analyze_comments",
         parameters: {
           additionalProperties: false,
@@ -255,6 +257,7 @@ class AdminAgentCommentTools {
   private async analyzeComments(
     argumentsValue: Record<string, unknown>,
     context: AdminAgentCommentToolsContext,
+    executionContext: AdminAgentServerToolExecutionContext,
   ) {
     const commentIds = normalizeCommentIds(argumentsValue.commentIds);
 
@@ -263,6 +266,16 @@ class AdminAgentCommentTools {
     }
 
     const result = await this.manageAdminAgentWorkflows.startWorkflow({
+      ...(executionContext.signal ? { signal: executionContext.signal } : {}),
+      dedupeKey: `chat-analysis:${createHash("sha256")
+        .update(
+          JSON.stringify([
+            context.startedByUserId,
+            executionContext.conversationId,
+            executionContext.toolCallId,
+          ]),
+        )
+        .digest("hex")}`,
       actor: context.actor,
       input: {
         commentIds,
@@ -306,6 +319,7 @@ class AdminAgentCommentTools {
     context: AdminAgentCommentToolsContext,
     _executionContext: AdminAgentServerToolExecutionContext,
   ) {
+    _executionContext.signal?.throwIfAborted();
     const analysisId = normalizeOptionalText(argumentsValue.analysisId);
     const findingIds = normalizeFindingIds(argumentsValue.findingIds);
 

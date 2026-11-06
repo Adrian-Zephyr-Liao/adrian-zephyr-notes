@@ -1,4 +1,4 @@
-import { MemorySaver } from "@langchain/langgraph";
+import { MemoryStorage } from "@earendil-works/pi-durable";
 import { describe, expect, it, vi } from "vitest";
 import {
   AdminAgentWorkflowResumeUnsupportedError,
@@ -6,7 +6,7 @@ import {
   ManageAdminAgentWorkflowsUseCase,
 } from "./manage-admin-agent-workflows.use-case";
 import { RegisteredAdminAgentWorkflowRegistry } from "./admin-agent-workflow-registry";
-import { LangGraphAdminAgentWorkflowRunner } from "../infrastructure/langgraph-admin-agent-workflow.runner";
+import { PiAdminAgentWorkflowRunner } from "../infrastructure/pi-admin-agent-workflow.runner";
 import {
   RecordingAdminAgentRepository,
   RecordingAdminAgentWorkflowActionExecutor,
@@ -156,7 +156,7 @@ function createWorkflowControlHarness(input: {
   llm: ReturnType<typeof createChatCompletionClientDouble>;
   repository: RecordingAdminAgentRepository;
 }) {
-  const runner = new LangGraphAdminAgentWorkflowRunner(
+  const runner = new PiAdminAgentWorkflowRunner(
     input.repository,
     input.actionExecutor ?? new RecordingAdminAgentWorkflowActionExecutor(),
     input.llm,
@@ -166,7 +166,7 @@ function createWorkflowControlHarness(input: {
     undefined,
     undefined,
     {
-      checkpointer: new MemorySaver(),
+      storage: new MemoryStorage(),
     },
   );
   const useCase = new ManageAdminAgentWorkflowsUseCase(

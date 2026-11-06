@@ -50,6 +50,8 @@ type ListAdminAgentWorkflowRunsInput = {
 };
 
 type StartAdminAgentWorkflowControlInput = {
+  dedupeKey?: string;
+  signal?: AbortSignal;
   actor?: AdminOperationActor;
   input?: Record<string, unknown> | null;
   requestContext?: AdminOperationRequestContext;
@@ -140,6 +142,8 @@ class ManageAdminAgentWorkflowsUseCase {
     const definition = this.getWorkflowDefinition(input.workflowName);
 
     const result = await definition.start({
+      ...(input.dedupeKey ? { dedupeKey: input.dedupeKey } : {}),
+      ...(input.signal ? { signal: input.signal } : {}),
       input: input.input ?? null,
       startedByUserId: input.startedByUserId,
       startReason: "MANUAL",
@@ -200,6 +204,9 @@ class ManageAdminAgentWorkflowsUseCase {
   }
 
   private async cancelRun(sourceRun: AdminAgentRun): Promise<AdminAgentWorkflowResult> {
+    await this.adminAgentWorkflowRegistry
+      .findByName(sourceRun.workflowName)
+      ?.cancel?.(sourceRun.id);
     const cancelledRun = await this.adminAgentRepository.cancelRun(
       sourceRun.id,
       `已取消${toAdminAgentWorkflowLabel(sourceRun.workflowName)}。`,
@@ -273,7 +280,10 @@ class ManageAdminAgentWorkflowsUseCase {
   async resumeRun(input: ResumeAdminAgentWorkflowRunInput) {
     const sourceRun = await this.getRun(input.runId);
 
-    if (!isAdminAgentWorkflowHumanApprovalSupported(sourceRun.workflowName)) {
+    if (
+      !isAdminAgentWorkflowHumanApprovalSupported(sourceRun.workflowName) &&
+      sourceRun.interruption?.kind !== "COMMENT_MODERATION_APPROVAL"
+    ) {
       throw new AdminAgentWorkflowResumeUnsupportedError(sourceRun.id, sourceRun.workflowName);
     }
 

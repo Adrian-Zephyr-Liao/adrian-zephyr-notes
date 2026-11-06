@@ -19,5 +19,9 @@ apps/*/dist/
 apps/*/coverage/
 *.tsbuildinfo
 
+# Persistent local Agent sessions and task checkpoints.
+.data/
+apps/*/.data/
+
 # OS and editor noise
 .DS_Store

@@ -24,6 +24,7 @@ class RegisteredAdminAgentWorkflowRegistry implements AdminAgentWorkflowRegistry
 
   listDefinitions(): AdminAgentWorkflowDefinition[] {
     return listAdminAgentWorkflowMetadata().map((metadata) => ({
+      cancel: (runId) => this.adminAgentWorkflowRunner.cancelWorkflow?.(runId) ?? Promise.resolve(),
       branch: (input) =>
         this.adminAgentWorkflowRunner.branchWorkflow({
           ...input,

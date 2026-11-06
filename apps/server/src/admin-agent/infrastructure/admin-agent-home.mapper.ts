@@ -303,7 +303,21 @@ function toAdminAgentConversationMessagesResponse(
   messages: AdminAgentMessage[],
 ): AdminAgentConversationMessagesResponse {
   return {
-    data: messages,
+    data: messages.map((message) => {
+      if (message.role !== "reasoning") {
+        return message;
+      }
+
+      const { durationMs: _durationMs, ...reasoningMessage } = message;
+      return reasoningMessage;
+    }),
+    reasoningDurations: Object.fromEntries(
+      messages.flatMap((message) =>
+        message.role === "reasoning" && message.durationMs !== undefined
+          ? [[message.id, message.durationMs]]
+          : [],
+      ),
+    ),
   };
 }
 

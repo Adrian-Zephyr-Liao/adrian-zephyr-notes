@@ -6,6 +6,7 @@ import {
   type AdminAgentChatRunner,
   type AdminAgentChatRunnerEvent,
   type AdminAgentChatTool,
+  type AdminAgentServerTool,
 } from "../domain/admin-agent-chat-runner";
 import {
   ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY,
@@ -19,8 +20,12 @@ type SendAdminAgentChatMessageInput = {
   context?: AdminAgentChatContextEntry[];
   message: string;
   persistUserMessage?: boolean;
+  reasoningMessageId: string;
   recentMessages?: AdminAgentChatMessage[];
   tools?: AdminAgentChatTool[];
+  serverTools?: AdminAgentServerTool[];
+  runId?: string;
+  signal?: AbortSignal;
   userMessageId: string;
 };
 
@@ -47,14 +52,31 @@ class SendAdminAgentChatMessageUseCase {
     }
 
     let content = "";
+    let reasoningContent = "";
+    let reasoningDurationMs: number | null = null;
+    let reasoningStartedAt: number | null = null;
     let hasToolCall = false;
+    let completedTurn = false;
     const conversationId = normalizeConversationId(input.conversationId);
     const bufferedToolCalls = new Map<string, BufferedAdminAgentToolCall>();
+    let assistantMessageId = input.assistantMessageId;
+    let reasoningMessageId = input.reasoningMessageId;
 
     const context = await this.buildChatContext(message, input.context ?? []);
     const tools = normalizeTools(input.tools ?? []);
     const normalizedUserMessage = message.slice(0, maxInputMessageLength);
+    const finishReasoningTiming = () => {
+      if (reasoningStartedAt !== null && reasoningDurationMs === null) {
+        reasoningDurationMs = Math.max(1, Date.now() - reasoningStartedAt);
+      }
+    };
 
+    if (conversationId && input.actorUserId) {
+      await this.chatMessageRepository.assertConversationAccess({
+        conversationId,
+        actorUserId: input.actorUserId,
+      });
+    }
     if (conversationId && input.persistUserMessage !== false) {
       await this.chatMessageRepository.recordMessage({
         actorUserId: input.actorUserId ?? null,
@@ -67,19 +89,129 @@ class SendAdminAgentChatMessageUseCase {
       });
     }
 
+    const persistTurn = async () => {
+      const trimmedContent = content.trim();
+      const trimmedReasoningContent = reasoningContent.trim();
+
+      if (!trimmedContent && !hasToolCall) {
+        throw new Error("Admin agent LLM response did not include message content.");
+      }
+
+      if (conversationId && (trimmedContent || hasToolCall)) {
+        if (trimmedReasoningContent) {
+          await this.chatMessageRepository.recordMessage({
+            actorUserId: null,
+            conversationId,
+            ...(reasoningDurationMs === null ? {} : { durationMs: reasoningDurationMs }),
+            message: {
+              content: trimmedReasoningContent,
+              id: normalizeMessageId(reasoningMessageId, "reasoning"),
+              role: "reasoning",
+            },
+          });
+        }
+
+        await this.chatMessageRepository.recordMessage({
+          actorUserId: null,
+          conversationId,
+          message: {
+            content: trimmedContent,
+            id: normalizeMessageId(assistantMessageId, "assistant"),
+            role: "assistant",
+            ...(bufferedToolCalls.size
+              ? {
+                  toolCalls: [...bufferedToolCalls.values()].map((toolCall) => ({
+                    function: {
+                      arguments: toolCall.arguments,
+                      name: toolCall.name,
+                    },
+                    id: toolCall.id,
+                    type: "function" as const,
+                  })),
+                }
+              : {}),
+          },
+        });
+      }
+    };
+
     for await (const event of this.adminAgentChatRunner.streamReply({
+      actorUserId: input.actorUserId,
+      conversationId,
+      requestId: input.userMessageId,
+      runId: input.runId,
+      serverTools: input.serverTools,
+      signal: input.signal,
       context,
       message: normalizedUserMessage,
       recentMessages: normalizeRecentMessages(input.recentMessages ?? []),
       ...(tools.length ? { tools } : {}),
     })) {
+      if (event.type === "cancelled") {
+        completedTurn = true;
+        yield event;
+        continue;
+      }
+      if (event.type === "turnStart") {
+        assistantMessageId = event.messageId;
+        reasoningMessageId = event.reasoningMessageId;
+        content = "";
+        reasoningContent = "";
+        reasoningDurationMs = null;
+        reasoningStartedAt = null;
+        hasToolCall = false;
+        bufferedToolCalls.clear();
+        yield event;
+        continue;
+      }
+      if (event.type === "turnEnd") {
+        completedTurn = true;
+        finishReasoningTiming();
+        reasoningDurationMs = event.reasoningDurationMs ?? reasoningDurationMs;
+        await persistTurn();
+        content = "";
+        reasoningContent = "";
+        hasToolCall = false;
+        bufferedToolCalls.clear();
+        yield event;
+        continue;
+      }
+      if (event.type === "toolResult" || event.type === "activity") {
+        if (conversationId) {
+          await this.chatMessageRepository.recordMessage({
+            conversationId,
+            message:
+              event.type === "activity"
+                ? event.activity
+                : {
+                    content: event.content,
+                    id: event.messageId,
+                    role: "tool",
+                    toolCallId: event.toolCallId,
+                  },
+          });
+        }
+        yield event;
+        continue;
+      }
       if (event.type === "reasoningDelta") {
         if (event.delta) {
+          reasoningStartedAt ??= Date.now();
+
+          if (reasoningContent.length < maxAssistantResponseLength) {
+            reasoningContent += event.delta.slice(
+              0,
+              maxAssistantResponseLength - reasoningContent.length,
+            );
+          }
+
           yield event;
         }
 
         continue;
       }
+
+      finishReasoningTiming();
 
       if (event.type !== "textDelta") {
         hasToolCall = true;
@@ -103,35 +235,14 @@ class SendAdminAgentChatMessageUseCase {
       yield { delta, type: "textDelta" };
     }
 
-    const trimmedContent = content.trim();
+    finishReasoningTiming();
 
-    if (!trimmedContent && !hasToolCall) {
-      throw new Error("Admin agent LLM response did not include message content.");
-    }
+    if (!completedTurn || content || reasoningContent || hasToolCall) await persistTurn();
+  }
 
-    if (conversationId && (trimmedContent || hasToolCall)) {
-      await this.chatMessageRepository.recordMessage({
-        actorUserId: null,
-        conversationId,
-        message: {
-          content: trimmedContent,
-          id: normalizeMessageId(input.assistantMessageId, "assistant"),
-          role: "assistant",
-          ...(bufferedToolCalls.size
-            ? {
-                toolCalls: [...bufferedToolCalls.values()].map((toolCall) => ({
-                  function: {
-                    arguments: toolCall.arguments,
-                    name: toolCall.name,
-                  },
-                  id: toolCall.id,
-                  type: "function" as const,
-                })),
-              }
-            : {}),
-        },
-      });
-    }
+  async abortConversation(actorUserId: string, conversationId: string) {
+    await this.chatMessageRepository.assertConversationAccess({ conversationId, actorUserId });
+    await this.adminAgentChatRunner.abortConversation?.(actorUserId, conversationId);
   }
 
   private async buildChatContext(
@@ -165,7 +276,10 @@ function normalizeMessageId(value: string, prefix: string) {
 
 function bufferToolCallEvent(
   toolCalls: Map<string, BufferedAdminAgentToolCall>,
-  event: Exclude<AdminAgentChatRunnerEvent, { type: "reasoningDelta" | "textDelta" }>,
+  event: Extract<
+    AdminAgentChatRunnerEvent,
+    { type: "toolCallStart" | "toolCallArgsDelta" | "toolCallEnd" }
+  >,
 ) {
   if (event.type === "toolCallStart") {
     toolCalls.set(event.toolCallId, {

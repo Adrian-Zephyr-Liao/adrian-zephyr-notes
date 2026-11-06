@@ -14,6 +14,7 @@ import type {
 } from "../../audit/domain/admin-operation-log";
 
 type StartAdminAgentWorkflowRunnerInput = {
+  signal?: AbortSignal;
   dedupeKey?: string | null;
   input?: Record<string, unknown> | null;
   parentRunId?: string | null;
@@ -51,6 +52,7 @@ type AdminAgentWorkflowResult = {
 };
 
 interface AdminAgentWorkflowRunner {
+  cancelWorkflow?(runId: string): Promise<void>;
   branchWorkflow(input: BranchAdminAgentWorkflowRunnerInput): Promise<AdminAgentWorkflowResult>;
   refreshWorkflow(input: RefreshAdminAgentWorkflowRunnerInput): Promise<AdminAgentWorkflowResult>;
   resumeWorkflow(input: ResumeAdminAgentWorkflowRunnerInput): Promise<AdminAgentWorkflowResult>;

@@ -33,12 +33,24 @@ services:
       GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
       GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
       GITHUB_OAUTH_CALLBACK_URL: ${GITHUB_OAUTH_CALLBACK_URL:-http://localhost:3002/api/auth/github/callback}
+      ADMIN_FRONTEND_ORIGIN: ${ADMIN_FRONTEND_ORIGIN:-http://localhost:3000}
+      ADMIN_GITHUB_LOGINS: ${ADMIN_GITHUB_LOGINS:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-minimax}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.minimaxi.com/v1}
+      LLM_MODEL: ${LLM_MODEL:-MiniMax-M3}
+      LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-60000}
+      PI_AGENT_STORAGE_DIR: /app/data/pi
+      PI_AGENT_LEGACY_CHECKPOINT_SCHEMA: ${PI_AGENT_LEGACY_CHECKPOINT_SCHEMA:-public}
+    volumes:
+      - agent-runtime-data:/app/data/pi
     ports:
       - "${SERVER_PORT:-3001}:3001"
     depends_on:
       postgres:
         condition: service_healthy
-    command: sh -c "pnpm --filter @adrian-zephyr-notes/server prisma:deploy && node apps/server/dist/main.js"
+    command: sh -c "./node_modules/.bin/prisma migrate deploy --config prisma.config.ts && node dist/main.js"
 
 volumes:
   postgres-data:
+  agent-runtime-data:

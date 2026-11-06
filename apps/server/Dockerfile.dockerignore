@@ -14,3 +14,9 @@ apps/server/node_modules
 apps/website
 packages/contracts/node_modules
 packages/markdown
+apps/server/.env
+apps/server/.env.*
+!apps/server/.env.example
+apps/server/.data
+apps/server/data
+apps/server/coverage

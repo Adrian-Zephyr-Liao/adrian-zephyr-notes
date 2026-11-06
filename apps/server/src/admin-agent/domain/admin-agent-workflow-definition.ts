@@ -10,6 +10,8 @@ import type {
 } from "../../audit/domain/admin-operation-log";
 
 type StartAdminAgentWorkflowInput = {
+  dedupeKey?: string;
+  signal?: AbortSignal;
   input?: Record<string, unknown> | null;
   parentRunId?: string | null;
   startedByUserId: string | null;
@@ -39,6 +41,7 @@ type BranchAdminAgentWorkflowInput = {
 type BranchAdminAgentWorkflowResult = StartAdminAgentWorkflowResult;
 
 type AdminAgentWorkflowDefinition = {
+  cancel?: (runId: string) => Promise<void>;
   branch: (input: BranchAdminAgentWorkflowInput) => Promise<BranchAdminAgentWorkflowResult>;
   refresh: (input: RefreshAdminAgentWorkflowInput) => Promise<RefreshAdminAgentWorkflowResult>;
   resume: (input: ResumeAdminAgentWorkflowInput) => Promise<ResumeAdminAgentWorkflowResult>;

@@ -45,6 +45,17 @@ interface AdminAgentWorkflowActionExecutor {
   executeAction(
     input: ExecuteAdminAgentWorkflowActionInput,
   ): Promise<AdminAgentWorkflowActionExecutionResult>;
+  executeActionWithReceipt?(
+    input: ExecuteAdminAgentWorkflowActionInput,
+    executionId: string,
+  ): Promise<AdminAgentWorkflowActionExecutionResult | null>;
+}
+
+interface AdminAgentAtomicActionExecutor {
+  execute(
+    input: ExecuteAdminAgentWorkflowActionInput,
+    executionId: string,
+  ): Promise<AdminAgentWorkflowActionExecutionResult | null>;
 }
 
 class AdminAgentWorkflowActionUnsupportedError extends Error {
@@ -60,9 +71,11 @@ class AdminAgentWorkflowActionValidationError extends Error {}
 
 const ADMIN_AGENT_WORKFLOW_ACTION_EXECUTOR = Symbol("ADMIN_AGENT_WORKFLOW_ACTION_EXECUTOR");
 const ADMIN_AGENT_WORKFLOW_ACTION_HANDLERS = Symbol("ADMIN_AGENT_WORKFLOW_ACTION_HANDLERS");
+const ADMIN_AGENT_ATOMIC_ACTION_EXECUTOR = Symbol("ADMIN_AGENT_ATOMIC_ACTION_EXECUTOR");
 
 export {
   ADMIN_AGENT_WORKFLOW_ACTION_EXECUTOR,
+  ADMIN_AGENT_ATOMIC_ACTION_EXECUTOR,
   ADMIN_AGENT_WORKFLOW_ACTION_HANDLERS,
   AdminAgentWorkflowActionUnsupportedError,
   AdminAgentWorkflowActionValidationError,
@@ -72,5 +85,6 @@ export type {
   AdminAgentWorkflowActionKey,
   AdminAgentWorkflowActionExecutionResult,
   AdminAgentWorkflowActionExecutor,
+  AdminAgentAtomicActionExecutor,
   ExecuteAdminAgentWorkflowActionInput,
 };

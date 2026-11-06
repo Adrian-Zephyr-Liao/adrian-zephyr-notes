@@ -98,8 +98,14 @@ function isPlainJsonObject(value: unknown): value is Record<string, unknown> {
 }
 
 class AdminAgentWorkflowActionExecutionInProgressError extends Error {
-  constructor(readonly approvalId: string) {
+  readonly retryAt: Date;
+
+  constructor(
+    readonly approvalId: string,
+    updatedAt = new Date(),
+  ) {
     super(`Admin agent workflow action execution is already in progress: ${approvalId}`);
+    this.retryAt = new Date(updatedAt.getTime() + adminAgentWorkflowActionExecutionLeaseMs);
   }
 }
 

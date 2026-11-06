@@ -4,67 +4,56 @@ import { describe, expect, it, vi } from "vitest";
 import type { AdminAgentChatRunnerEvent } from "../domain/admin-agent-chat-runner";
 import { AdminAgentAgUiAgent } from "./admin-agent-copilotkit-agent";
 
+const input = (): RunAgentInput => ({
+  context: [],
+  messages: [{ content: "分析今天的评论", id: "user-1", role: "user" }],
+  runId: "run-1",
+  threadId: "thread-1",
+  tools: [],
+});
+function setup(events: AdminAgentChatRunnerEvent[]) {
+  const stream = vi.fn(async function* (_input: unknown) {
+    yield* events;
+  });
+  const execute = vi.fn();
+  const serverTools = [
+    { name: "search_comments", description: "Search", parameters: { type: "object" }, execute },
+  ];
+  const agent = new AdminAgentAgUiAgent({
+    actorUserId: "admin-1",
+    chatMessageRepository: { recordMessage: vi.fn() } as never,
+    sendChatMessage: { stream } as never,
+    serverTools,
+  });
+  return { agent, stream, execute, serverTools };
+}
 describe("AdminAgentAgUiAgent", () => {
-  it("executes a server tool and emits the standard AG-UI tool lifecycle", async () => {
-    const modelTurns: AdminAgentChatRunnerEvent[][] = [
-      [
-        {
-          toolCallId: "call-1",
-          toolCallName: "search_comments",
-          type: "toolCallStart",
-        },
-        {
-          delta: '{"period":"TODAY"}',
-          toolCallId: "call-1",
-          type: "toolCallArgsDelta",
-        },
-        {
-          toolCallId: "call-1",
-          type: "toolCallEnd",
-        },
-      ],
-      [
-        {
-          delta: "今日没有需要分析的评论。",
-          type: "textDelta",
-        },
-      ],
+  it("forwards trusted server tools once and maps pi's complete tool lifecycle", async () => {
+    const f = setup([
+      { type: "turnStart", messageId: "pi-answer-1", reasoningMessageId: "pi-reasoning-1" },
+      { type: "toolCallStart", toolCallId: "call-1", toolCallName: "search_comments" },
+      { type: "toolCallArgsDelta", toolCallId: "call-1", delta: '{"period":"TODAY"}' },
+      { type: "toolCallEnd", toolCallId: "call-1" },
+      { type: "turnEnd" },
+      {
+        type: "toolResult",
+        toolCallId: "call-1",
+        messageId: "pi-result-1",
+        content: '{"ok":true}',
+      },
+      { type: "turnStart", messageId: "pi-answer-2", reasoningMessageId: "pi-reasoning-2" },
+      { type: "textDelta", delta: "没有需要处理的评论。" },
+      { type: "turnEnd" },
+    ]);
+    const request = input();
+    request.tools = [
+      {
+        name: "untrusted_browser_tool",
+        description: "Do not execute",
+        parameters: { type: "object" },
+      },
     ];
-    const stream = vi.fn((..._args: unknown[]) => toAsyncIterable(modelTurns.shift() ?? []));
-    const execute = vi.fn().mockResolvedValue({
-      content: JSON.stringify({
-        ok: true,
-        result: {
-          comments: [],
-          matchedCount: 0,
-          truncated: false,
-        },
-      }),
-    });
-    const recordMessage = vi.fn();
-    const agent = new AdminAgentAgUiAgent({
-      actorUserId: "admin-1",
-      chatMessageRepository: { recordMessage } as never,
-      sendChatMessage: { stream } as never,
-      serverTools: [
-        {
-          description: "Search comments.",
-          execute,
-          name: "search_comments",
-          parameters: {
-            properties: {
-              period: {
-                enum: ["TODAY", "RECENT"],
-                type: "string",
-              },
-            },
-            type: "object",
-          },
-        },
-      ],
-    });
-    const events = await lastValueFrom(agent.run(createRunInput()).pipe(toArray()));
-
+    const events = await lastValueFrom(f.agent.run(request).pipe(toArray()));
     expect(events.map((event) => event.type)).toEqual([
       EventType.RUN_STARTED,
       EventType.TOOL_CALL_START,
@@ -76,182 +65,62 @@ describe("AdminAgentAgUiAgent", () => {
       EventType.TEXT_MESSAGE_END,
       EventType.RUN_FINISHED,
     ]);
-    expect(execute).toHaveBeenCalledWith(
-      { period: "TODAY" },
-      {
+    expect(f.stream).toHaveBeenCalledOnce();
+    expect(f.stream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actorUserId: "admin-1",
         conversationId: "thread-1",
-        runId: "run-1",
-        toolCallId: "call-1",
-      },
+        userMessageId: "user-1",
+        serverTools: f.serverTools,
+        signal: expect.any(AbortSignal),
+      }),
     );
-    expect(events.find((event) => event.type === EventType.TOOL_CALL_RESULT)).toMatchObject({
-      content: expect.stringContaining('"matchedCount":0'),
-      role: "tool",
-      toolCallId: "call-1",
-    });
-    expect(stream).toHaveBeenCalledTimes(2);
-    expect(recordMessage).toHaveBeenCalledWith({
-      conversationId: "thread-1",
-      message: {
-        content: expect.stringContaining('"matchedCount":0'),
-        id: "admin-agent-tool-result-run-1-call-1",
-        role: "tool",
-        toolCallId: "call-1",
-      },
-    });
-    expect(stream.mock.calls[1]?.[0]).toMatchObject({
-      persistUserMessage: false,
-      recentMessages: [
-        {
-          content: "分析今天的评论",
-          role: "user",
-        },
-        {
-          content: "",
-          role: "assistant",
-          toolCalls: [
-            {
-              arguments: '{"period":"TODAY"}',
-              id: "call-1",
-              name: "search_comments",
-            },
-          ],
-        },
-        {
-          content: expect.stringContaining('"matchedCount":0'),
-          role: "tool",
-          toolCallId: "call-1",
-        },
-      ],
-    });
+    expect(f.stream.mock.calls[0]?.[0]).not.toHaveProperty("tools");
+    expect(f.execute).not.toHaveBeenCalled();
   });
-
-  it("returns a structured tool error result and lets the model recover", async () => {
-    const modelTurns: AdminAgentChatRunnerEvent[][] = [
-      [
-        {
-          toolCallId: "call-1",
-          toolCallName: "analyze_comments",
-          type: "toolCallStart",
-        },
-        {
-          delta: "not-json",
-          toolCallId: "call-1",
-          type: "toolCallArgsDelta",
-        },
-        {
-          toolCallId: "call-1",
-          type: "toolCallEnd",
-        },
-      ],
-      [{ delta: "分析参数无效，请重新选择评论。", type: "textDelta" }],
-    ];
-    const stream = vi.fn((..._args: unknown[]) => toAsyncIterable(modelTurns.shift() ?? []));
-    const execute = vi.fn();
-    const agent = new AdminAgentAgUiAgent({
-      chatMessageRepository: { recordMessage: vi.fn() } as never,
-      sendChatMessage: { stream } as never,
-      serverTools: [
-        {
-          description: "Analyze comments.",
-          execute,
-          name: "analyze_comments",
-          parameters: { type: "object" },
-        },
-      ],
-    });
-    const events = await lastValueFrom(agent.run(createRunInput()).pipe(toArray()));
-    const toolResult = events.find((event) => event.type === EventType.TOOL_CALL_RESULT);
-
-    expect(execute).not.toHaveBeenCalled();
-    expect(toolResult).toMatchObject({
-      content: expect.stringContaining("TOOL_EXECUTION_FAILED"),
-      toolCallId: "call-1",
-    });
-    expect(events.at(-1)?.type).toBe(EventType.RUN_FINISHED);
-  });
-
-  it("emits and persists a durable activity snapshot returned by a server tool", async () => {
-    const modelTurns: AdminAgentChatRunnerEvent[][] = [
-      [
-        {
-          toolCallId: "call-activity",
-          toolCallName: "analyze_comments",
-          type: "toolCallStart",
-        },
-        {
-          delta: '{"commentIds":["comment-1"]}',
-          toolCallId: "call-activity",
-          type: "toolCallArgsDelta",
-        },
-        {
-          toolCallId: "call-activity",
-          type: "toolCallEnd",
-        },
-      ],
-      [{ delta: "分析完成。", type: "textDelta" }],
-    ];
-    const stream = vi.fn((..._args: unknown[]) => toAsyncIterable(modelTurns.shift() ?? []));
+  it("maps durable A2UI activities without rendering arbitrary tool output", async () => {
     const activity = {
+      id: "activity-1",
+      role: "activity" as const,
       activityType: "a2ui-surface",
       content: { a2ui_operations: [] },
-      id: "comment-analysis-activity-analysis-1",
-      role: "activity" as const,
     };
-    const recordMessage = vi.fn();
-    const agent = new AdminAgentAgUiAgent({
-      chatMessageRepository: { recordMessage } as never,
-      sendChatMessage: { stream } as never,
-      serverTools: [
-        {
-          description: "Analyze comments.",
-          execute: vi.fn().mockResolvedValue({
-            activity,
-            content: JSON.stringify({ ok: true, result: { analysisId: "analysis-1" } }),
-          }),
-          name: "analyze_comments",
-          parameters: { type: "object" },
-        },
-      ],
-    });
-
-    const events = await lastValueFrom(agent.run(createRunInput()).pipe(toArray()));
-
+    const f = setup([{ type: "activity", activity }]);
+    const events = await lastValueFrom(f.agent.run(input()).pipe(toArray()));
     expect(events.find((event) => event.type === EventType.ACTIVITY_SNAPSHOT)).toMatchObject({
-      activityType: "a2ui-surface",
-      content: activity.content,
       messageId: activity.id,
+      content: activity.content,
       replace: true,
     });
-    expect(recordMessage).toHaveBeenCalledWith({
-      conversationId: "thread-1",
-      message: activity,
+  });
+  it("uses pi's stable reasoning IDs and closes a turn before the next one", async () => {
+    const f = setup([
+      { type: "turnStart", messageId: "answer-1", reasoningMessageId: "reasoning-1" },
+      { type: "reasoningDelta", delta: "先确认数据范围。" },
+      { type: "textDelta", delta: "已完成。" },
+      { type: "turnEnd" },
+    ]);
+    const events = await lastValueFrom(f.agent.run(input()).pipe(toArray()));
+    expect(events.find((event) => event.type === EventType.REASONING_MESSAGE_START)).toMatchObject({
+      messageId: "reasoning-1",
+    });
+    expect(events.find((event) => event.type === EventType.REASONING_MESSAGE_END)).toMatchObject({
+      messageId: "reasoning-1",
+    });
+    expect(events.find((event) => event.type === EventType.TEXT_MESSAGE_CONTENT)).toMatchObject({
+      messageId: "answer-1",
     });
   });
+  it("emits exactly one terminal error event", async () => {
+    const stream = vi.fn(async function* () {
+      throw new Error("Model unavailable");
+      yield;
+    });
+    const agent = new AdminAgentAgUiAgent({
+      chatMessageRepository: {} as never,
+      sendChatMessage: { stream } as never,
+    });
+    const events = await lastValueFrom(agent.run(input()).pipe(toArray()));
+    expect(events.map((event) => event.type)).toEqual([EventType.RUN_STARTED, EventType.RUN_ERROR]);
+  });
 });
-
-function createRunInput(): RunAgentInput {
-  return {
-    context: [],
-    messages: [
-      {
-        content: "分析今天的评论",
-        id: "user-1",
-        role: "user",
-      },
-    ],
-    runId: "run-1",
-    threadId: "thread-1",
-    tools: [],
-  };
-}
-
-function toAsyncIterable(
-  events: AdminAgentChatRunnerEvent[],
-): AsyncIterable<AdminAgentChatRunnerEvent> {
-  return {
-    async *[Symbol.asyncIterator]() {
-      yield* events;
-    },
-  };
-}

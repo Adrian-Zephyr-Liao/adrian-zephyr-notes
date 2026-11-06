@@ -286,7 +286,7 @@ type StartAdminAgentTaskResponse = ResumeAdminAgentTaskResponse;
 
 type ControlAdminAgentTaskResponse = ResumeAdminAgentTaskResponse;
 
-type AdminAgentChatMessageRole = "activity" | "assistant" | "tool" | "user";
+type AdminAgentChatMessageRole = "activity" | "assistant" | "reasoning" | "tool" | "user";
 
 type AdminAgentToolCallResponse = {
   function: {
@@ -312,6 +312,11 @@ type AdminAgentConversationMessageResponse =
   | {
       content: string;
       id: string;
+      role: "reasoning";
+    }
+  | {
+      content: string;
+      id: string;
       role: "tool";
       toolCallId: string;
     }
@@ -328,6 +333,7 @@ type AdminAgentChatMessage = AdminAgentConversationMessageResponse;
 
 type AdminAgentConversationMessagesResponse = {
   data: AdminAgentConversationMessageResponse[];
+  reasoningDurations: Record<string, number>;
 };
 
 type AdminAgentContextEntry = {

@@ -27,9 +27,9 @@ import {
   createAdminAgentWorkflowRunAttemptEvent,
   createAdminAgentWorkflowRunCreatedEvent,
 } from "../domain/admin-agent-workflow-lifecycle";
-import { OpenAiCompatibleChatCompletionClient } from "../infrastructure/ai/openai-compatible-chat-completion.client";
+import { PiAdminAgentModelClient } from "../infrastructure/ai/pi-admin-agent-model.client";
 
-type RecordingChatCompletionClient = OpenAiCompatibleChatCompletionClient & {
+type RecordingChatCompletionClient = PiAdminAgentModelClient & {
   calls: Array<{
     maxCompletionTokens?: number;
     messages: AdminAgentCommentAnalysisPromptMessage[];

@@ -9,6 +9,43 @@ import type { GenericApprovalResume } from "../domain/admin-agent-workflow-appro
 import { executeAdminAgentGenericApprovalAction } from "./execute-admin-agent-generic-approval-action";
 
 describe("executeAdminAgentGenericApprovalAction", () => {
+  it("keeps an unknown receipt-write outcome recoverable instead of marking the effect failed", async () => {
+    const repository = createRepository({
+      execution: { claimStatus: "CLAIMED", execution: createExecution({ status: "RUNNING" }) },
+    });
+    vi.mocked(repository.markWorkflowActionExecutionSucceeded).mockRejectedValue(
+      new Error("receipt connection lost"),
+    );
+    const { actionExecutor, executeAction } = createActionExecutor();
+    await expect(
+      executeAdminAgentGenericApprovalAction({
+        actionExecutor,
+        approval: createApproval(),
+        repository,
+        runId: "run-1",
+      }),
+    ).rejects.toThrow("receipt connection lost");
+    expect(executeAction).toHaveBeenCalledTimes(1);
+    expect(repository.markWorkflowActionExecutionFailed).not.toHaveBeenCalled();
+  });
+
+  it("reuses a transactionally committed effect without writing a second receipt", async () => {
+    const repository = createRepository({
+      execution: { claimStatus: "CLAIMED", execution: createExecution({ status: "RUNNING" }) },
+    });
+    const { actionExecutor, executeAction } = createActionExecutor();
+    actionExecutor.executeActionWithReceipt = vi
+      .fn()
+      .mockResolvedValue(createActionResult(["announcement-1"]));
+    await executeAdminAgentGenericApprovalAction({
+      actionExecutor,
+      approval: createApproval(),
+      repository,
+      runId: "run-1",
+    });
+    expect(executeAction).not.toHaveBeenCalled();
+    expect(repository.markWorkflowActionExecutionSucceeded).not.toHaveBeenCalled();
+  });
   it("does nothing for missing, rejected, or read-only approvals", async () => {
     const repository = createRepository({
       execution: {

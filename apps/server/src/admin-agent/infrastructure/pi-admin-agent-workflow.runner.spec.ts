@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MemorySaver } from "@langchain/langgraph";
+import { MemoryStorage } from "@earendil-works/pi-durable";
 import type { AdminAgentRepository } from "../domain/admin-agent.repository";
 import type { AdminAgentWorkflowActionExecutor } from "../domain/admin-agent-workflow-action-executor";
 import {
@@ -35,14 +35,14 @@ import type { ListAdminOperationLogsUseCase } from "../../audit/application/list
 import type { GetAdminSiteConfigUseCase } from "../../site-config/application/get-admin-site-config.use-case";
 import { SiteAnnouncement } from "../../site-config/domain/site-announcement.entity";
 import { defaultSiteConfigSettings } from "../../site-config/domain/site-settings";
-import { OpenAiCompatibleChatCompletionClient } from "./ai/openai-compatible-chat-completion.client";
+import { PiAdminAgentModelClient } from "./ai/pi-admin-agent-model.client";
 import {
-  LangGraphAdminAgentWorkflowRunner,
+  PiAdminAgentWorkflowRunner,
   assertAdminAgentWorkflowRuntimeCatalog,
-} from "./langgraph-admin-agent-workflow.runner";
+} from "./pi-admin-agent-workflow.runner";
 
-describe("LangGraphAdminAgentWorkflowRunner", () => {
-  it("keeps the internal LangGraph runtime catalog aligned with workflow metadata", () => {
+describe("PiAdminAgentWorkflowRunner", () => {
+  it("keeps the internal Pi runtime catalog aligned with workflow metadata", () => {
     expect(() =>
       assertAdminAgentWorkflowRuntimeCatalog({
         ARTICLE_ASSISTANCE: {},
@@ -84,7 +84,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
 
   it("does not allow branch runs to be started without checkpoint branching", async () => {
     const repository = new RecordingAdminAgentRepository();
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       createChatCompletionClientDouble("{}"),
@@ -94,7 +94,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -113,7 +113,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
 
   it("does not allow retry runs without an auditable parent run", async () => {
     const repository = new RecordingAdminAgentRepository();
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       createChatCompletionClientDouble("{}"),
@@ -123,7 +123,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -139,7 +139,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
 
   it("does not allow manual runs to attach a parent run", async () => {
     const repository = new RecordingAdminAgentRepository();
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       createChatCompletionClientDouble("{}"),
@@ -149,7 +149,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -165,7 +165,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
 
   it("does not allow child workflow runs without a dedupe key", async () => {
     const repository = new RecordingAdminAgentRepository();
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       createChatCompletionClientDouble("{}"),
@@ -175,7 +175,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -216,7 +216,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       }),
     );
     const actionExecutor = new RecordingAdminAgentWorkflowActionExecutor();
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       actionExecutor,
       llm,
@@ -226,7 +226,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -286,7 +286,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     });
   });
 
-  it("does not expose a pending finding owned by an earlier analysis", async () => {
+  it("reuses a pending finding from an earlier analysis without duplicating it", async () => {
     const existingFinding = createFindingFromDraft(
       {
         category: "ABUSE",
@@ -307,7 +307,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       pendingFindings: [existingFinding],
       todayComments: [createComment("comment-1", "你是不是脑残，全家死光")],
     });
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       createChatCompletionClientDouble(
@@ -332,7 +332,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -345,8 +345,8 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     expect(repository.createdFindings).toEqual([]);
     expect(result).toMatchObject({
       output: {
-        findingCount: 0,
-        findingIds: [],
+        findingCount: 1,
+        findingIds: ["existing-finding-1"],
       },
       summary: "仍识别出 1 条高风险评论。",
     });
@@ -363,7 +363,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "已完成指定评论分析。",
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -373,7 +373,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -432,7 +432,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "LLM 重试后识别出 1 条高风险评论。",
       }),
     ]);
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -442,7 +442,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -477,7 +477,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "LLM 未识别出需要人工确认的评论风险。",
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -487,7 +487,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -533,7 +533,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "LLM 识别出 1 条高风险评论。",
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -543,7 +543,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -577,7 +577,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     });
   });
 
-  it("runs article assistance through a separate LangGraph workflow", async () => {
+  it("runs article assistance through a separate Pi workflow", async () => {
     const repository = new RecordingAdminAgentRepository();
     const article = createAdminArticleDetail({
       id: "article-1",
@@ -604,7 +604,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "文章巡检发现 1 个发布前注意项。",
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -614,7 +614,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       articles as unknown as ListAdminArticlesUseCase,
       articleDetails as unknown as GetAdminArticleByIdUseCase,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -756,7 +756,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "文章巡检需要确认。",
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -766,7 +766,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       articles as unknown as ListAdminArticlesUseCase,
       articleDetails as unknown as GetAdminArticleByIdUseCase,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -861,7 +861,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "文章巡检需要确认。",
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -871,7 +871,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       articles as unknown as ListAdminArticlesUseCase,
       articleDetails as unknown as GetAdminArticleByIdUseCase,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
     const started = await runner.startWorkflow({
@@ -953,7 +953,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "文章巡检需要确认。",
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -963,7 +963,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       articles as unknown as ListAdminArticlesUseCase,
       articleDetails as unknown as GetAdminArticleByIdUseCase,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
     const started = await runner.startWorkflow({
@@ -1000,7 +1000,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     });
   });
 
-  it("runs audit review through a separate LangGraph workflow", async () => {
+  it("runs audit review through a separate Pi workflow", async () => {
     const repository = new RecordingAdminAgentRepository();
     const llm = createChatCompletionClientDouble(
       JSON.stringify({
@@ -1032,7 +1032,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         summary: "Updated article comment status to HIDDEN",
       }),
     ]);
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -1042,7 +1042,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -1138,7 +1138,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         resourceType: "article",
       }),
     ]);
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       createChatCompletionClientDouble(
@@ -1161,7 +1161,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -1221,7 +1221,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     });
   });
 
-  it("runs site config review through a separate LangGraph workflow", async () => {
+  it("runs site config review through a separate Pi workflow", async () => {
     const repository = new RecordingAdminAgentRepository();
     const llm = createChatCompletionClientDouble(
       JSON.stringify({
@@ -1257,7 +1257,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       ],
       settings: defaultSiteConfigSettings,
     });
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -1267,7 +1267,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -1358,7 +1358,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       ],
       settings: defaultSiteConfigSettings,
     });
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       actionExecutor,
       createChatCompletionClientDouble(
@@ -1374,7 +1374,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
     const started = await runner.startWorkflow({
@@ -1467,7 +1467,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
     const repository = new RecordingAdminAgentRepository({
       todayComments: [createComment("comment-1", "你是不是脑残")],
     });
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       createChatCompletionClientDouble("not-json"),
@@ -1477,7 +1477,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -1526,7 +1526,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       }),
     );
     const auditLogs = new RecordingListAdminOperationLogsUseCase([]);
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -1536,7 +1536,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -1657,7 +1657,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       type: "MULTI_TASK_ORCHESTRATION",
       workflowName: "MULTI_TASK_ORCHESTRATION",
     });
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       createChatCompletionClientDouble("{}"),
@@ -1667,7 +1667,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
     const state = {
@@ -1748,7 +1748,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         ],
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -1758,7 +1758,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -1841,7 +1841,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
         ],
       }),
     );
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -1851,7 +1851,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -1904,7 +1904,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       }),
     );
     const auditLogs = new RecordingListAdminOperationLogsUseCase([]);
-    const runner = new LangGraphAdminAgentWorkflowRunner(
+    const runner = new PiAdminAgentWorkflowRunner(
       repository,
       new RecordingAdminAgentWorkflowActionExecutor(),
       llm,
@@ -1914,7 +1914,7 @@ describe("LangGraphAdminAgentWorkflowRunner", () => {
       undefined,
       undefined,
       {
-        checkpointer: new MemorySaver(),
+        storage: new MemoryStorage(),
       },
     );
 
@@ -2567,8 +2567,8 @@ class RecordingAdminAgentWorkflowActionExecutor implements AdminAgentWorkflowAct
   }
 }
 
-type RecordingChatCompletionClient = OpenAiCompatibleChatCompletionClient & {
-  calls: Array<Parameters<OpenAiCompatibleChatCompletionClient["complete"]>[0]>;
+type RecordingChatCompletionClient = PiAdminAgentModelClient & {
+  calls: Array<Parameters<PiAdminAgentModelClient["complete"]>[0]>;
 };
 
 function createChatCompletionClientDouble(response: string): RecordingChatCompletionClient {

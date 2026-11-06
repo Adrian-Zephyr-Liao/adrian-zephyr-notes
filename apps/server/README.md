@@ -31,8 +31,8 @@ LLM_PROVIDER=minimax
 LLM_BASE_URL=https://api.minimaxi.com/v1
 LLM_MODEL=MiniMax-M3
 LLM_TIMEOUT_MS=60000
-LANGGRAPH_CHECKPOINT_SCHEMA=public
-LANGGRAPH_CHECKPOINT_SETUP_ON_START=false
+PI_AGENT_STORAGE_DIR=.data/pi
+PI_AGENT_LEGACY_CHECKPOINT_SCHEMA=public
 ```
 
 Missing `LLM_API_KEY` must not prevent the server from starting. AI summaries are
@@ -40,28 +40,32 @@ generated only when the provider is configured.
 
 ## Agent Workflow Persistence
 
-Admin Agent flows use LangGraph with PostgreSQL-backed checkpoints. The default
-`public` checkpoint tables are committed as Prisma migrations and are applied by
-`vp run db:deploy`.
+Admin Agent conversations and business tasks run on pinned `pi-ai` and
+`pi-durable` packages. PostgreSQL keeps business records, approvals, execution
+receipts, and audit history; SQLite keeps the durable execution state in
+`PI_AGENT_STORAGE_DIR`. Docker mounts the `agent-runtime-data` volume at
+`/app/data/pi`. Keep that volume across deployments and back it up together with
+PostgreSQL while the server is stopped.
 
-`LANGGRAPH_CHECKPOINT_SCHEMA` must be a lowercase PostgreSQL identifier such as
-`public` or `agent_checkpoint`. Invalid schema names fail fast during server
-startup so a paused Agent task cannot be left without a durable checkpoint store.
+Each store has one writer, enforced by a PostgreSQL advisory lock. Losing the
+ownership connection invalidates the store and aborts its Harness. Do not run
+multiple application replicas against the same runtime files without explicit
+session routing and ownership transfer.
 
-Use the setup command only when you intentionally run LangGraph checkpoints in a
-non-default `LANGGRAPH_CHECKPOINT_SCHEMA`, or in a disposable local database
-where startup-time schema setup is acceptable:
+The business task runner automatically reacquires ownership and reopens failed
+runtime storage, then resumes durable work. Retries back off from 100 ms to a
+10-second ceiling; application shutdown cancels them. Initial migration or
+missing-snapshot errors still fail startup rather than retrying unsafe state.
 
-```bash
-vp run -F @adrian-zephyr-notes/server langgraph:checkpoint:setup
-```
+During an upgrade, stop the old server first. Startup reads active legacy tasks
+from the existing checkpoint tables and imports their plain business snapshots.
+`PI_AGENT_LEGACY_CHECKPOINT_SCHEMA` selects that historical schema, defaults to
+`public`, and must be a lowercase PostgreSQL identifier. Unknown or incomplete
+snapshots fail startup rather than silently restarting a task. Historical tables
+and Prisma migrations remain intact; no old runtime package or table-setup
+command is needed.
 
-Set `LANGGRAPH_CHECKPOINT_SETUP_ON_START=true` only for disposable local
-development environments where startup-time schema setup is acceptable. Keep it
-`false` for shared development, staging, and production deployments so schema
-changes remain migration-owned and auditable.
-
-Agent 工作台的产品边界、LangGraph 内部运行时约束、CopilotKit 人工确认交互和新增
+Agent 工作台的产品边界、pi 内部运行时约束、CopilotKit 人工确认交互和新增
 业务处理清单见 [`docs/agent-workflow-architecture.md`](../../docs/agent-workflow-architecture.md)。
 
 ## Architecture
@@ -89,13 +93,12 @@ contracts. `packages/contracts` is for public HTTP shapes only.
 
 ## Commands
 
-| Command                                                            | Description                                                 |
-| ------------------------------------------------------------------ | ----------------------------------------------------------- |
-| `vp run -F @adrian-zephyr-notes/server dev`                        | Start Nest in watch mode                                    |
-| `vp run -F @adrian-zephyr-notes/server build`                      | Build server output                                         |
-| `vp run -F @adrian-zephyr-notes/server test`                       | Run server tests                                            |
-| `vp run -F @adrian-zephyr-notes/server langgraph:checkpoint:setup` | Set up LangGraph checkpoint tables for a non-default schema |
-| `vp run db:generate`                                               | Generate Prisma client                                      |
-| `vp run db:migrate`                                                | Create/apply local migrations                               |
-| `vp run db:deploy`                                                 | Apply committed migrations                                  |
-| `vp run -F @adrian-zephyr-notes/server prisma:studio`              | Open Prisma Studio                                          |
+| Command                                               | Description                   |
+| ----------------------------------------------------- | ----------------------------- |
+| `vp run -F @adrian-zephyr-notes/server dev`           | Start Nest in watch mode      |
+| `vp run -F @adrian-zephyr-notes/server build`         | Build server output           |
+| `vp run -F @adrian-zephyr-notes/server test`          | Run server tests              |
+| `vp run db:generate`                                  | Generate Prisma client        |
+| `vp run db:migrate`                                   | Create/apply local migrations |
+| `vp run db:deploy`                                    | Apply committed migrations    |
+| `vp run -F @adrian-zephyr-notes/server prisma:studio` | Open Prisma Studio            |

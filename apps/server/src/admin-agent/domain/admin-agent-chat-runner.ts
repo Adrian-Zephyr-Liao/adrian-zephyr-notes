@@ -32,6 +32,12 @@ type AdminAgentChatReplyInput = {
   message: string;
   recentMessages: AdminAgentChatMessage[];
   tools?: AdminAgentChatTool[];
+  serverTools?: AdminAgentServerTool[];
+  actorUserId?: string | null;
+  conversationId?: string | null;
+  requestId?: string;
+  runId?: string;
+  signal?: AbortSignal;
 };
 
 type AdminAgentChatTool = {
@@ -51,6 +57,7 @@ type AdminAgentServerToolExecutionContext = {
   conversationId: string;
   runId: string;
   toolCallId: string;
+  signal?: AbortSignal;
 };
 
 type AdminAgentServerToolResult = {
@@ -64,6 +71,11 @@ type AdminAgentServerToolResult = {
 };
 
 type AdminAgentChatRunnerEvent =
+  | { type: "turnStart"; messageId: string; reasoningMessageId: string }
+  | { type: "turnEnd"; reasoningDurationMs?: number }
+  | { type: "cancelled" }
+  | { type: "toolResult"; toolCallId: string; messageId: string; content: string }
+  | { type: "activity"; activity: NonNullable<AdminAgentServerToolResult["activity"]> }
   | {
       type: "reasoningDelta";
       delta: string;
@@ -89,6 +101,7 @@ type AdminAgentChatRunnerEvent =
 
 interface AdminAgentChatRunner {
   streamReply(input: AdminAgentChatReplyInput): AsyncIterable<AdminAgentChatRunnerEvent>;
+  abortConversation?(actorUserId: string, conversationId: string): Promise<void>;
 }
 
 const ADMIN_AGENT_CHAT_RUNNER = Symbol("ADMIN_AGENT_CHAT_RUNNER");

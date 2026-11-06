@@ -3,6 +3,45 @@ import { Prisma } from "@prisma/client";
 import { PrismaAdminAgentRepository } from "./prisma-admin-agent.repository";
 
 describe("PrismaAdminAgentRepository", () => {
+  it("does not append another cancellation event when a run is already cancelled", async () => {
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const createEvent = vi.fn();
+    const transaction = {
+      adminAgentRun: {
+        updateMany,
+        findUniqueOrThrow: vi.fn().mockResolvedValue(createRunRecord({ status: "CANCELLED" })),
+      },
+      adminAgentWorkflowEvent: { create: createEvent },
+    };
+    const repository = new PrismaAdminAgentRepository({
+      $transaction: (callback: (tx: typeof transaction) => unknown) => callback(transaction),
+    } as never);
+    expect((await repository.cancelRun("run-1", "Cancelled again")).status).toBe("CANCELLED");
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: "run-1", status: { not: "CANCELLED" } } }),
+    );
+    expect(createEvent).not.toHaveBeenCalled();
+  });
+  it("cannot downgrade a committed action after a lost transaction response", async () => {
+    const receipt = createWorkflowActionExecutionRecord({
+      status: "SUCCEEDED",
+      result: { appliedCount: 1, failedCount: 0, results: [] },
+    });
+    const updateMany = vi.fn().mockResolvedValue({ count: 0 });
+    const repository = new PrismaAdminAgentRepository({
+      adminAgentWorkflowActionExecution: {
+        updateMany,
+        findUniqueOrThrow: vi.fn().mockResolvedValue(receipt),
+      },
+    } as never);
+    expect(
+      (await repository.markWorkflowActionExecutionFailed("execution-1", "connection lost")).status,
+    ).toBe("SUCCEEDED");
+    expect(updateMany).toHaveBeenCalledWith({
+      where: { id: "execution-1", status: { not: "SUCCEEDED" } },
+      data: { status: "FAILED", errorMessage: "connection lost" },
+    });
+  });
   it("lists workflow runs in a deterministic newest-first order", async () => {
     const records = [createRunRecord({ id: "run-b" }), createRunRecord({ id: "run-a" })];
     const findMany = vi.fn().mockResolvedValue(records);
@@ -356,7 +395,7 @@ describe("PrismaAdminAgentRepository", () => {
   });
 
   it("persists cancelled workflow runs and writes a cancellation event", async () => {
-    const runUpdate = vi.fn().mockResolvedValue(
+    const runFind = vi.fn().mockResolvedValue(
       createRunRecord({
         currentNode: "cancelled",
         interruption: null,
@@ -365,12 +404,14 @@ describe("PrismaAdminAgentRepository", () => {
         workflowName: "COMMENT_MODERATION_ANALYSIS",
       }),
     );
+    const runUpdate = vi.fn().mockResolvedValue({ count: 1 });
     const eventCreate = vi.fn().mockResolvedValue({});
     const prisma = {
       $transaction: vi.fn(async (callback) =>
         callback({
           adminAgentRun: {
-            update: runUpdate,
+            updateMany: runUpdate,
+            findUniqueOrThrow: runFind,
           },
           adminAgentWorkflowEvent: {
             create: eventCreate,
@@ -395,6 +436,7 @@ describe("PrismaAdminAgentRepository", () => {
         }),
         where: {
           id: "run-1",
+          status: { not: "CANCELLED" },
         },
       }),
     );

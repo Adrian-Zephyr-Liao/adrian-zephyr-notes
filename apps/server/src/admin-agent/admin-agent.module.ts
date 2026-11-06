@@ -25,13 +25,15 @@ import { ADMIN_AGENT_HOME_REPOSITORY } from "./domain/admin-agent-home.repositor
 import { ADMIN_AGENT_REPOSITORY } from "./domain/admin-agent.repository";
 import {
   ADMIN_AGENT_WORKFLOW_ACTION_EXECUTOR,
+  ADMIN_AGENT_ATOMIC_ACTION_EXECUTOR,
   ADMIN_AGENT_WORKFLOW_ACTION_HANDLERS,
 } from "./domain/admin-agent-workflow-action-executor";
 import { ADMIN_AGENT_WORKFLOW_REGISTRY } from "./domain/admin-agent-workflow-definition";
 import { ADMIN_AGENT_WORKFLOW_RUNNER } from "./domain/admin-agent-workflow-runner";
-import { OpenAiCompatibleAdminAgentChatRunner } from "./infrastructure/ai/openai-compatible-admin-agent-chat.runner";
-import { OpenAiCompatibleChatCompletionClient } from "./infrastructure/ai/openai-compatible-chat-completion.client";
-import { LangGraphAdminAgentWorkflowRunner } from "./infrastructure/langgraph-admin-agent-workflow.runner";
+import { PiAdminAgentChatRunner } from "./infrastructure/pi-admin-agent-chat.runner";
+import { PiAdminAgentModelClient } from "./infrastructure/ai/pi-admin-agent-model.client";
+import { PiAdminAgentWorkflowRunner } from "./infrastructure/pi-admin-agent-workflow.runner";
+import { PrismaAdminAgentAtomicActionExecutor } from "./infrastructure/prisma-admin-agent-atomic-action.executor";
 import { PrismaAdminAgentAutomationPolicyRepository } from "./infrastructure/prisma-admin-agent-automation-policy.repository";
 import { PrismaAdminAgentChatMessageRepository } from "./infrastructure/prisma-admin-agent-chat-message.repository";
 import { PrismaAdminAgentRepository } from "./infrastructure/prisma-admin-agent.repository";
@@ -51,6 +53,7 @@ import { AdminAgentController } from "./presentation/admin-agent.controller";
   ],
   controllers: [AdminAgentController, AdminAgentCopilotKitController],
   providers: [
+    { provide: ADMIN_AGENT_ATOMIC_ACTION_EXECUTOR, useClass: PrismaAdminAgentAtomicActionExecutor },
     AdminAgentCommentTools,
     DecideAdminAgentFindingUseCase,
     DecideAdminAgentFindingsUseCase,
@@ -63,10 +66,10 @@ import { AdminAgentController } from "./presentation/admin-agent.controller";
     RepairAdminAgentDecisionEffectsUseCase,
     SendAdminAgentChatMessageUseCase,
     SiteConfigAgentActionHandler,
-    OpenAiCompatibleChatCompletionClient,
+    PiAdminAgentModelClient,
     {
       provide: ADMIN_AGENT_CHAT_RUNNER,
-      useClass: OpenAiCompatibleAdminAgentChatRunner,
+      useClass: PiAdminAgentChatRunner,
     },
     {
       provide: ADMIN_AGENT_CHAT_MESSAGE_REPOSITORY,
@@ -74,7 +77,7 @@ import { AdminAgentController } from "./presentation/admin-agent.controller";
     },
     {
       provide: ADMIN_AGENT_WORKFLOW_RUNNER,
-      useClass: LangGraphAdminAgentWorkflowRunner,
+      useClass: PiAdminAgentWorkflowRunner,
     },
     {
       provide: ADMIN_AGENT_WORKFLOW_REGISTRY,

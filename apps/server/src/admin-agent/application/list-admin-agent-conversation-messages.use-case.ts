@@ -14,13 +14,17 @@ class ListAdminAgentConversationMessagesUseCase {
     private readonly chatMessageRepository: AdminAgentChatMessageRepository,
   ) {}
 
-  async execute(input: { conversationId: string; limit?: number }) {
+  async execute(input: { actorUserId: string; conversationId: string; limit?: number }) {
     const conversationId = input.conversationId.trim();
 
     if (!conversationId) {
       return [];
     }
 
+    await this.chatMessageRepository.assertConversationAccess({
+      conversationId: conversationId.slice(0, 200),
+      actorUserId: input.actorUserId,
+    });
     return this.chatMessageRepository.listConversationMessages({
       conversationId: conversationId.slice(0, 200),
       limit: toConversationMessageLimit(input.limit),

@@ -3,9 +3,19 @@ import {
   assertAdminAgentWorkflowActionExecutionMatchesInput,
   adminAgentWorkflowActionExecutionLeaseMs,
   isAdminAgentWorkflowActionExecutionInProgress,
+  AdminAgentWorkflowActionExecutionInProgressError,
 } from "./admin-agent-workflow-action-execution.entity";
 
 describe("isAdminAgentWorkflowActionExecutionInProgress", () => {
+  it("exposes the stored lease deadline for a durable recovery wait", () => {
+    const updatedAt = new Date("2026-11-06T00:00:00Z");
+    expect(
+      new AdminAgentWorkflowActionExecutionInProgressError(
+        "approval-1",
+        updatedAt,
+      ).retryAt.getTime(),
+    ).toBe(updatedAt.getTime() + adminAgentWorkflowActionExecutionLeaseMs);
+  });
   it("keeps a fresh clean running execution locked", () => {
     expect(
       isAdminAgentWorkflowActionExecutionInProgress(

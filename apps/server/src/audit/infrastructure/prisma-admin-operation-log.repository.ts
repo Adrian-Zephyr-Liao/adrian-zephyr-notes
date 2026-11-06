@@ -38,22 +38,30 @@ class PrismaAdminOperationLogRepository implements AdminOperationLogRepository {
   }
 
   async record(input: RecordAdminOperationInput) {
-    const record = await this.prisma.adminOperationLog.create({
-      data: {
-        actorLogin: input.actor.login,
-        actorUserId: input.actor.id,
-        action: input.action,
-        resourceType: input.resourceType,
-        resourceId: input.resourceId ?? null,
-        summary: input.summary,
-        metadata: input.metadata ? toJsonObject(input.metadata) : undefined,
-        ipAddress: input.requestContext?.ipAddress ?? null,
-        userAgent: input.requestContext?.userAgent ?? null,
-      },
-    });
-
-    return toAdminOperationLog(record);
+    return recordPrismaAdminOperation(this.prisma.adminOperationLog, input);
   }
+}
+
+/** Records through the caller's connection for atomic business effects and execution receipts. */
+async function recordPrismaAdminOperation(
+  logs: Prisma.TransactionClient["adminOperationLog"],
+  input: RecordAdminOperationInput,
+) {
+  const record = await logs.create({
+    data: {
+      actorLogin: input.actor.login,
+      actorUserId: input.actor.id,
+      action: input.action,
+      resourceType: input.resourceType,
+      resourceId: input.resourceId ?? null,
+      summary: input.summary,
+      metadata: input.metadata ? toJsonObject(input.metadata) : undefined,
+      ipAddress: input.requestContext?.ipAddress ?? null,
+      userAgent: input.requestContext?.userAgent ?? null,
+    },
+  });
+
+  return toAdminOperationLog(record);
 }
 
 function createAdminOperationLogWhere(
@@ -154,4 +162,4 @@ function toJsonObject(value: Record<string, unknown>) {
   return value as Prisma.InputJsonObject;
 }
 
-export { PrismaAdminOperationLogRepository };
+export { PrismaAdminOperationLogRepository, recordPrismaAdminOperation };

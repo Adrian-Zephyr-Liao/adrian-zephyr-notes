@@ -41,10 +41,17 @@ class ModerateAdminAgentCommentAnalysisUseCase {
     }
 
     const requestedFindings = await this.adminAgentRepository.listFindingsByIds(findingIds);
+    const hasRecordedFindingIds = Array.isArray(analysis.output?.findingIds);
+    const recordedFindingIds = normalizeFindingIds(analysis.output?.findingIds);
+    const recordedFindingIdSet = new Set(recordedFindingIds);
 
     if (
       requestedFindings.length !== findingIds.length ||
-      requestedFindings.some((finding) => finding.runId !== analysis.id)
+      requestedFindings.some((finding) =>
+        hasRecordedFindingIds
+          ? !recordedFindingIdSet.has(finding.id)
+          : finding.runId !== analysis.id,
+      )
     ) {
       throw new AdminAgentCommentAnalysisSelectionError(
         "Every selected finding must belong to the requested comment analysis.",
@@ -59,7 +66,9 @@ class ModerateAdminAgentCommentAnalysisUseCase {
       })),
       requestContext: input.requestContext,
     });
-    const findings = await this.adminAgentRepository.listFindingsByRunId(analysis.id);
+    const findings = hasRecordedFindingIds
+      ? await this.adminAgentRepository.listFindingsByIds(recordedFindingIds)
+      : await this.adminAgentRepository.listFindingsByRunId(analysis.id);
 
     return {
       analysis,
@@ -77,8 +86,19 @@ class AdminAgentCommentAnalysisNotFoundError extends Error {
 
 class AdminAgentCommentAnalysisSelectionError extends Error {}
 
-function normalizeFindingIds(value: string[]) {
-  return [...new Set(value.map((item) => item.trim()).filter(Boolean))].slice(0, 50);
+function normalizeFindingIds(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return [
+    ...new Set(
+      value.flatMap((item) => {
+        const id = typeof item === "string" ? item.trim() : "";
+        return id ? [id] : [];
+      }),
+    ),
+  ].slice(0, 50);
 }
 
 export {
