@@ -56,3 +56,81 @@ jobs:
 
       - name: Build admin
         run: pnpm --filter @adrian-zephyr-notes/admin build
+
+  deploy-production:
+    name: Deploy production
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.PRODUCTION_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    concurrency:
+      group: production-deployment
+      cancel-in-progress: false
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout release
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup image builder
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure deployment SSH
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.PRODUCTION_SSH_KNOWN_HOSTS }}
+          DEPLOY_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          DEPLOY_PRIVATE_KEY: ${{ secrets.PRODUCTION_SSH_PRIVATE_KEY }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$HOME/.ssh"
+          printf '%s\n' "$DEPLOY_PRIVATE_KEY" > "$HOME/.ssh/id_ed25519"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 600 "$HOME/.ssh/id_ed25519"
+          chmod 644 "$HOME/.ssh/known_hosts"
+
+      - name: Select affected services
+        id: release
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+        run: |
+          set -euo pipefail
+          base=$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -p "${DEPLOY_PORT:-22}" \
+            "$DEPLOY_USER@$DEPLOY_HOST" 'cat /srv/adrian-zephyr-notes/.git/az-notes-last-deployed')
+          [[ "$base" =~ ^[a-f0-9]{40}$ ]]
+          git merge-base --is-ancestor "$base" HEAD
+          mapfile -t files < <(git diff --name-only "$base" HEAD)
+          services=$(./scripts/select-deploy-services.sh "${files[@]}")
+          if [[ "$services" == __full_stack__ || " $services " == *" server "* ]]; then
+            echo "Backend/infrastructure changes require a planned release; automatic deployment keeps the running services."
+            exit 1
+          fi
+          echo "services=$services" >> "$GITHUB_OUTPUT"
+
+      - name: Build and publish prebuilt images
+        if: steps.release.outputs.services != ''
+        env:
+          DEPLOY_HOST: ${{ secrets.PRODUCTION_SSH_HOST }}
+          DEPLOY_PORT: ${{ secrets.PRODUCTION_SSH_PORT }}
+          DEPLOY_USER: ${{ secrets.PRODUCTION_SSH_USER }}
+          RELEASE_SERVICES: ${{ steps.release.outputs.services }}
+        run: |
+          set -euo pipefail
+          read -r -a services <<< "$RELEASE_SERVICES"
+          ./scripts/build-release.sh "$GITHUB_SHA" "$RUNNER_TEMP/release" "${services[@]}"
+          ./scripts/publish-release.sh "$GITHUB_SHA" "$RUNNER_TEMP/release"
+
+      - name: Smoke test production
+        run: |
+          set -euo pipefail
+          curl --fail --retry 3 --retry-all-errors --silent --show-error https://zephyrai.site/
+          curl --fail --retry 3 --retry-all-errors --silent --show-error https://admin.zephyrai.site/
+          curl --fail --retry 3 --retry-all-errors --silent --show-error https://zephyrai.site/api/site-config
+          curl --fail --retry 3 --retry-all-errors --silent --show-error https://zephyrai.site/api/auth/me

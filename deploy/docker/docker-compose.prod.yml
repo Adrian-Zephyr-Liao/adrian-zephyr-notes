@@ -17,11 +17,10 @@ services:
       retries: 10
 
   server:
-    build:
-      context: ../..
-      dockerfile: apps/server/Dockerfile
-      args:
-        NPM_CONFIG_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
+    image: adrian-zephyr-notes-server:${RELEASE_SHA:-latest}
+    mem_limit: 512m
+    memswap_limit: 768m
+    cpus: 1.0
     restart: unless-stopped
     environment:
       PORT: 3001
@@ -56,12 +55,10 @@ services:
       retries: 12
 
   website:
-    build:
-      context: ../..
-      dockerfile: apps/website/Dockerfile
-      args:
-        NPM_CONFIG_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
-        BACKEND_API_BASE_URL: http://server:3001
+    image: adrian-zephyr-notes-website:${RELEASE_SHA:-latest}
+    mem_limit: 384m
+    memswap_limit: 512m
+    cpus: 1.0
     restart: unless-stopped
     environment:
       BACKEND_API_BASE_URL: http://server:3001
@@ -76,12 +73,10 @@ services:
       retries: 12
 
   admin:
-    build:
-      context: ../..
-      dockerfile: apps/admin/Dockerfile
-      args:
-        NPM_CONFIG_REGISTRY: ${PNPM_REGISTRY:-https://registry.npmmirror.com}
-        VITE_BACKEND_API_BASE_URL: ${ADMIN_BACKEND_API_BASE_URL:-}
+    image: adrian-zephyr-notes-admin:${RELEASE_SHA:-latest}
+    mem_limit: 128m
+    memswap_limit: 192m
+    cpus: 0.5
     restart: unless-stopped
     depends_on:
       server:

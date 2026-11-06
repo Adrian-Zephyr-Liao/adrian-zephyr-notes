@@ -25,3 +25,6 @@ apps/*/.data/
 
 # OS and editor noise
 .DS_Store
+
+# Host-specific networks and routing are managed outside application releases.
+deploy/docker/docker-compose.host.yml
