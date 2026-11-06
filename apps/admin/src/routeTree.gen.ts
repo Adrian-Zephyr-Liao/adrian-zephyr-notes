@@ -16,6 +16,7 @@ import { Route as AuditRouteImport } from './routes/audit'
 import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
+import { Route as OauthDeviceRouteImport } from './routes/oauth.device'
 import { Route as ArticlesTagsRouteImport } from './routes/articles.tags'
 import { Route as ArticlesNewRouteImport } from './routes/articles.new'
 import { Route as ArticlesCategoriesRouteImport } from './routes/articles.categories'
@@ -56,6 +57,11 @@ const ArticlesIndexRoute = ArticlesIndexRouteImport.update({
   path: '/articles/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const OauthDeviceRoute = OauthDeviceRouteImport.update({
+  id: '/oauth/device',
+  path: '/oauth/device',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ArticlesTagsRoute = ArticlesTagsRouteImport.update({
   id: '/articles/tags',
   path: '/articles/tags',
@@ -87,6 +93,7 @@ export interface FileRoutesByFullPath {
   '/articles/categories': typeof ArticlesCategoriesRoute
   '/articles/new': typeof ArticlesNewRoute
   '/articles/tags': typeof ArticlesTagsRoute
+  '/oauth/device': typeof OauthDeviceRoute
   '/articles/': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
@@ -100,6 +107,7 @@ export interface FileRoutesByTo {
   '/articles/categories': typeof ArticlesCategoriesRoute
   '/articles/new': typeof ArticlesNewRoute
   '/articles/tags': typeof ArticlesTagsRoute
+  '/oauth/device': typeof OauthDeviceRoute
   '/articles': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
@@ -114,6 +122,7 @@ export interface FileRoutesById {
   '/articles/categories': typeof ArticlesCategoriesRoute
   '/articles/new': typeof ArticlesNewRoute
   '/articles/tags': typeof ArticlesTagsRoute
+  '/oauth/device': typeof OauthDeviceRoute
   '/articles/': typeof ArticlesIndexRoute
   '/articles/$articleId/edit': typeof ArticlesArticleIdEditRoute
 }
@@ -129,6 +138,7 @@ export interface FileRouteTypes {
     | '/articles/categories'
     | '/articles/new'
     | '/articles/tags'
+    | '/oauth/device'
     | '/articles/'
     | '/articles/$articleId/edit'
   fileRoutesByTo: FileRoutesByTo
@@ -142,6 +152,7 @@ export interface FileRouteTypes {
     | '/articles/categories'
     | '/articles/new'
     | '/articles/tags'
+    | '/oauth/device'
     | '/articles'
     | '/articles/$articleId/edit'
   id:
@@ -155,6 +166,7 @@ export interface FileRouteTypes {
     | '/articles/categories'
     | '/articles/new'
     | '/articles/tags'
+    | '/oauth/device'
     | '/articles/'
     | '/articles/$articleId/edit'
   fileRoutesById: FileRoutesById
@@ -169,6 +181,7 @@ export interface RootRouteChildren {
   ArticlesCategoriesRoute: typeof ArticlesCategoriesRoute
   ArticlesNewRoute: typeof ArticlesNewRoute
   ArticlesTagsRoute: typeof ArticlesTagsRoute
+  OauthDeviceRoute: typeof OauthDeviceRoute
   ArticlesIndexRoute: typeof ArticlesIndexRoute
   ArticlesArticleIdEditRoute: typeof ArticlesArticleIdEditRoute
 }
@@ -224,6 +237,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ArticlesIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/oauth/device': {
+      id: '/oauth/device'
+      path: '/oauth/device'
+      fullPath: '/oauth/device'
+      preLoaderRoute: typeof OauthDeviceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/articles/tags': {
       id: '/articles/tags'
       path: '/articles/tags'
@@ -265,6 +285,7 @@ const rootRouteChildren: RootRouteChildren = {
   ArticlesCategoriesRoute: ArticlesCategoriesRoute,
   ArticlesNewRoute: ArticlesNewRoute,
   ArticlesTagsRoute: ArticlesTagsRoute,
+  OauthDeviceRoute: OauthDeviceRoute,
   ArticlesIndexRoute: ArticlesIndexRoute,
   ArticlesArticleIdEditRoute: ArticlesArticleIdEditRoute,
 }

@@ -92,6 +92,15 @@ export type {
 } from "./public/articles.js";
 export type { AuthUserResponse } from "./public/auth.js";
 export type {
+  OAuthScope,
+  OAuthDeviceCodeResponse,
+  OAuthConsentResponse,
+  OAuthAuthorizationDecisionRequest,
+  OAuthAuthorizationDecisionResponse,
+  OAuthTokenResponse,
+  OAuthMeResponse,
+} from "./public/oauth.js";
+export type {
   ArticleCommentAuthor,
   ArticleCommentLikeResponse,
   ArticleCommentResponse,

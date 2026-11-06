@@ -50,6 +50,13 @@ enum AssistantActionStatus {
   REJECTED
 }
 
+enum OAuthDeviceStatus {
+  PENDING
+  APPROVED
+  DENIED
+  CONSUMED
+}
+
 model Article {
   id             String                    @id @default(uuid()) @db.Uuid
   slug           String                    @unique
@@ -119,6 +126,8 @@ model User {
   adminOperationLogs     AdminOperationLog[]
   articleEditorDrafts    AdminArticleEditorDraft[]
   assistantConversations AssistantConversation[]
+  oauthDevices           OAuthDeviceAuthorization[]
+  oauthAccessTokens      OAuthAccessToken[]
 
   @@map("users")
 }
@@ -166,6 +175,40 @@ model UserSession {
   @@index([userId])
   @@index([expiresAt])
   @@map("user_sessions")
+}
+
+model OAuthDeviceAuthorization {
+  id              String            @id @default(uuid()) @db.Uuid
+  deviceCodeHash  String            @unique @map("device_code_hash")
+  userCodeHash    String            @unique @map("user_code_hash")
+  clientId        String            @map("client_id")
+  scope           String
+  status          OAuthDeviceStatus @default(PENDING)
+  userId          String?           @map("user_id") @db.Uuid
+  expiresAt       DateTime          @map("expires_at") @db.Timestamptz(6)
+  intervalSeconds Int               @default(5) @map("interval_seconds")
+  nextPollAt      DateTime?         @map("next_poll_at") @db.Timestamptz(6)
+  createdAt       DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  user            User?             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([userId])
+  @@map("oauth_device_authorizations")
+}
+
+model OAuthAccessToken {
+  id        String   @id @default(uuid()) @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  userId    String   @map("user_id") @db.Uuid
+  clientId  String   @map("client_id")
+  scope     String
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("oauth_access_tokens")
 }
 
 model ArticleComment {

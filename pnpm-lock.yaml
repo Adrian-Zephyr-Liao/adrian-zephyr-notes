@@ -118,6 +118,19 @@ importers:
         specifier: 4.1.9
         version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@22.20.0)(@vitest/browser-preview@4.1.9)(jsdom@28.1.0(@noble/hashes@1.8.0))(vite@8.1.0(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0))
 
+  apps/cli:
+    dependencies:
+      '@adrian-zephyr-notes/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.2
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
   apps/server:
     dependencies:
       '@adrian-zephyr-notes/contracts':

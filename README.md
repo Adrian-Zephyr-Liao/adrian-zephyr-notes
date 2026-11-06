@@ -14,6 +14,7 @@ a reusable Markdown renderer.
 | `@adrian-zephyr-notes/server`    | `apps/server`        | NestJS API, PostgreSQL persistence, GitHub OAuth, AI summary generation | `3001`       |
 | `@adrian-zephyr-notes/website`   | `apps/website`       | Public Next.js site and same-origin API proxies                         | `3002`       |
 | `@adrian-zephyr-notes/admin`     | `apps/admin`         | React admin console for content and moderation                          | `3000`       |
+| `@adrian-zephyr-notes/cli`       | `apps/cli`           | Agent-friendly article CLI with browserless OAuth2 device login         | n/a          |
 | `@adrian-zephyr-notes/contracts` | `packages/contracts` | Shared public HTTP request/response types                               | n/a          |
 | `@adrian-zephyr-notes/markdown`  | `packages/markdown`  | Shared Markdown rendering components and styles                         | n/a          |
 
@@ -75,6 +76,11 @@ ignored by git; committed examples must use `*.env.example`.
 | `vp run build`       | Build all apps                            |
 
 ## Architecture
+
+The [blog CLI](apps/cli/README.md) supports local and remote Agents over SSH. It
+uses OAuth2 device authorization through the existing admin GitHub login, saves
+Markdown as drafts, and exposes explicit article update/publish commands with
+JSON results. Run `node apps/cli/bin/azn.mjs --help` for usage.
 
 The backend follows a bounded-context structure. Business modules are organized
 as:

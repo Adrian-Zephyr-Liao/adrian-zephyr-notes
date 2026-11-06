@@ -2,6 +2,7 @@ import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { AssistantModule } from "./assistant/assistant.module";
 import { AuthModule } from "./auth/auth.module";
+import { OAuthModule } from "./oauth/oauth.module";
 import { AuditModule } from "./audit/audit.module";
 import { ArticlesModule } from "./articles/articles.module";
 import { CommentsModule } from "./comments/comments.module";
@@ -17,6 +18,7 @@ import { AppService } from "./app.service";
       isGlobal: true,
     }),
     AuthModule,
+    OAuthModule,
     AuditModule,
     ArticlesModule,
     CommentsModule,

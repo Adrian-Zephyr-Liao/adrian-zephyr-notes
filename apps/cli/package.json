@@ -1,0 +1,24 @@
+{
+  "name": "@adrian-zephyr-notes/cli",
+  "version": "0.1.0",
+  "private": true,
+  "bin": {
+    "azn": "./bin/azn.mjs"
+  },
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit --pretty false",
+    "typecheck": "tsc --noEmit --pretty false",
+    "test": "vp test src"
+  },
+  "dependencies": {
+    "@adrian-zephyr-notes/contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^6.0.3"
+  },
+  "engines": {
+    "node": ">=22.18.0"
+  }
+}

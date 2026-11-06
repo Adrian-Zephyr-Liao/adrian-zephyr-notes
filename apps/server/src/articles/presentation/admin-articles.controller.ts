@@ -25,7 +25,7 @@ import {
   toAdminOperationRequestContext,
 } from "../../audit/presentation/admin-audit-context";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import { ArticleAccessGuard } from "../../oauth/presentation/article-access.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import {
   AdminArticleNotFoundError,
@@ -47,7 +47,7 @@ import { CreateAdminArticleDto } from "./dto/create-admin-article.dto";
 import { UpdateAdminArticleDto } from "./dto/update-admin-article.dto";
 
 @Controller("api/admin/articles")
-@UseGuards(AdminAuthGuard)
+@UseGuards(ArticleAccessGuard)
 class AdminArticlesController {
   constructor(
     private readonly createAdminArticle: CreateAdminArticleUseCase,

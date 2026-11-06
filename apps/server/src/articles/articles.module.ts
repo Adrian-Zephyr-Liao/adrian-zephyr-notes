@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuditModule } from "../audit/audit.module";
 import { AuthModule } from "../auth/auth.module";
+import { OAuthModule } from "../oauth/oauth.module";
 import { PrismaModule } from "../database/prisma.module";
 import { CreateAdminArticleUseCase } from "./application/create-admin-article.use-case";
 import {
@@ -63,7 +64,7 @@ import { AdminArticleTagsController } from "./presentation/admin-article-tags.co
 import { ArticlesController } from "./presentation/articles.controller";
 
 @Module({
-  imports: [AuditModule, AuthModule, PrismaModule],
+  imports: [AuditModule, AuthModule, OAuthModule, PrismaModule],
   controllers: [
     ArticlesController,
     AdminArticlesController,
