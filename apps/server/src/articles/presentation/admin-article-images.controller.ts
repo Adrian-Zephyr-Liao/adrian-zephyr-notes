@@ -10,7 +10,10 @@ import {
   UseInterceptors,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
 import {
   ArticleImageStorageError,
   ArticleImageStorageUnavailableError,
@@ -28,11 +31,12 @@ type UploadedArticleImage = {
 };
 
 @Controller("api/admin/articles")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminApiAccessGuard)
 class AdminArticleImagesController {
   constructor(private readonly uploadAdminArticleImage: UploadAdminArticleImageUseCase) {}
 
   @Post("images")
+  @AdminApiAccess("admin:write")
   @UseInterceptors(
     FileInterceptor("file", {
       limits: {

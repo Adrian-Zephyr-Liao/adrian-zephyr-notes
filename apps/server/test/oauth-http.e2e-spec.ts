@@ -323,7 +323,7 @@ describe.skipIf(!databaseUrl)("OAuth device flow through compiled HTTP and Postg
       "/api/admin/audit/logs",
       "/api/admin/assistant/capabilities",
     ]) {
-      expect((await request(blocked, { headers: bearer(write) })).status, blocked).toBe(401);
+      expect((await request(blocked, { headers: bearer(write) })).status, blocked).toBe(403);
     }
     const invalid = await request("/api/admin/articles", {
       headers: { Authorization: "Bearer invalid", Cookie: cookie },
@@ -423,7 +423,7 @@ describe.skipIf(!databaseUrl)("OAuth device flow through compiled HTTP and Postg
       expect(approved.status).toBe(200);
       expect(await loggingIn).toMatchObject({
         authenticated: true,
-        scope: "articles:read articles:write",
+        scope: "admin:read admin:write",
       });
       const credential = JSON.parse(
         await readFile(join(directory, "credentials.json"), "utf8"),

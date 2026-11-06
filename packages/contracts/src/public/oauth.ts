@@ -1,6 +1,6 @@
 import type { AdminUserResponse } from "../admin/auth.js";
 
-type OAuthScope = "articles:read" | "articles:write";
+type OAuthScope = "articles:read" | "articles:write" | "admin:read" | "admin:write";
 
 type OAuthDeviceCodeResponse = {
   device_code: string;

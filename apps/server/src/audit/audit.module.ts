@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { OAuthModule } from "../oauth/oauth.module";
 import { PrismaModule } from "../database/prisma.module";
 import { ListAdminOperationLogsUseCase } from "./application/list-admin-operation-logs.use-case";
 import { RecordAdminOperationUseCase } from "./application/record-admin-operation.use-case";
@@ -8,7 +9,7 @@ import { PrismaAdminOperationLogRepository } from "./infrastructure/prisma-admin
 import { AdminOperationLogsController } from "./presentation/admin-operation-logs.controller";
 
 @Module({
-  imports: [AuthModule, PrismaModule],
+  imports: [AuthModule, OAuthModule, PrismaModule],
   controllers: [AdminOperationLogsController],
   providers: [
     ListAdminOperationLogsUseCase,

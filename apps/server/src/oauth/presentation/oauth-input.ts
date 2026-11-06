@@ -24,7 +24,7 @@ function requireClient(clientId: string) {
 function parseScope(scope: string) {
   const values = scope.split(" ");
   if (!values.length || values.some((value) => !OAUTH_SCOPES.some((scope) => scope === value))) {
-    throw new OAuthError("invalid_scope", "Only article read and write scopes are supported.");
+    throw new OAuthError("invalid_scope", "Use the documented administrator or article scopes.");
   }
   return OAUTH_SCOPES.filter((value) => values.includes(value)).join(" ");
 }

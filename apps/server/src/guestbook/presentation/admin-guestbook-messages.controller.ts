@@ -21,7 +21,10 @@ import {
   toAdminOperationRequestContext,
 } from "../../audit/presentation/admin-audit-context";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import {
   AdminGuestbookMessageNotFoundError,
@@ -37,7 +40,7 @@ import { AdminGuestbookMessagesQueryDto } from "./dto/admin-guestbook-messages-q
 import { UpdateAdminGuestbookMessageDto } from "./dto/update-admin-guestbook-message.dto";
 
 @Controller("api/admin/guestbook/messages")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminApiAccessGuard)
 class AdminGuestbookMessagesController {
   constructor(
     private readonly listAdminGuestbookMessages: ListAdminGuestbookMessagesUseCase,
@@ -46,6 +49,7 @@ class AdminGuestbookMessagesController {
   ) {}
 
   @Get()
+  @AdminApiAccess("admin:read")
   async list(
     @Query() query: AdminGuestbookMessagesQueryDto,
   ): Promise<AdminGuestbookMessagesResponse> {
@@ -60,6 +64,7 @@ class AdminGuestbookMessagesController {
   }
 
   @Patch(":id")
+  @AdminApiAccess("admin:write")
   async update(
     @Param("id") id: string,
     @Body() body: UpdateAdminGuestbookMessageDto,

@@ -11,6 +11,9 @@ import { Input } from "../../components/ui/input";
 import { decideOAuthAuthorization, getOAuthConsent } from "./oauth-api";
 
 const scopeDescriptions = {
+  "admin:read": "读取全部后台内容，包括文章与草稿、评论、留言、站点配置、审计日志和助手会话",
+  "admin:write":
+    "执行完整管理员操作，包括创建、修改和删除内容，上传图片，审核评论与留言，修改站点配置和公告，运行助手并审批操作",
   "articles:read": "读取文章、草稿、分类和标签",
   "articles:write": "创建、修改和发布文章",
 };
@@ -32,6 +35,14 @@ function OAuthConsentPage({
     useState<OAuthAuthorizationDecisionRequest | null>(null);
   const [completed, setCompleted] = useState<"approved" | "denied" | null>(null);
   const submissionPending = useRef(false);
+  const scopes = new Set<string>(consent?.scopes);
+  const permissionNotice = scopes.has("admin:write")
+    ? "此授权包含完整后台管理权限。删除、发布、审核和设置修改会立即生效。"
+    : scopes.has("admin:read")
+      ? scopes.has("articles:write")
+        ? "此授权可读取全部后台信息，修改权限仅限以上列出的文章操作。"
+        : "此授权可读取全部后台信息，不允许上传、修改、删除或审批。"
+      : "此授权仅用于文章，不包含删除文章、评论管理或站点设置。";
 
   useEffect(() => {
     if (!lookup.code) {
@@ -208,7 +219,7 @@ function OAuthConsentPage({
                     </ul>
                   </div>
                   <p className="mt-4 text-xs leading-5 text-muted-foreground">
-                    授权有效期为 8 小时。此授权仅用于文章，不包含删除文章、评论管理或站点设置。
+                    授权有效期为 8 小时。{permissionNotice}
                     你可以在 CLI 中退出登录以撤销授权。
                   </p>
                 </>

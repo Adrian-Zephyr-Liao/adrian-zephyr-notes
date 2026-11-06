@@ -21,7 +21,10 @@ import {
   toAdminOperationRequestContext,
 } from "../../audit/presentation/admin-audit-context";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import {
   AdminSiteAnnouncementNotFoundError,
@@ -38,7 +41,7 @@ import { UpdateAdminSiteAnnouncementDto } from "./dto/update-admin-site-announce
 import { UpdateAdminSiteSettingsDto } from "./dto/update-admin-site-settings.dto";
 
 @Controller("api/admin/site-config")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminApiAccessGuard)
 class AdminSiteConfigController {
   constructor(
     private readonly getAdminSiteConfig: GetAdminSiteConfigUseCase,
@@ -48,11 +51,13 @@ class AdminSiteConfigController {
   ) {}
 
   @Get()
+  @AdminApiAccess("admin:read")
   async get(): Promise<AdminSiteConfigResponse> {
     return toAdminSiteConfigResponse(await this.getAdminSiteConfig.execute());
   }
 
   @Patch("announcements/:id")
+  @AdminApiAccess("admin:write")
   async updateAnnouncement(
     @Param("id") id: string,
     @Body() body: UpdateAdminSiteAnnouncementDto,
@@ -93,6 +98,7 @@ class AdminSiteConfigController {
   }
 
   @Put("settings")
+  @AdminApiAccess("admin:write")
   async updateSettings(
     @Body() body: UpdateAdminSiteSettingsDto,
     @CurrentAdmin() admin: AuthUser,

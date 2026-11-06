@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { AuthModule } from "../auth/auth.module";
+import { OAuthModule } from "../oauth/oauth.module";
 import { AuditModule } from "../audit/audit.module";
 import { CommentsModule } from "../comments/comments.module";
 import { PrismaModule } from "../database/prisma.module";
@@ -14,7 +15,7 @@ import { PiAssistantRunner } from "./infrastructure/pi-assistant.runner";
 import { AssistantController } from "./presentation/assistant.controller";
 
 @Module({
-  imports: [AuthModule, AuditModule, CommentsModule, PrismaModule],
+  imports: [AuthModule, OAuthModule, AuditModule, CommentsModule, PrismaModule],
   controllers: [AssistantController],
   providers: [
     AssistantService,

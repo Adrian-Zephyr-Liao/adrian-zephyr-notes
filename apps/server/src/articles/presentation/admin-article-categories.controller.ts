@@ -25,7 +25,10 @@ import {
   toAdminOperationRequestContext,
 } from "../../audit/presentation/admin-audit-context";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import {
   CreateAdminArticleCategoryUseCase,
@@ -47,7 +50,7 @@ import {
 } from "./dto/admin-article-category.dto";
 
 @Controller("api/admin/article-categories")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminApiAccessGuard)
 class AdminArticleCategoriesController {
   constructor(
     private readonly createCategory: CreateAdminArticleCategoryUseCase,
@@ -58,6 +61,7 @@ class AdminArticleCategoriesController {
   ) {}
 
   @Get()
+  @AdminApiAccess("admin:read")
   async list(
     @Query() query: AdminArticleCategoryListQueryDto,
   ): Promise<AdminArticleCategoryListResponse> {
@@ -69,6 +73,7 @@ class AdminArticleCategoriesController {
   }
 
   @Post()
+  @AdminApiAccess("admin:write")
   async create(
     @Body() body: CreateAdminArticleCategoryDto,
     @CurrentAdmin() admin: AuthUser,
@@ -91,6 +96,7 @@ class AdminArticleCategoriesController {
   }
 
   @Patch(":id")
+  @AdminApiAccess("admin:write")
   async update(
     @Param("id") id: string,
     @Body() body: UpdateAdminArticleCategoryDto,
@@ -114,6 +120,7 @@ class AdminArticleCategoriesController {
   }
 
   @Delete(":id")
+  @AdminApiAccess("admin:write")
   @HttpCode(204)
   async delete(@Param("id") id: string, @CurrentAdmin() admin: AuthUser, @Req() request: Request) {
     try {

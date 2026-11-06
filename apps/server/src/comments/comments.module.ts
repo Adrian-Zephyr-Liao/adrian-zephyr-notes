@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuditModule } from "../audit/audit.module";
 import { AuthModule } from "../auth/auth.module";
+import { OAuthModule } from "../oauth/oauth.module";
 import { PrismaModule } from "../database/prisma.module";
 import { CreateArticleCommentUseCase } from "./application/create-article-comment.use-case";
 import { LikeArticleCommentUseCase } from "./application/like-article-comment.use-case";
@@ -19,7 +20,7 @@ import { ArticleCommentLikesController } from "./presentation/article-comment-li
 import { ArticleCommentsController } from "./presentation/article-comments.controller";
 
 @Module({
-  imports: [AuditModule, AuthModule, PrismaModule],
+  imports: [AuditModule, AuthModule, OAuthModule, PrismaModule],
   controllers: [
     ArticleCommentsController,
     ArticleCommentLikesController,

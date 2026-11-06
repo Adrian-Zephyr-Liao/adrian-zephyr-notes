@@ -1,20 +1,34 @@
 {
   "name": "@adrian-zephyr-notes/cli",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "bin": {
-    "azn": "./bin/azn.mjs"
+    "azn": "./dist/azn.mjs"
   },
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "scripts": {
-    "build": "tsc --noEmit --pretty false",
+    "build": "vp pack",
     "typecheck": "tsc --noEmit --pretty false",
-    "test": "vp test src"
+    "test": "vp test src",
+    "dev": "vp pack --watch",
+    "check": "vp check",
+    "prepack": "vp run build"
   },
   "dependencies": {
-    "@adrian-zephyr-notes/contracts": "workspace:*"
+    "@adrian-zephyr-notes/contracts": "workspace:*",
+    "@ag-ui/client": "1.0.4",
+    "@clack/prompts": "^1.8.1",
+    "commander": "^15.0.0",
+    "picocolors": "^1.1.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
+    "@types/mdast": "^4.0.4",
     "@types/node": "^24.0.0",
     "typescript": "^6.0.3"
   },

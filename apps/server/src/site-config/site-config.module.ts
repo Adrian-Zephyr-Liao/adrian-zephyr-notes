@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuditModule } from "../audit/audit.module";
 import { AuthModule } from "../auth/auth.module";
+import { OAuthModule } from "../oauth/oauth.module";
 import { PrismaModule } from "../database/prisma.module";
 import { GetAdminSiteConfigUseCase } from "./application/get-admin-site-config.use-case";
 import { GetPublicSiteConfigUseCase } from "./application/get-public-site-config.use-case";
@@ -12,7 +13,7 @@ import { AdminSiteConfigController } from "./presentation/admin-site-config.cont
 import { SiteConfigController } from "./presentation/site-config.controller";
 
 @Module({
-  imports: [AuditModule, AuthModule, PrismaModule],
+  imports: [AuditModule, AuthModule, OAuthModule, PrismaModule],
   controllers: [SiteConfigController, AdminSiteConfigController],
   providers: [
     GetAdminSiteConfigUseCase,

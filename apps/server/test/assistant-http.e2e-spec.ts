@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { ConfigService } from "@nestjs/config";
 import { spawn, type ChildProcess } from "node:child_process";
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { createServer, type Server, type ServerResponse } from "node:http";
 import type { AddressInfo } from "node:net";
@@ -33,6 +33,10 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
   let baseUrl: string;
   let cookie: string;
   let otherCookie: string;
+  let readToken: string;
+  let writeToken: string;
+  let fullToken: string;
+  let otherFullToken: string;
   let output = "";
 
   beforeAll(async () => {
@@ -55,6 +59,12 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
     const sessions = new PrismaAuthSessionRepository(prisma);
     cookie = `azn_session=${(await sessions.createSession(actorId)).token}`;
     otherCookie = `azn_session=${(await sessions.createSession(otherId)).token}`;
+    [readToken, writeToken, fullToken, otherFullToken] = await Promise.all([
+      accessToken("admin:read"),
+      accessToken("admin:write"),
+      accessToken("admin:read admin:write"),
+      accessToken("admin:read admin:write", otherId),
+    ]);
     await prisma.article.create({
       data: {
         id: articleId,
@@ -217,11 +227,64 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
     expect(provider.errors).toEqual([]);
   }, 30000);
 
-  it("previews a single real comment and confirms once with an authoritative audit receipt", async () => {
-    const conversationId = await conversation();
+  it("scopes Bearer assistant reads and writes while allowing a full administrator's real SSE tool query", async () => {
+    const conversationId = await conversation(bearer(fullToken));
     const requestId = randomUUID();
-    await (await run(conversationId, requestId, "PREPARE_FIXTURE")).text();
-    const prepared = await turn(conversationId, requestId);
+    const wire = await (
+      await run(conversationId, requestId, "AUDIT_FIXTURE", {
+        headers: { ...bearer(fullToken), Cookie: "unrelated=invalid%" },
+      })
+    ).text();
+    expect(events(wire).filter((event) => event.type === "RUN_FINISHED")).toHaveLength(1);
+    expect(wire).toContain("ASSISTANT_HTTP_AUDIT");
+    expect(wire).not.toMatch(/PRIVATE_AUDIT_(METADATA|IP|UA)/);
+    expect(wire).not.toContain("PRIVATE_PROVIDER_THINKING");
+    const saved = await turn(conversationId, requestId, bearer(readToken));
+    expect(saved.status).toBe("COMPLETED");
+    expect(saved.toolResults.map((item) => item.name)).toEqual(["list_audit_logs"]);
+    await request("/api/admin/assistant/capabilities", { headers: bearer(readToken) });
+    const historyPath = `/api/admin/assistant/conversations/${conversationId}`;
+    const history = (await (
+      await request(historyPath, { headers: bearer(readToken) })
+    ).json()) as AssistantHistoryResponse;
+    expect(history.turns.some((item) => item.requestId === requestId)).toBe(true);
+    const before = await prisma.assistantConversation.count({ where: { ownerUserId: actorId } });
+    await request(
+      "/api/admin/assistant/conversations",
+      { method: "POST", headers: bearer(readToken) },
+      403,
+    );
+    expect(await prisma.assistantConversation.count({ where: { ownerUserId: actorId } })).toBe(
+      before,
+    );
+    const providerRequests = provider.requests;
+    for (const token of [readToken, writeToken]) {
+      await run(conversationId, randomUUID(), "AUDIT_FIXTURE", { headers: bearer(token) }, 403);
+    }
+    await request(
+      `${historyPath}/turns/${requestId}/stop`,
+      { method: "POST", headers: bearer(readToken) },
+      403,
+    );
+    for (const path of [
+      "/api/admin/assistant/capabilities",
+      historyPath,
+      `${historyPath}/turns/${requestId}`,
+    ]) {
+      await request(path, { headers: bearer(writeToken) }, 403);
+    }
+    await conversation(bearer(writeToken));
+    expect(provider.requests).toBe(providerRequests);
+    expect(provider.errors).toEqual([]);
+  }, 20000);
+
+  it("previews a single real comment through Bearer auth and confirms once with an authoritative audit receipt", async () => {
+    const conversationId = await conversation(bearer(fullToken));
+    const requestId = randomUUID();
+    await (
+      await run(conversationId, requestId, "PREPARE_FIXTURE", { headers: bearer(fullToken) })
+    ).text();
+    const prepared = await turn(conversationId, requestId, bearer(fullToken));
     const action = prepared.actions[0]!;
     expect(action.status).toBe("PENDING");
     expect(
@@ -232,6 +295,7 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
       path,
       {
         method: "POST",
+        headers: bearer(fullToken),
         body: JSON.stringify({ decision: "CONFIRM", payload: { commentId: randomUUID() } }),
       },
       400,
@@ -240,16 +304,39 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
       path,
       {
         method: "POST",
-        headers: { Cookie: otherCookie },
+        headers: bearer(otherFullToken),
         body: JSON.stringify({ decision: "CONFIRM" }),
       },
       404,
     );
+    await request(
+      path,
+      {
+        method: "POST",
+        headers: bearer(readToken),
+        body: JSON.stringify({ decision: "CONFIRM" }),
+      },
+      403,
+    );
+    expect((await turn(conversationId, requestId, bearer(fullToken))).actions[0]!.status).toBe(
+      "PENDING",
+    );
+    expect(
+      (await prisma.articleComment.findUniqueOrThrow({ where: { id: commentId } })).status,
+    ).toBe("VISIBLE");
     const applied = (await (
-      await request(path, { method: "POST", body: JSON.stringify({ decision: "CONFIRM" }) })
+      await request(path, {
+        method: "POST",
+        headers: bearer(writeToken),
+        body: JSON.stringify({ decision: "CONFIRM" }),
+      })
     ).json()) as AssistantActionResponse;
     const repeated = (await (
-      await request(path, { method: "POST", body: JSON.stringify({ decision: "CONFIRM" }) })
+      await request(path, {
+        method: "POST",
+        headers: bearer(writeToken),
+        body: JSON.stringify({ decision: "CONFIRM" }),
+      })
     ).json()) as AssistantActionResponse;
     expect(applied.status).toBe("APPLIED");
     expect(repeated.receipt).toEqual(applied.receipt);
@@ -259,10 +346,56 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
     expect(
       await prisma.adminOperationLog.count({ where: { id: applied.receipt!.auditLogId } }),
     ).toBe(1);
-    expect((await turn(conversationId, requestId)).actions[0]!.status).toBe("APPLIED");
-    await (await run(conversationId, randomUUID(), "ACTION_STATUS_FIXTURE")).text();
+    expect((await turn(conversationId, requestId, bearer(fullToken))).actions[0]!.status).toBe(
+      "APPLIED",
+    );
+    await (
+      await run(conversationId, randomUUID(), "ACTION_STATUS_FIXTURE", {
+        headers: bearer(fullToken),
+      })
+    ).text();
     expect(provider.sawAppliedAction).toBe(true);
     expect(provider.errors).toEqual([]);
+  }, 20000);
+
+  it("terminates when the original Bearer is revoked before a tool even while a valid cookie remains", async () => {
+    const token = await accessToken("admin:read admin:write");
+    const conversationId = await conversation(bearer(token));
+    const requestId = randomUUID();
+    provider.revokeSession = async () => {
+      await prisma.oAuthAccessToken.deleteMany({ where: { tokenHash: hashToken(token) } });
+    };
+    const requests = provider.requests;
+    try {
+      const wire = await (
+        await run(conversationId, requestId, "REVOKE_FIXTURE", {
+          headers: { ...bearer(token), Cookie: cookie },
+        })
+      ).text();
+      expect(provider.requests).toBe(requests + 1);
+      expect(events(wire).filter((event) => event.type === "RUN_FINISHED")).toEqual([]);
+      expect(events(wire).filter((event) => event.type === "RUN_ERROR")).toEqual([
+        expect.objectContaining({ code: "TOOL_AUTHORIZATION_FAILED" }),
+      ]);
+      expect(await turn(conversationId, requestId)).toMatchObject({
+        status: "FAILED",
+        error: { code: "TOOL_AUTHORIZATION_FAILED" },
+      });
+      expect(
+        await prisma.assistantTurn.findUniqueOrThrow({
+          where: { conversationId_requestId: { conversationId, requestId } },
+        }),
+      ).toMatchObject({ status: "FAILED", errorCode: "TOOL_AUTHORIZATION_FAILED" });
+      await request(
+        "/api/admin/assistant/capabilities",
+        { headers: { ...bearer(token), Cookie: cookie } },
+        401,
+      );
+      await request("/api/admin/assistant/capabilities", { headers: { Cookie: cookie } });
+      expect(provider.errors).toEqual([]);
+    } finally {
+      provider.revokeSession = undefined;
+    }
   }, 20000);
 
   it("ends the turn when its session is revoked before a tool, without another model request", async () => {
@@ -376,7 +509,7 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
 
   async function request(path: string, init: RequestInit = {}, expected = 200) {
     const headers = new Headers(init.headers);
-    if (!headers.has("Cookie")) headers.set("Cookie", cookie);
+    if (!headers.has("Cookie") && !headers.has("Authorization")) headers.set("Cookie", cookie);
     headers.set("Content-Type", "application/json");
     const response = await fetch(new URL(path, baseUrl), {
       ...init,
@@ -386,17 +519,33 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
     expect(response.status, `HTTP ${response.status} at ${path}`).toBe(expected);
     return response;
   }
-  async function conversation() {
+  async function conversation(headers?: HeadersInit) {
     return (
       (await (
-        await request("/api/admin/assistant/conversations", { method: "POST" }, 201)
+        await request("/api/admin/assistant/conversations", { method: "POST", headers }, 201)
       ).json()) as { id: string }
     ).id;
   }
-  async function turn(id: string, requestId: string) {
+  async function turn(id: string, requestId: string, headers?: HeadersInit) {
     return (await (
-      await request(`/api/admin/assistant/conversations/${id}/turns/${requestId}`)
+      await request(`/api/admin/assistant/conversations/${id}/turns/${requestId}`, { headers })
     ).json()) as AssistantTurnResponse;
+  }
+  async function accessToken(scope: string, userId = actorId) {
+    const token = randomBytes(32).toString("base64url");
+    await prisma.oAuthAccessToken.create({
+      data: {
+        userId,
+        clientId: "azn-cli",
+        scope,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(Date.now() + 28_800_000),
+      },
+    });
+    return token;
+  }
+  function bearer(token: string) {
+    return { Authorization: `Bearer ${token}` };
   }
   function run(
     id: string,

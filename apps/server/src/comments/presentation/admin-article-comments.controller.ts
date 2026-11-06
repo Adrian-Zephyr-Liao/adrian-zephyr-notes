@@ -21,7 +21,10 @@ import {
   toAdminOperationRequestContext,
 } from "../../audit/presentation/admin-audit-context";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import {
   AdminArticleCommentNotFoundError,
@@ -38,7 +41,7 @@ import { AdminArticleCommentListQueryDto } from "./dto/admin-article-comment-lis
 import { UpdateAdminArticleCommentDto } from "./dto/update-admin-article-comment.dto";
 
 @Controller("api/admin/comments")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminApiAccessGuard)
 class AdminArticleCommentsController {
   constructor(
     private readonly listAdminArticleComments: ListAdminArticleCommentsUseCase,
@@ -46,6 +49,7 @@ class AdminArticleCommentsController {
   ) {}
 
   @Get()
+  @AdminApiAccess("admin:read")
   async list(
     @Query() query: AdminArticleCommentListQueryDto,
   ): Promise<AdminArticleCommentListResponse> {
@@ -61,6 +65,7 @@ class AdminArticleCommentsController {
   }
 
   @Patch(":id")
+  @AdminApiAccess("admin:write")
   async update(
     @Param("id") id: string,
     @Body() body: UpdateAdminArticleCommentDto,

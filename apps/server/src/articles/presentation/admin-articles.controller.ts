@@ -25,7 +25,10 @@ import {
   toAdminOperationRequestContext,
 } from "../../audit/presentation/admin-audit-context";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
-import { ArticleAccessGuard } from "../../oauth/presentation/article-access.guard";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import {
   AdminArticleNotFoundError,
@@ -47,7 +50,7 @@ import { CreateAdminArticleDto } from "./dto/create-admin-article.dto";
 import { UpdateAdminArticleDto } from "./dto/update-admin-article.dto";
 
 @Controller("api/admin/articles")
-@UseGuards(ArticleAccessGuard)
+@UseGuards(AdminApiAccessGuard)
 class AdminArticlesController {
   constructor(
     private readonly createAdminArticle: CreateAdminArticleUseCase,
@@ -60,6 +63,7 @@ class AdminArticlesController {
   ) {}
 
   @Get()
+  @AdminApiAccess({ anyOf: ["admin:read", "articles:read"] })
   async list(@Query() query: AdminArticleListQueryDto): Promise<AdminArticleListResponse> {
     const result = await this.listAdminArticles.execute({
       page: query.page,
@@ -73,6 +77,7 @@ class AdminArticlesController {
   }
 
   @Post()
+  @AdminApiAccess({ anyOf: ["admin:write", "articles:write"] })
   async create(
     @Body() body: CreateAdminArticleDto,
     @CurrentAdmin() admin: AuthUser,
@@ -113,12 +118,14 @@ class AdminArticlesController {
   }
 
   @Get("taxonomies")
+  @AdminApiAccess({ anyOf: ["admin:read", "articles:read"] })
   async taxonomies(): Promise<AdminArticleTaxonomyOptionsResponse> {
     const result = await this.listAdminArticleTaxonomies.execute();
     return toAdminArticleTaxonomyOptionsResponse(result);
   }
 
   @Get(":id")
+  @AdminApiAccess({ anyOf: ["admin:read", "articles:read"] })
   async detail(@Param("id") id: string): Promise<AdminArticleDetailResponse> {
     try {
       const article = await this.getAdminArticleById.execute(id);
@@ -129,6 +136,7 @@ class AdminArticlesController {
   }
 
   @Patch(":id")
+  @AdminApiAccess({ anyOf: ["admin:write", "articles:write"] })
   async update(
     @Param("id") id: string,
     @Body() body: UpdateAdminArticleDto,
@@ -172,6 +180,7 @@ class AdminArticlesController {
   }
 
   @Delete(":id")
+  @AdminApiAccess("admin:write")
   @HttpCode(204)
   async delete(@Param("id") id: string, @CurrentAdmin() admin: AuthUser, @Req() request: Request) {
     try {

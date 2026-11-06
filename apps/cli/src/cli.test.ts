@@ -6,7 +6,7 @@ import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { serverUrl } from "./auth.ts";
+import { serverUrl } from "./auth/credentials.ts";
 
 const executable = resolve(dirname(fileURLToPath(import.meta.url)), "../bin/azn.mjs");
 const accessToken = "test_access_token_0123456789_abcdefghijklmnop";
@@ -57,7 +57,7 @@ describe("CLI subprocess with an HTTP API", () => {
                   access_token: accessToken,
                   token_type: "Bearer",
                   expires_in: 28800,
-                  scope: "articles:read articles:write",
+                  scope: "admin:read admin:write",
                 },
           ),
         );

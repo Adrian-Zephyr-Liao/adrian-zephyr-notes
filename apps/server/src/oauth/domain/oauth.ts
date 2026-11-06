@@ -2,7 +2,7 @@ import type { AuthUser } from "../../auth/domain/auth-user.entity";
 
 const OAUTH_CLIENT_ID = "azn-cli";
 const OAUTH_CLIENT_NAME = "AZ Notes CLI";
-const OAUTH_SCOPES = ["articles:read", "articles:write"] as const;
+const OAUTH_SCOPES = ["articles:read", "articles:write", "admin:read", "admin:write"] as const;
 const OAUTH_DEVICE_TTL_SECONDS = 600;
 const OAUTH_POLL_INTERVAL_SECONDS = 5;
 const OAUTH_TOKEN_TTL_SECONDS = 28_800;

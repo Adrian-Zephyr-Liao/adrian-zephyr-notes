@@ -11,7 +11,10 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import type { AdminArticleEditorDraftResponse } from "@adrian-zephyr-notes/contracts";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
 import { DeleteCurrentAdminArticleEditorDraftUseCase } from "../application/delete-current-admin-article-editor-draft.use-case";
@@ -26,7 +29,7 @@ import { AdminArticleEditorDraftQueryDto } from "./dto/admin-article-editor-draf
 import { SaveAdminArticleEditorDraftDto } from "./dto/save-admin-article-editor-draft.dto";
 
 @Controller("api/admin/article-drafts")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminApiAccessGuard)
 class AdminArticleEditorDraftsController {
   constructor(
     private readonly deleteCurrentDraft: DeleteCurrentAdminArticleEditorDraftUseCase,
@@ -35,6 +38,7 @@ class AdminArticleEditorDraftsController {
   ) {}
 
   @Get("current")
+  @AdminApiAccess("admin:read")
   async current(
     @Query() query: AdminArticleEditorDraftQueryDto,
     @CurrentAdmin() admin: AuthUser,
@@ -48,6 +52,7 @@ class AdminArticleEditorDraftsController {
   }
 
   @Put("current")
+  @AdminApiAccess("admin:write")
   async save(
     @Body() body: SaveAdminArticleEditorDraftDto,
     @CurrentAdmin() admin: AuthUser,
@@ -68,6 +73,7 @@ class AdminArticleEditorDraftsController {
   }
 
   @Delete("current")
+  @AdminApiAccess("admin:write")
   @HttpCode(204)
   async delete(@Query() query: AdminArticleEditorDraftQueryDto, @CurrentAdmin() admin: AuthUser) {
     await this.deleteCurrentDraft.execute({

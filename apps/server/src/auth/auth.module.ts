@@ -11,13 +11,12 @@ import { GITHUB_OAUTH_CLIENT } from "./domain/github-oauth-client";
 import { DefaultGithubOAuthClient } from "./infrastructure/github-oauth-client";
 import { PrismaAuthSessionRepository } from "./infrastructure/prisma-auth-session.repository";
 import { PrismaAuthUserRepository } from "./infrastructure/prisma-auth-user.repository";
-import { AdminAuthController } from "./presentation/admin-auth.controller";
 import { AdminAuthGuard } from "./presentation/admin-auth.guard";
 import { AuthController } from "./presentation/auth.controller";
 
 @Module({
   imports: [PrismaModule],
-  controllers: [AuthController, AdminAuthController],
+  controllers: [AuthController],
   providers: [
     CompleteGithubLoginUseCase,
     CreateGithubAuthorizationUseCase,

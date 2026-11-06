@@ -16,10 +16,15 @@ import type { Request, Response } from "express";
 import { EventType, PROTOCOL_VERSION } from "@ag-ui/core";
 import { EventEncoder } from "@ag-ui/encoder";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import { GetCurrentAdminUseCase } from "../../auth/application/get-current-admin.use-case";
 import { getSessionTokenFromRequest } from "../../auth/presentation/request-session";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
+import { OAuthService } from "../../oauth/application/oauth.service";
+import { bearerToken } from "../../oauth/presentation/oauth-http";
 import { toAdminOperationRequestContext } from "../../audit/presentation/admin-audit-context";
 import { AssistantRepositoryError } from "../domain/assistant.repository";
 import { mapAssistantEvents } from "./assistant-event.mapper";
@@ -27,20 +32,23 @@ import { AssistantService, AssistantRequestError } from "../application/assistan
 import { AssistantActionService } from "../application/assistant-action.service";
 
 @Controller("api/admin/assistant")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminApiAccessGuard)
 export class AssistantController {
   constructor(
     private readonly assistant: AssistantService,
     private readonly actions: AssistantActionService,
     private readonly currentAdmin: GetCurrentAdminUseCase,
+    private readonly oauth: OAuthService,
   ) {}
 
   @Get("capabilities")
+  @AdminApiAccess("admin:read")
   capabilities(@CurrentAdmin() actor: AuthUser) {
     return this.assistant.capabilities(actor);
   }
 
   @Post("conversations")
+  @AdminApiAccess("admin:write")
   async create(@CurrentAdmin() actor: AuthUser) {
     try {
       return await this.assistant.createConversation(actor);
@@ -50,6 +58,7 @@ export class AssistantController {
   }
 
   @Get("conversations/:conversationId")
+  @AdminApiAccess("admin:read")
   async history(
     @CurrentAdmin() actor: AuthUser,
     @Param("conversationId") conversationId: string,
@@ -68,6 +77,7 @@ export class AssistantController {
   }
 
   @Get("conversations/:conversationId/turns/:requestId")
+  @AdminApiAccess("admin:read")
   async turn(
     @CurrentAdmin() actor: AuthUser,
     @Param("conversationId") conversationId: string,
@@ -85,6 +95,7 @@ export class AssistantController {
   }
 
   @Post("conversations/:conversationId/turns/:requestId/stop")
+  @AdminApiAccess("admin:write")
   @HttpCode(200)
   async stop(
     @CurrentAdmin() actor: AuthUser,
@@ -103,6 +114,7 @@ export class AssistantController {
   }
 
   @Post("conversations/:conversationId/actions/:actionId/decision")
+  @AdminApiAccess("admin:write")
   @HttpCode(200)
   async decide(
     @CurrentAdmin() actor: AuthUser,
@@ -137,6 +149,7 @@ export class AssistantController {
   }
 
   @Post("conversations/:conversationId/run")
+  @AdminApiAccess({ allOf: ["admin:read", "admin:write"] })
   async run(
     @CurrentAdmin() actor: AuthUser,
     @Param("conversationId") conversationId: string,
@@ -153,14 +166,33 @@ export class AssistantController {
     request.once("aborted", detach);
     if (request.aborted || response.destroyed) disconnected.abort();
     try {
-      const sessionToken = getSessionTokenFromRequest(request);
+      const accessToken =
+        request.headers.authorization !== undefined ? bearerToken(request) : undefined;
+      const sessionToken = accessToken ? undefined : getSessionTokenFromRequest(request);
       const events = await this.assistant.start({
         actor,
         conversationId,
         ...input,
         signal: disconnected.signal,
         authorize: async () => {
-          const admin = await this.currentAdmin.execute(sessionToken);
+          let admin: AuthUser | null;
+          try {
+            if (accessToken) {
+              const token = await this.oauth.authenticate(accessToken);
+              if (
+                !["admin:read", "admin:write"].every((scope) =>
+                  token.scope.split(" ").includes(scope),
+                )
+              ) {
+                throw new Error("Authorization scopes were revoked");
+              }
+              admin = token.user;
+            } else {
+              admin = await this.currentAdmin.execute(sessionToken);
+            }
+          } catch {
+            throw new AssistantRequestError("ADMIN_AUTH_REQUIRED", 401, "登录已失效，请重新登录。");
+          }
           if (!admin || admin.id !== actor.id)
             throw new AssistantRequestError("ADMIN_AUTH_REQUIRED", 401, "登录已失效，请重新登录。");
         },

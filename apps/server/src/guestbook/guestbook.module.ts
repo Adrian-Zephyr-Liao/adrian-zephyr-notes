@@ -1,6 +1,7 @@
 import { Module } from "@nestjs/common";
 import { AuditModule } from "../audit/audit.module";
 import { AuthModule } from "../auth/auth.module";
+import { OAuthModule } from "../oauth/oauth.module";
 import { PrismaModule } from "../database/prisma.module";
 import { CreateGuestbookMessageUseCase } from "./application/create-guestbook-message.use-case";
 import { LikeGuestbookMessageUseCase } from "./application/like-guestbook-message.use-case";
@@ -19,7 +20,7 @@ import { GuestbookMessageLikesController } from "./presentation/guestbook-messag
 import { GuestbookMessagesController } from "./presentation/guestbook-messages.controller";
 
 @Module({
-  imports: [AuditModule, AuthModule, PrismaModule],
+  imports: [AuditModule, AuthModule, OAuthModule, PrismaModule],
   controllers: [
     GuestbookMessagesController,
     GuestbookMessageLikesController,

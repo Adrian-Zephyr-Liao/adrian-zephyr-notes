@@ -44,6 +44,64 @@ describe("OAuthConsentPage", () => {
     expect(apiMocks.decideOAuthAuthorization).not.toHaveBeenCalled();
   });
 
+  it("clearly discloses full administrator read and write permissions", async () => {
+    apiMocks.getOAuthConsent.mockResolvedValue({
+      clientName: "AZ Notes CLI",
+      userCode: "ABCD-EFGH",
+      scopes: ["admin:read", "admin:write"],
+    });
+    render(<OAuthConsentPage admin={admin} initialUserCode="ABCD-EFGH" />);
+
+    await screen.findByRole("button", { name: "允许访问" });
+
+    expect(
+      screen.getByText(
+        "读取全部后台内容，包括文章与草稿、评论、留言、站点配置、审计日志和助手会话",
+      ),
+    ).not.toBeNull();
+    expect(
+      screen.getByText(
+        "执行完整管理员操作，包括创建、修改和删除内容，上传图片，审核评论与留言，修改站点配置和公告，运行助手并审批操作",
+      ),
+    ).not.toBeNull();
+    expect(screen.getByText(/此授权包含完整后台管理权限/)).not.toBeNull();
+    expect(screen.queryByText(/此授权仅用于文章/)).toBeNull();
+    expect(apiMocks.decideOAuthAuthorization).not.toHaveBeenCalled();
+  });
+
+  it("distinguishes all-admin read-only access from write permission and preserves legacy article grants", async () => {
+    apiMocks.getOAuthConsent.mockResolvedValueOnce({
+      clientName: "AZ Notes CLI",
+      userCode: "ABCD-EFGH",
+      scopes: ["admin:read"],
+    });
+    const page = render(<OAuthConsentPage admin={admin} initialUserCode="ABCD-EFGH" />);
+
+    await screen.findByRole("button", { name: "允许访问" });
+    expect(screen.getByText(/不允许上传、修改、删除或审批/)).not.toBeNull();
+    expect(screen.queryByText(/执行完整管理员操作/)).toBeNull();
+    page.unmount();
+
+    render(<OAuthConsentPage admin={admin} initialUserCode="ABCD-EFGH" />);
+    await screen.findByRole("button", { name: "允许访问" });
+    expect(screen.getByText("创建、修改和发布文章")).not.toBeNull();
+    expect(screen.getByText(/此授权仅用于文章/)).not.toBeNull();
+  });
+
+  it("does not call mixed admin-read and article-write grants read-only", async () => {
+    apiMocks.getOAuthConsent.mockResolvedValue({
+      clientName: "AZ Notes CLI",
+      userCode: "ABCD-EFGH",
+      scopes: ["admin:read", "articles:write"],
+    });
+    render(<OAuthConsentPage admin={admin} initialUserCode="ABCD-EFGH" />);
+
+    await screen.findByRole("button", { name: "允许访问" });
+
+    expect(screen.getByText(/修改权限仅限以上列出的文章操作/)).not.toBeNull();
+    expect(screen.queryByText(/不允许上传、修改、删除或审批/)).toBeNull();
+  });
+
   it.each([
     ["allow", "允许访问", "approved", "已允许访问"],
     ["deny", "拒绝", "denied", "已拒绝访问"],

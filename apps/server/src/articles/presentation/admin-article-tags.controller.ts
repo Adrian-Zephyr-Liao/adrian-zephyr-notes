@@ -26,7 +26,10 @@ import {
   toAdminOperationRequestContext,
 } from "../../audit/presentation/admin-audit-context";
 import type { AuthUser } from "../../auth/domain/auth-user.entity";
-import { AdminAuthGuard } from "../../auth/presentation/admin-auth.guard";
+import {
+  AdminApiAccess,
+  AdminApiAccessGuard,
+} from "../../oauth/presentation/admin-api-access.guard";
 import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import {
   CreateAdminArticleTagUseCase,
@@ -50,7 +53,7 @@ import {
 } from "./dto/admin-article-tag.dto";
 
 @Controller("api/admin/article-tags")
-@UseGuards(AdminAuthGuard)
+@UseGuards(AdminApiAccessGuard)
 class AdminArticleTagsController {
   private readonly logger = new Logger(AdminArticleTagsController.name);
 
@@ -64,12 +67,14 @@ class AdminArticleTagsController {
   ) {}
 
   @Get()
+  @AdminApiAccess("admin:read")
   async list(@Query() query: AdminArticleTagListQueryDto): Promise<AdminArticleTagListResponse> {
     const page = await this.listTags.execute(query);
     return { data: page.data.map(toResponse), pagination: page.pagination };
   }
 
   @Post()
+  @AdminApiAccess("admin:write")
   async create(
     @Body() body: CreateAdminArticleTagDto,
     @CurrentAdmin() admin: AuthUser,
@@ -91,6 +96,7 @@ class AdminArticleTagsController {
   }
 
   @Patch(":id")
+  @AdminApiAccess("admin:write")
   async update(
     @Param("id") id: string,
     @Body() body: UpdateAdminArticleTagDto,
@@ -113,6 +119,7 @@ class AdminArticleTagsController {
   }
 
   @Post(":id/merge")
+  @AdminApiAccess("admin:write")
   async merge(
     @Param("id") id: string,
     @Body() body: MergeAdminArticleTagDto,
@@ -135,6 +142,7 @@ class AdminArticleTagsController {
   }
 
   @Delete(":id")
+  @AdminApiAccess("admin:write")
   @HttpCode(204)
   async delete(@Param("id") id: string, @CurrentAdmin() admin: AuthUser, @Req() request: Request) {
     try {
