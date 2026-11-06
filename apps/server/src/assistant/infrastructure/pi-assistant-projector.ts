@@ -3,7 +3,54 @@ import type {
   AssistantToolResult,
   AssistantToolResultResponse,
 } from "@adrian-zephyr-notes/contracts";
-import type { AssistantCanonicalMessage } from "../application/assistant-runner.port";
+import type { Message } from "@earendil-works/pi-ai";
+import type { AssistantAction } from "../domain/assistant.repository";
+
+export function readAssistantMessages(messages: unknown[]): Message[] {
+  const invalid = () => new Error("Canonical assistant history contains an unsupported message.");
+  for (const message of messages) {
+    if (!record(message) || !["user", "assistant", "toolResult"].includes(String(message.role)))
+      throw invalid();
+    if (
+      message.role === "toolResult" &&
+      (typeof message.toolCallId !== "string" ||
+        !message.toolCallId ||
+        typeof message.toolName !== "string" ||
+        !message.toolName ||
+        typeof message.isError !== "boolean")
+    )
+      throw invalid();
+    if (message.role === "user" && typeof message.content === "string") continue;
+    if (!Array.isArray(message.content)) throw invalid();
+    for (const block of message.content) {
+      if (!record(block)) throw invalid();
+      if (block.type === "text" && typeof block.text === "string") continue;
+      if (message.role === "assistant") {
+        if (block.type === "thinking" && typeof block.thinking === "string") continue;
+        if (
+          block.type === "toolCall" &&
+          typeof block.id === "string" &&
+          block.id &&
+          typeof block.name === "string" &&
+          block.name
+        )
+          continue;
+      } else if (
+        block.type === "image" &&
+        typeof block.data === "string" &&
+        typeof block.mimeType === "string"
+      )
+        continue;
+      throw invalid();
+    }
+  }
+  // Validate only the fields consumed here; keep provider signatures and metadata intact.
+  return messages as Message[];
+}
+
+function record(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
 
 export function assistantMessageId(turnId: string, index: number) {
   return `${turnId}:message:${index}`;
@@ -11,7 +58,7 @@ export function assistantMessageId(turnId: string, index: number) {
 export function assistantToolCallId(turnId: string, providerCallId: string, messageIndex: number) {
   return `${turnId}:${messageIndex}:${providerCallId}`;
 }
-export function assistantMessageText(message: AssistantCanonicalMessage) {
+export function assistantMessageText(message: Message) {
   return typeof message.content === "string"
     ? message.content
     : message.content
@@ -28,7 +75,7 @@ export function isAssistantToolResult(value: unknown): value is AssistantToolRes
       : value.ok === false && "error" in value && !!value.error && typeof value.error === "object")
   );
 }
-export function projectAssistantTranscript(turnId: string, canonical: AssistantCanonicalMessage[]) {
+export function projectAssistantTranscript(turnId: string, canonical: Message[]) {
   const messages: AssistantMessage[] = [];
   const toolResults: AssistantToolResultResponse[] = [];
   const callIds = new Map<string, string>();
@@ -58,6 +105,19 @@ export function projectAssistantTranscript(turnId: string, canonical: AssistantC
   });
   return { messages, toolResults };
 }
-export function projectAssistantMessages(turnId: string, canonical: AssistantCanonicalMessage[]) {
-  return projectAssistantTranscript(turnId, canonical).messages;
+export function refreshActionMessages(messages: Message[], actions: AssistantAction[]): Message[] {
+  const currentActions = new Map(actions.map((action) => [action.id, action]));
+  return messages.map((message) => {
+    if (
+      message.role !== "toolResult" ||
+      !isAssistantToolResult(message.details) ||
+      !message.details.ok ||
+      message.details.kind !== "comment_action"
+    )
+      return message;
+    const current = currentActions.get(message.details.data.id);
+    if (!current) return message;
+    const details = { kind: "comment_action" as const, ok: true as const, data: current };
+    return { ...message, details, content: [{ type: "text", text: JSON.stringify(details) }] };
+  });
 }

@@ -34,18 +34,6 @@ describe("assistant HttpAgent transport", () => {
     expect(await run.finished).toEqual({ terminal: "interrupted" });
     expect(fetchMock).not.toHaveBeenCalled();
   });
-  it("compares a test-only raw SSE reader against the same HTTP fixture", async () => {
-    const baseUrl = await listen((_request, response) => {
-      response.writeHead(200, { "content-type": "text/event-stream" });
-      for (const event of events()) writeEvent(response, event);
-      response.end();
-    });
-    const result = await readRawSsePrototype(await nativeFetch(baseUrl));
-    expect(
-      result.filter((event) => event.type === "TEXT_MESSAGE_CONTENT").map((event) => event.delta),
-    ).toEqual(["哈", "哈"]);
-    expect(result.at(-1)?.type).toBe("RUN_FINISHED");
-  });
   it("uses the authenticated admin transport and appends repeated Chinese deltas from real HTTP SSE", async () => {
     let requestBody: unknown;
     let credentials: RequestCredentials | undefined;
@@ -155,45 +143,4 @@ function events() {
     { type: "TEXT_MESSAGE_END", messageId: "response-1" },
     { type: "RUN_FINISHED", threadId: "conversation-1", runId: "request-1" },
   ];
-}
-
-// P0 comparison only. Product code uses HttpAgent's framing and event validation.
-async function readRawSsePrototype(response: Response) {
-  if (!response.ok || !response.headers.get("content-type")?.includes("text/event-stream")) {
-    throw new Error("Expected SSE response");
-  }
-  const reader = response.body?.getReader();
-  if (!reader) throw new Error("Missing response body");
-  const decoder = new TextDecoder();
-  const result: Record<string, unknown>[] = [];
-  let buffer = "";
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      buffer += decoder.decode(value, { stream: !done });
-      const frames = buffer.split(/\r?\n\r?\n/);
-      buffer = frames.pop() ?? "";
-      for (const frame of frames) {
-        const data = frame
-          .split(/\r?\n/)
-          .filter((line) => line.startsWith("data:"))
-          .map((line) => line.slice(5).replace(/^ /, ""))
-          .join("\n");
-        if (!data) continue;
-        const event: unknown = JSON.parse(data);
-        if (!event || typeof event !== "object" || Array.isArray(event) || !("type" in event))
-          throw new Error("Invalid event");
-        result.push(event as Record<string, unknown>);
-      }
-      if (done) break;
-    }
-  } finally {
-    reader.releaseLock();
-  }
-  if (
-    result[0]?.type !== "RUN_STARTED" ||
-    !["RUN_FINISHED", "RUN_ERROR"].includes(String(result.at(-1)?.type))
-  )
-    throw new Error("Incomplete run");
-  return result;
 }

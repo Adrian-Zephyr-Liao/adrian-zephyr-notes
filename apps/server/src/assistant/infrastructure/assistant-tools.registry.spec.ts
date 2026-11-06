@@ -1,10 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
+import { runToolCall } from "@earendil-works/pi-agent-core";
+import { fauxAssistantMessage, fauxToolCall } from "@earendil-works/pi-ai";
 import type { ListAdminOperationLogsUseCase } from "../../audit/application/list-admin-operation-logs.use-case";
 import type { ListAdminArticleCommentsUseCase } from "../../comments/application/list-admin-article-comments.use-case";
 import type { AssistantActionService } from "../application/assistant-action.service";
 import {
   AssistantToolsRegistry,
-  assistantCapabilities,
   resolveAssistantCommentDateRange,
 } from "./assistant-tools.registry";
 
@@ -48,7 +49,12 @@ function fixture() {
     comments as unknown as ListAdminArticleCommentsUseCase,
     action as unknown as AssistantActionService,
   );
-  const tools = registry.create({ actor, conversationId: "conversation-1", turnId: "turn-1" });
+  const tools = registry.create({
+    actor,
+    conversationId: "conversation-1",
+    turnId: "turn-1",
+    actionsEnabled: true,
+  });
   return {
     registry,
     tools,
@@ -60,6 +66,48 @@ function fixture() {
 }
 
 describe("AssistantToolsRegistry", () => {
+  it.each([
+    ["list_audit_logs", { action: "INVALID" }],
+    ["list_audit_logs", { dateRange: { from: "2026-11-06", to: "2026-11-06" } }],
+    ["list_audit_logs", { page: 0 }],
+    ["list_audit_logs", { pageSize: 51 }],
+    ["list_audit_logs", { actor: "forged" }],
+    ["list_audit_logs", { actorLogin: " " }],
+    ["search_comments", { commentId: "fake" }],
+    ["search_comments", { status: "DELETED" }],
+    ["search_comments", { actor: "forged" }],
+    ["search_comments", { period: "INVALID" }],
+    ["search_comments", { dateRange: { from: "2026-02-30", to: "2026-03-01" } }],
+    ["search_comments", { period: "TODAY", dateRange: { from: "2026-11-06", to: "2026-11-06" } }],
+    ["prepare_comment_moderation", { commentId, targetStatus: "DELETED" }],
+    ["prepare_comment_moderation", { commentId, targetStatus: "HIDDEN", approved: true }],
+  ] as const)(
+    "rejects %s invalid parameters through the official Pi tool boundary: %j",
+    async (name, args) => {
+      const f = fixture();
+      const tool = f.tool(name);
+      const call = fauxToolCall(name, args);
+      const outcome = await runToolCall(call, {
+        tools: [
+          {
+            ...tool,
+            execute: async (_id, input, signal) => ({
+              content: [],
+              details: await tool.execute(input, { ...execution, signal: signal! }),
+            }),
+          },
+        ],
+        assistantMessage: fauxAssistantMessage([call]),
+        context: { messages: [], tools: [] },
+        signal: execution.signal,
+      });
+      expect(outcome.isError).toBe(true);
+      expect(f.audit.execute).not.toHaveBeenCalled();
+      expect(f.comments.execute).not.toHaveBeenCalled();
+      expect(f.action.prepare).not.toHaveBeenCalled();
+    },
+  );
+
   it("declares exact filters and explicit pagination semantics without changing supplied literals", async () => {
     const f = fixture();
     const audit = f.tool("list_audit_logs");
@@ -96,13 +144,8 @@ describe("AssistantToolsRegistry", () => {
     );
   });
 
-  it("derives capabilities from registered tools and only exposes safe audit fields", async () => {
+  it("only exposes safe audit fields and preserves default filters", async () => {
     const f = fixture();
-    expect(assistantCapabilities(f.tools).map((tool) => tool.name)).toEqual([
-      "list_audit_logs",
-      "search_comments",
-      "prepare_comment_moderation",
-    ]);
     const result = await f.tool("list_audit_logs").execute({}, execution);
     expect(f.audit.execute).toHaveBeenCalledWith(
       {
@@ -120,19 +163,6 @@ describe("AssistantToolsRegistry", () => {
       data: { data: [{ id: "log-1", summary: "更新文章" }], filters: { action: "ALL" } },
     });
     expect(JSON.stringify(result)).not.toMatch(/private|ipAddress|userAgent|metadata|actorUserId/);
-  });
-
-  it.each([
-    { action: "INVALID" },
-    { dateRange: { from: "2026-11-06", to: "2026-11-06" } },
-    { page: 0 },
-    { pageSize: 51 },
-    { actor: "forged" },
-    { actorLogin: " " },
-  ])("rejects invalid audit filters without widening the query: %j", async (args) => {
-    const f = fixture();
-    await expect(f.tool("list_audit_logs").execute(args, execution)).rejects.toThrow();
-    expect(f.audit.execute).not.toHaveBeenCalled();
   });
 
   it("combines comment filters and uses ALL when no time was requested", async () => {
@@ -165,9 +195,6 @@ describe("AssistantToolsRegistry", () => {
   });
 
   it.each([
-    { status: "DELETED" },
-    { period: "INVALID" },
-    { commentId: "fake" },
     { dateRange: { from: "2026-02-30", to: "2026-03-01" } },
     { dateRange: { from: "2026-11-07", to: "2026-11-06" } },
     { period: "TODAY", dateRange: { from: "2026-11-06", to: "2026-11-06" } },
@@ -212,11 +239,6 @@ describe("AssistantToolsRegistry", () => {
       commentId,
       targetStatus: "HIDDEN",
     });
-    await expect(
-      f
-        .tool("prepare_comment_moderation")
-        .execute({ commentId, targetStatus: "DELETED", approved: true }, execution),
-    ).rejects.toThrow();
     expect(f.action.prepare).toHaveBeenCalledOnce();
   });
 
@@ -228,16 +250,5 @@ describe("AssistantToolsRegistry", () => {
       f.tool("list_audit_logs").execute({}, { ...execution, signal: controller.signal }),
     ).rejects.toThrow();
     expect(f.audit.execute).not.toHaveBeenCalled();
-  });
-
-  it("rechecks cancellation after asynchronous schema validation before entering a business command", async () => {
-    const f = fixture();
-    const controller = new AbortController();
-    const work = f
-      .tool("prepare_comment_moderation")
-      .execute({ commentId, targetStatus: "HIDDEN" }, { ...execution, signal: controller.signal });
-    controller.abort();
-    await expect(work).rejects.toThrow();
-    expect(f.action.prepare).not.toHaveBeenCalled();
   });
 });

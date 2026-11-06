@@ -1,0 +1,263 @@
+{
+  "baselineCommit": "bee9f04ccdcc0dd0144dea791ec88068a9136167",
+  "date": "2026-11-06",
+  "acceptance": {
+    "check": "passed",
+    "unitAndComponent": {
+      "files": 76,
+      "tests": 325,
+      "passed": 325
+    },
+    "postgresE2e": {
+      "files": 5,
+      "tests": 20,
+      "passed": 20,
+      "assistantTests": 18
+    },
+    "builds": {
+      "server": "passed",
+      "admin": "passed",
+      "website": "passed"
+    }
+  },
+  "realBrowser": {
+    "environment": "isolated local Chrome + compiled Nest + PostgreSQL + faux SSE",
+    "passed": [
+      "Unauthenticated assistant entry requires login",
+      "Authenticated HttpOnly session and credentialed cross-origin CORS; capabilities entry available",
+      "Real audit tool and SSE; public IDs match PG; reload preserves exact messages without model rerun",
+      "Visible streamed partial response; Stop persists CANCELLED and closes actual provider connection",
+      "Real comment search maps safe business result and fixed card",
+      "Preview is non-mutating; confirmation applies once; repeat is idempotent; PG HIDDEN + exactly one real audit receipt survive reload",
+      "Reject records REJECTED; comment remains HIDDEN; no additional business audit mutation",
+      "No application console errors or uncaught browser exceptions after authentication"
+    ],
+    "browserErrors": [],
+    "providerCalls": 9,
+    "upstreamDisconnects": 1,
+    "cors": {
+      "differentOrigins": true,
+      "allowOriginMatches": true,
+      "credentials": true,
+      "httpOnlyCookieHiddenFromDocument": true
+    },
+    "cleanup": true,
+    "isolation": {
+      "database": "assistant_quality_browser",
+      "databasePort": 54407,
+      "container": "azn-reliability-review-pg",
+      "credentials": "explicit test-only",
+      "model": "faux SSE only",
+      "inheritedCredentialVariables": false,
+      "backendFetchRestrictedToLoopback": true,
+      "browserNetworkRestrictedToFixtureOrigins": true
+    },
+    "browserVersion": "156.0.8078.81",
+    "blockedBrowserRequests": [],
+    "fakeKeyVerified": true,
+    "providerInstructions": {
+      "auditDateUnsupported": true,
+      "auditDateNoFakeCoverage": true,
+      "latestUserDecidesTask": true,
+      "historyIsBackground": true,
+      "untrustedDataInstructionsIgnored": true
+    },
+    "requestFailures": [],
+    "conversationTurns": [
+      {
+        "status": "COMPLETED",
+        "messageCount": 2,
+        "toolNames": ["list_audit_logs"],
+        "actionStates": []
+      },
+      {
+        "status": "CANCELLED",
+        "messageCount": 2,
+        "toolNames": [],
+        "actionStates": []
+      },
+      {
+        "status": "COMPLETED",
+        "messageCount": 2,
+        "toolNames": ["search_comments"],
+        "actionStates": []
+      },
+      {
+        "status": "COMPLETED",
+        "messageCount": 2,
+        "toolNames": ["prepare_comment_moderation"],
+        "actionStates": ["APPLIED"]
+      },
+      {
+        "status": "COMPLETED",
+        "messageCount": 2,
+        "toolNames": ["prepare_comment_moderation"],
+        "actionStates": ["REJECTED"]
+      }
+    ],
+    "success": true,
+    "processesStopped": true,
+    "databaseRemoved": true,
+    "rootContainerPreserved": true
+  },
+  "visualMock": {
+    "kind": "visual and interaction mocks only; no actual backend/provider calls",
+    "consoleErrors": [],
+    "metrics": [
+      {
+        "name": "01-long-desktop-dark",
+        "inputRect": {
+          "x": 476,
+          "y": 718,
+          "width": 768,
+          "height": 80,
+          "top": 718,
+          "right": 1244,
+          "bottom": 798,
+          "left": 476
+        },
+        "readingPreservedOnRefresh": true,
+        "jumpToLatest": true
+      },
+      {
+        "name": "03-narrow-light",
+        "inputRect": {
+          "x": 24,
+          "y": 687,
+          "width": 342,
+          "height": 80,
+          "top": 687,
+          "right": 366,
+          "bottom": 767,
+          "left": 24
+        }
+      },
+      {
+        "name": "05-empty-desktop-light",
+        "inputRect": {
+          "x": 476,
+          "y": 718,
+          "width": 768,
+          "height": 80,
+          "top": 718,
+          "right": 1244,
+          "bottom": 798,
+          "left": 476
+        }
+      },
+      {
+        "name": "06-history-failure",
+        "inputRect": {
+          "x": 476,
+          "y": 718,
+          "width": 768,
+          "height": 80,
+          "top": 718,
+          "right": 1244,
+          "bottom": 798,
+          "left": 476
+        }
+      },
+      {
+        "name": "07-running-narrow",
+        "inputRect": {
+          "x": 24,
+          "y": 663,
+          "width": 342,
+          "height": 80,
+          "top": 663,
+          "right": 366,
+          "bottom": 743,
+          "left": 24
+        },
+        "stopRect": {
+          "x": 170,
+          "y": 781,
+          "width": 108,
+          "height": 40,
+          "top": 781,
+          "right": 278,
+          "bottom": 821,
+          "left": 170
+        }
+      },
+      {
+        "name": "08-long-unbroken",
+        "inputRect": {
+          "x": 24,
+          "y": 687,
+          "width": 342,
+          "height": 80,
+          "top": 687,
+          "right": 366,
+          "bottom": 767,
+          "left": 24
+        },
+        "overflow": {
+          "width": 390,
+          "scrollWidth": 390,
+          "scrolling": 390,
+          "clippedNodes": []
+        }
+      },
+      {
+        "name": "09-earlier-anchor",
+        "inputRect": {
+          "x": 476,
+          "y": 718,
+          "width": 768,
+          "height": 80,
+          "top": 718,
+          "right": 1244,
+          "bottom": 798,
+          "left": 476
+        },
+        "olderAnchor": {
+          "before": 314,
+          "after": 314
+        }
+      },
+      {
+        "name": "10-uncertain-confirm",
+        "inputRect": {
+          "x": 24,
+          "y": 687,
+          "width": 342,
+          "height": 80,
+          "top": 687,
+          "right": 366,
+          "bottom": 767,
+          "left": 24
+        },
+        "uncertainDecisionPreserved": true
+      }
+    ]
+  },
+  "developmentDatabaseIncident": {
+    "runs": ["15:06:25", "15:13:44"],
+    "databaseWasLoopbackDevelopment": true,
+    "productionAccess": false,
+    "fixtureWritesOccurred": true,
+    "residualCounts": {
+      "user": 0,
+      "article": 0,
+      "tag": 0,
+      "tagLink": 0,
+      "editorDraft": 0,
+      "mergeAudit": 0
+    },
+    "startupWindowUpdates": {
+      "HOST_INTERRUPTED": 0,
+      "CANCELLED": 0
+    },
+    "verification": "read-only prefix/fingerprint/time-window checks; exact generated UUIDs not retained",
+    "preventedBy": "explicit test URL, pre-import binding, no dotenv authorization"
+  },
+  "limits": [
+    "No paid real-model evaluation rerun; prior scores are historical.",
+    "Visual mocks prove layout and interaction only; real browser integration uses a local faux provider.",
+    "No production comment writes authorized for acceptance.",
+    "Real phone software keyboards and full screen-reader audit were not performed.",
+    "The first browser cleanup timing check failed; its original evidence is retained separately and the complete run was repeated successfully."
+  ]
+}

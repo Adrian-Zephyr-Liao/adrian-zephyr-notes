@@ -1,23 +1,31 @@
 import { Injectable } from "@nestjs/common";
-import type {
-  AssistantCapabilitiesResponse,
-  AssistantAuditLogsResult,
-} from "@adrian-zephyr-notes/contracts";
+import type { AssistantAuditLogsResult, AssistantToolResult } from "@adrian-zephyr-notes/contracts";
 import { ListAdminOperationLogsUseCase } from "../../audit/application/list-admin-operation-logs.use-case";
 import { toAdminOperationLogResponse } from "../../audit/infrastructure/admin-operation-log.mapper";
 import { ListAdminArticleCommentsUseCase } from "../../comments/application/list-admin-article-comments.use-case";
 import { toAdminArticleCommentListResponse } from "../../comments/infrastructure/admin-article-comments.mapper";
 import { AssistantActionService } from "../application/assistant-action.service";
-import {
-  AssistantToolInputError,
-  type AssistantToolDefinition,
-} from "../application/assistant-runner.port";
+import type { AssistantToolsContext } from "../application/assistant-runner.port";
 
-export type AssistantToolsContext = {
-  actor: { id: string; login: string };
-  conversationId: string;
-  turnId: string;
+export type AssistantToolDefinition = {
+  name: string;
+  label: string;
+  description: string;
+  parameters: Record<string, unknown>;
+  kind: AssistantToolResult["kind"];
+  readOnly: boolean;
+  execute(
+    args: Record<string, unknown>,
+    context: {
+      turnId: string;
+      toolCallId: string;
+      signal: AbortSignal;
+    },
+  ): Promise<AssistantToolResult>;
 };
+export class AssistantToolInputError extends Error {
+  readonly code = "TOOL_INPUT_INVALID";
+}
 const text = { type: "string", minLength: 1, maxLength: 240 };
 const uuid = { type: "string", format: "uuid" };
 const pagination = {
@@ -139,8 +147,7 @@ export class AssistantToolsRegistry {
         parameters: auditSchema,
         execute: async (args, execution) => {
           execution.signal.throwIfAborted();
-          await validate(auditSchema, args);
-          execution.signal.throwIfAborted();
+          assertNonBlankFilters(args);
           const filters = {
             page: number(args.page, 1),
             pageSize: number(args.pageSize, 20),
@@ -196,8 +203,7 @@ export class AssistantToolsRegistry {
         parameters: commentsSchema,
         execute: async (args, execution) => {
           execution.signal.throwIfAborted();
-          await validate(commentsSchema, args);
-          execution.signal.throwIfAborted();
+          assertNonBlankFilters(args);
           const range = resolveAssistantCommentDateRange(args);
           const filters = {
             articleId: optionalText(args.articleId),
@@ -257,8 +263,7 @@ export class AssistantToolsRegistry {
         parameters: moderationSchema,
         execute: async (args, execution) => {
           execution.signal.throwIfAborted();
-          await validate(moderationSchema, args);
-          execution.signal.throwIfAborted();
+          assertNonBlankFilters(args);
           const data = await this.action.prepare({
             actor: context.actor,
             conversationId: context.conversationId,
@@ -275,24 +280,7 @@ export class AssistantToolsRegistry {
   }
 }
 
-export function assistantCapabilities(
-  tools: AssistantToolDefinition[],
-): AssistantCapabilitiesResponse["tools"] {
-  return tools.map(({ name, label, description, readOnly }) => ({
-    name,
-    label,
-    description,
-    readOnly,
-  }));
-}
-
-async function validate(schema: Record<string, unknown>, args: Record<string, unknown>) {
-  const [{ compile }, { formats }] = await Promise.all([
-    import("@earendil-works/pi-schema"),
-    import("@earendil-works/pi-schema/formats"),
-  ]);
-  if (!compile(schema, { formats }).check(args))
-    throw new AssistantToolInputError("工具参数无效，请检查筛选条件、枚举、分页和未知字段。");
+function assertNonBlankFilters(args: Record<string, unknown>) {
   if (Object.values(args).some((value) => typeof value === "string" && !value.trim()))
     throw new AssistantToolInputError("筛选条件不能是空白文本。");
 }

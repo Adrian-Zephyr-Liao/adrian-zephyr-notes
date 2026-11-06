@@ -74,6 +74,64 @@ describe("assistant business result cards", () => {
     expect(screen.queryByText(/审计记录已保存/)).toBeNull();
   });
 
+  it("retries only the original decision after its receipt becomes uncertain", async () => {
+    api.decideAssistantAction.mockRejectedValueOnce(new Error("网络连接中断"));
+    api.decideAssistantAction.mockResolvedValueOnce(appliedAction());
+    render(<AssistantActionCard action={action()} />);
+    fireEvent.click(screen.getByRole("button", { name: "确认隐藏评论" }));
+    expect(await screen.findByText("等待核对")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "拒绝操作" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "核对并重试确认" }));
+    expect(await screen.findByText("已执行")).not.toBeNull();
+    expect(api.decideAssistantAction.mock.calls).toEqual([
+      ["conversation-1", "action-1", "CONFIRM"],
+      ["conversation-1", "action-1", "CONFIRM"],
+    ]);
+  });
+
+  it("reconciles an uncertain decision with the refreshed server action", async () => {
+    api.decideAssistantAction.mockRejectedValueOnce(new Error("网络连接中断"));
+    const view = render(<AssistantActionCard action={action()} />);
+    fireEvent.click(screen.getByRole("button", { name: "拒绝操作" }));
+    expect(await screen.findByRole("button", { name: "核对并重试拒绝" })).not.toBeNull();
+    view.rerender(<AssistantActionCard action={appliedAction()} />);
+    expect(await screen.findByText("已执行")).not.toBeNull();
+    expect(screen.queryByRole("button", { name: "核对并重试拒绝" })).toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText(/审计记录已保存/)).not.toBeNull();
+  });
+
+  it("keeps a refreshed receipt when an earlier decision response fails late", async () => {
+    let reject!: (cause: Error) => void;
+    api.decideAssistantAction.mockReturnValue(new Promise((_resolve, fail) => (reject = fail)));
+    const view = render(<AssistantActionCard action={action()} />);
+    fireEvent.click(screen.getByRole("button", { name: "确认隐藏评论" }));
+    view.rerender(<AssistantActionCard action={appliedAction()} />);
+    await act(async () => reject(new Error("旧连接断开")));
+    expect(screen.getByText("已执行")).not.toBeNull();
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.queryByRole("button", { name: "核对并重试确认" })).toBeNull();
+  });
+
+  it.each(["APPLIED", "REJECTED"] as const)(
+    "does not regress a locally confirmed %s action when stale pending props arrive",
+    async (status) => {
+      api.decideAssistantAction.mockResolvedValue(
+        status === "APPLIED" ? appliedAction() : { ...action(), status },
+      );
+      const view = render(<AssistantActionCard action={action()} />);
+      fireEvent.click(
+        screen.getByRole("button", { name: status === "APPLIED" ? "确认隐藏评论" : "拒绝操作" }),
+      );
+      expect(await screen.findByText(status === "APPLIED" ? "已执行" : "已拒绝")).not.toBeNull();
+      view.rerender(<AssistantActionCard action={{ ...action() }} />);
+      expect(screen.getByText(status === "APPLIED" ? "已执行" : "已拒绝")).not.toBeNull();
+      expect(screen.queryByRole("button", { name: "确认隐藏评论" })).toBeNull();
+      expect(screen.queryByRole("button", { name: "拒绝操作" })).toBeNull();
+      if (status === "APPLIED") expect(screen.getByText(/审计记录已保存/)).not.toBeNull();
+    },
+  );
+
   it("deduplicates a saved preview against the current action and prefers the applied receipt", () => {
     const savedTurn: AssistantTurnResponse = {
       id: "turn-1",

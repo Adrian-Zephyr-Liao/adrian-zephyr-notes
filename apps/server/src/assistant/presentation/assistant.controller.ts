@@ -22,6 +22,7 @@ import { GetCurrentAdminUseCase } from "../../auth/application/get-current-admin
 import { getSessionTokenFromRequest } from "../../auth/presentation/request-session";
 import { toAdminOperationRequestContext } from "../../audit/presentation/admin-audit-context";
 import { AssistantRepositoryError } from "../domain/assistant.repository";
+import { mapAssistantEvents } from "./assistant-event.mapper";
 import { AssistantService, AssistantRequestError } from "../application/assistant.service";
 import { AssistantActionService } from "../application/assistant-action.service";
 
@@ -116,13 +117,13 @@ export class AssistantController {
       (body.decision !== "CONFIRM" && body.decision !== "REJECT")
     )
       throw invalid();
-    if (body.decision === "CONFIRM") this.assistant.assertEnabled();
-    if (body.decision === "CONFIRM" && !this.assistant.actionsEnabled)
-      throw new HttpException(
-        { error: { code: "ACTION_UNAVAILABLE", message: "该操作当前未开放。" } },
-        503,
-      );
     try {
+      if (body.decision === "CONFIRM") this.assistant.assertEnabled();
+      if (body.decision === "CONFIRM" && !this.assistant.actionsEnabled)
+        throw new HttpException(
+          { error: { code: "ACTION_UNAVAILABLE", message: "该操作当前未开放。" } },
+          503,
+        );
       return await this.actions.decide({
         actor,
         conversationId: identifier(conversationId),
@@ -175,7 +176,7 @@ export class AssistantController {
       }
       const encoder = new EventEncoder();
       // Drain after disconnect so cancellation and its database receipt finish before cleanup.
-      for await (const event of events) {
+      for await (const event of mapAssistantEvents(events)) {
         if (!response.destroyed) {
           const accepted = response.write(encoder.encode(event));
           if (!accepted) await waitForDrain(response);

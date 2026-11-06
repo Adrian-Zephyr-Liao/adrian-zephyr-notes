@@ -14,3 +14,7 @@ Docs are local at `node_modules/vite-plus/docs` or online at https://viteplus.de
 - [ ] If setup, runtime, or package-manager behavior looks wrong, run `vp env doctor` and include its output when asking for help.
 
 <!--VITE PLUS END-->
+
+## Agent Engineering
+
+Agent changes, including related business tools, shared contracts and tests, must follow [Agent 工程标准](docs/assistant-engineering-standards.md). Read the feature-local `AGENTS.md` for server and admin responsibilities. Prefer deletion and existing SDK capabilities, and verify actual failure behavior rather than test counts.

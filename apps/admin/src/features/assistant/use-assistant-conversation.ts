@@ -28,7 +28,7 @@ function useAssistantConversation(
   const [pending, setPending] = useState<PendingRequest | null>(null);
   const [loading, setLoading] = useState(Boolean(initialConversationId));
   const [sending, setSending] = useState(false);
-  const [stopping, setStopping] = useState(false);
+  const [stoppingRequestId, setStoppingRequestId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState<{ requestId: string; input: string } | null>(null);
   const conversationRef = useRef<string | undefined>(undefined);
@@ -37,11 +37,14 @@ function useAssistantConversation(
   const streamRef = useRef<ReturnType<typeof streamAssistantTurn> | null>(null);
   const mounted = useRef(true);
   const inFlight = useRef(false);
+  // Returning to the same ID must not revive responses from the previous visit.
+  const conversationVersion = useRef(0);
 
   useEffect(() => {
     mounted.current = true;
     return () => {
       mounted.current = false;
+      conversationVersion.current += 1;
       streamRef.current?.abort();
     };
   }, []);
@@ -51,11 +54,13 @@ function useAssistantConversation(
       createdConversationRef.current = null;
       return;
     }
+    createdConversationRef.current = null;
+    conversationVersion.current += 1;
     streamRef.current?.abort();
     requestRef.current = null;
     inFlight.current = false;
     setSending(false);
-    setStopping(false);
+    setStoppingRequestId(null);
     conversationRef.current = initialConversationId;
     setHistory(null);
     setPending(null);
@@ -88,32 +93,42 @@ function useAssistantConversation(
     );
   }, []);
 
+  function isCurrent(version: number) {
+    return mounted.current && conversationVersion.current === version;
+  }
+
   async function refresh(before?: string) {
     const id = conversationRef.current;
     if (!id || inFlight.current) return;
+    const version = conversationVersion.current;
     setLoading(true);
     try {
       const response = await getAssistantHistory(id, before);
-      if (conversationRef.current !== id || !mounted.current) return;
-      setHistory((current) =>
-        before && current
-          ? { ...response, turns: mergeTurns(response.turns, current.turns) }
-          : response,
-      );
+      if (!isCurrent(version)) return;
+      setHistory((current) => {
+        const known = new Map(current?.turns.map((turn) => [turn.requestId, turn]));
+        const turns = response.turns.map((turn) => reconcileTurn(known.get(turn.requestId), turn));
+        return {
+          ...response,
+          turns: before && current ? mergeTurns(turns, current.turns) : turns,
+        };
+      });
       setError(null);
       if (response.turns.some((turn) => turn.requestId === requestRef.current)) {
         setRetry(null);
         setPending(null);
       }
     } catch {
-      if (mounted.current && conversationRef.current === id) setError("状态读取失败，请稍后重试。");
+      if (isCurrent(version)) setError("状态读取失败，请稍后重试。");
     } finally {
-      if (mounted.current && conversationRef.current === id) setLoading(false);
+      if (isCurrent(version)) setLoading(false);
     }
   }
 
   async function send(input: string, requestId: string = crypto.randomUUID()) {
     if (inFlight.current || !input.trim()) return;
+    const version = conversationVersion.current;
+    const isCurrentRequest = () => isCurrent(version) && requestRef.current === requestId;
     inFlight.current = true;
     requestRef.current = requestId;
     setSending(true);
@@ -125,23 +140,22 @@ function useAssistantConversation(
       if (!id) {
         const conversation = await createAssistantConversation();
         id = conversation.id;
-        if (!mounted.current) return;
+        if (!isCurrentRequest()) return;
         conversationRef.current = id;
         createdConversationRef.current = id;
         setHistory({ conversation, turns: [], nextBefore: null });
         onConversationChange(id);
       }
-      if (!mounted.current || requestRef.current !== requestId) return;
+      if (!isCurrentRequest()) return;
       const stream = streamAssistantTurn({
         conversationId: id,
         requestId,
         input,
         onStarted: () => {
-          if (mounted.current && requestRef.current === requestId)
-            setPending((current) => current && { ...current, started: true });
+          if (isCurrentRequest()) setPending((current) => current && { ...current, started: true });
         },
         onTextDelta: (delta, messageId) => {
-          if (mounted.current && requestRef.current === requestId)
+          if (isCurrentRequest())
             setPending(
               (current) =>
                 current && {
@@ -155,36 +169,33 @@ function useAssistantConversation(
             );
         },
         onToolStart: (toolName) => {
-          if (mounted.current && requestRef.current === requestId)
-            setPending((current) => current && { ...current, toolName });
+          if (isCurrentRequest()) setPending((current) => current && { ...current, toolName });
         },
       });
       streamRef.current = stream;
       const result = await stream.finished;
-      if (!mounted.current || requestRef.current !== requestId) return;
+      if (!isCurrentRequest()) return;
       try {
         const turn = await getAssistantTurn(id, requestId);
-        if (!mounted.current || requestRef.current !== requestId) return;
+        if (!isCurrentRequest()) return;
         saveTurn(turn);
         setPending(null);
         if (isAssistantTurnActive(turn)) {
           setError("连接已结束，服务端仍在处理。请刷新状态或停止该请求。");
         }
       } catch {
-        if (!mounted.current || requestRef.current !== requestId) return;
+        if (!isCurrentRequest()) return;
         setError(result.error ?? "暂时无法核对请求状态，请使用原请求重试。");
         setRetry({ requestId, input });
       }
     } catch {
-      if (mounted.current) {
+      if (isCurrentRequest()) {
         setError("请求未能完成，请确认连接后使用原请求重试。");
         setRetry({ requestId, input });
       }
     } finally {
-      if (requestRef.current === requestId) {
+      if (isCurrentRequest()) {
         inFlight.current = false;
-      }
-      if (mounted.current && requestRef.current === requestId) {
         streamRef.current = null;
         setSending(false);
       }
@@ -194,29 +205,37 @@ function useAssistantConversation(
   const activeTurn = history?.turns.find(isAssistantTurnActive);
   const activeRequestId =
     (pending?.started ? pending.requestId : undefined) ?? activeTurn?.requestId;
+  const stopping = stoppingRequestId === activeRequestId;
 
   async function stop() {
     const id = conversationRef.current;
-    if (!id || !activeRequestId || stopping) return;
-    setStopping(true);
+    const requestId = activeRequestId;
+    if (!id || !requestId || stopping) return;
+    const version = conversationVersion.current;
+    setStoppingRequestId(requestId);
     setError(null);
     try {
-      const turn = await stopAssistantTurn(id, activeRequestId);
-      if (!mounted.current || conversationRef.current !== id) return;
+      const turn = await stopAssistantTurn(id, requestId);
+      if (!isCurrent(version)) return;
       saveTurn(turn);
-      if (!isAssistantTurnActive(turn)) {
+      if (!isAssistantTurnActive(turn) && requestRef.current === requestId) {
         streamRef.current?.abort();
         setPending(null);
       }
     } catch {
-      if (mounted.current) setError("停止结果尚未确认，请刷新状态后重试。");
+      if (isCurrent(version) && (!requestRef.current || requestRef.current === requestId))
+        setError("停止结果尚未确认，请刷新状态后重试。");
     } finally {
-      if (mounted.current) setStopping(false);
+      if (isCurrent(version))
+        setStoppingRequestId((current) => (current === requestId ? null : current));
     }
   }
 
   function newConversation() {
     if (inFlight.current || activeTurn) return;
+    conversationVersion.current += 1;
+    createdConversationRef.current = null;
+    requestRef.current = null;
     conversationRef.current = undefined;
     setHistory(null);
     setPending(null);
@@ -248,8 +267,22 @@ function isAssistantTurnActive(turn: AssistantTurnResponse) {
 
 function mergeTurns(previous: AssistantTurnResponse[], incoming: AssistantTurnResponse[]) {
   const turns = new Map(previous.map((turn) => [turn.requestId, turn]));
-  for (const turn of incoming) turns.set(turn.requestId, turn);
+  for (const turn of incoming)
+    turns.set(turn.requestId, reconcileTurn(turns.get(turn.requestId), turn));
   return [...turns.values()].sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+}
+
+function reconcileTurn(
+  previous: AssistantTurnResponse | undefined,
+  incoming: AssistantTurnResponse,
+) {
+  if (
+    previous &&
+    ((!isAssistantTurnActive(previous) && isAssistantTurnActive(incoming)) ||
+      (previous.status === "CANCELLING" && incoming.status === "RUNNING"))
+  )
+    return previous;
+  return incoming;
 }
 
 export { isAssistantTurnActive, useAssistantConversation };

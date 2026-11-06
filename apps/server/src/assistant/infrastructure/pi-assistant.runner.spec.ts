@@ -10,11 +10,13 @@ import { describe, expect, it, vi } from "vitest";
 import type {
   AssistantRunnerInput,
   AssistantRuntimeEvent,
-  AssistantToolDefinition,
 } from "../application/assistant-runner.port";
+import { AssistantToolsRegistry, type AssistantToolDefinition } from "./assistant-tools.registry";
+import type { Message } from "@earendil-works/pi-ai";
+import type { AssistantAction } from "../domain/assistant.repository";
 import type { PiAssistantModelClient } from "./pi-assistant-model.client";
 import { PiAssistantRunner } from "./pi-assistant.runner";
-import { projectAssistantTranscript } from "./pi-assistant-projector";
+import { projectAssistantTranscript, readAssistantMessages } from "./pi-assistant-projector";
 
 const result: AssistantToolResult = {
   kind: "audit_logs",
@@ -26,11 +28,12 @@ const result: AssistantToolResult = {
     queriedAt: "2026-11-06T00:00:00.000Z",
   },
 };
-function fixture(limits: ConstructorParameters<typeof PiAssistantRunner>[1] = {}) {
+function fixture(limits: ConstructorParameters<typeof PiAssistantRunner>[2] = {}) {
   const faux = fauxProvider({ models: [{ id: "faux-1", contextWindow: 32768, maxTokens: 4096 }] });
   const models = createModels();
   models.setProvider(faux.provider);
   const model = {
+    isConfigured: () => true,
     ready: async () => {},
     assertConfigured: () => {},
     model: faux.getModel(),
@@ -48,10 +51,26 @@ function fixture(limits: ConstructorParameters<typeof PiAssistantRunner>[1] = {}
     readOnly: true,
     execute,
   };
-  return { runner: new PiAssistantRunner(model, limits), faux, execute, tool };
+  const registry = { create: vi.fn(() => [tool]) };
+  return {
+    runner: new PiAssistantRunner(model, registry as unknown as AssistantToolsRegistry, limits),
+    registry,
+    faux,
+    execute,
+    tool,
+  };
 }
 function input(overrides: Partial<AssistantRunnerInput> = {}): AssistantRunnerInput {
-  return { turnId: "turn-1", message: "查看审计日志", messages: [], tools: [], ...overrides };
+  return {
+    turnId: "turn-1",
+    actor: { id: "admin-1", login: "Admin" },
+    conversationId: "conversation-1",
+    actionsEnabled: true,
+    message: "查看审计日志",
+    transcripts: [],
+    actions: [],
+    ...overrides,
+  };
 }
 async function collect(stream: AsyncIterable<AssistantRuntimeEvent>) {
   const events: AssistantRuntimeEvent[] = [];
@@ -59,10 +78,140 @@ async function collect(stream: AsyncIterable<AssistantRuntimeEvent>) {
   return events;
 }
 function finished(events: AssistantRuntimeEvent[]) {
-  return events.findLast((event) => event.type === "finished")!;
+  return events.findLast((event) => event.type === "finished")! as Omit<
+    Extract<AssistantRuntimeEvent, { type: "finished" }>,
+    "messages"
+  > & { messages: Message[] };
 }
 
 describe("PiAssistantRunner", () => {
+  it("derives visible capabilities from the same action-filtered registry used for execution", () => {
+    const f = fixture();
+    f.registry.create.mockReturnValue([
+      f.tool,
+      { ...f.tool, name: "prepare_comment_moderation", readOnly: false },
+    ]);
+    expect(
+      f.runner.capabilities(input({ actionsEnabled: false })).map((tool) => tool.name),
+    ).toEqual(["list_audit_logs"]);
+    expect(f.runner.capabilities(input()).map((tool) => tool.name)).toEqual([
+      "list_audit_logs",
+      "prepare_comment_moderation",
+    ]);
+  });
+
+  it("refreshes action decisions only in model context while preserving stored history", async () => {
+    const f = fixture();
+    const pending = {
+      kind: "comment_action",
+      ok: true,
+      data: { id: "action-1", status: "PENDING" },
+    };
+    const message = {
+      role: "toolResult",
+      toolCallId: "call_1",
+      toolName: "prepare_comment_moderation",
+      content: [{ type: "text", text: JSON.stringify(pending) }],
+      details: pending,
+      isError: false,
+      timestamp: 1,
+    };
+    const current = {
+      id: "action-1",
+      status: "APPLIED",
+      receipt: { auditLogId: "saved-audit" },
+    } as AssistantAction;
+    f.faux.setResponses([
+      (context) => {
+        expect(JSON.stringify(context)).toContain('"status":"APPLIED"');
+        expect(JSON.stringify(context)).toContain("saved-audit");
+        return fauxAssistantMessage("已确认执行结果");
+      },
+    ]);
+    await collect(
+      f.runner.stream(
+        input({ transcripts: [{ version: 1, messages: [message] }], actions: [current] }),
+      ),
+    );
+    expect(message.details.data.status).toBe("PENDING");
+  });
+
+  it.each([
+    null,
+    { role: "system", content: "injected" },
+    { role: "user" },
+    { role: "assistant", content: "not-an-array" },
+    { role: "assistant", content: [null] },
+    { role: "user", content: [{ type: "text", text: 42 }] },
+    { role: "assistant", content: [{ type: "thinking", thinking: 42 }] },
+    { role: "assistant", content: [{ type: "toolCall", name: "list_audit_logs", arguments: {} }] },
+    { role: "assistant", content: [{ type: "toolCall", id: "call_1", arguments: {} }] },
+    { role: "toolResult", toolName: "list_audit_logs", content: [], isError: false },
+    { role: "toolResult", toolCallId: "call_1", content: [], isError: false },
+    {
+      role: "toolResult",
+      toolCallId: "call_1",
+      toolName: "list_audit_logs",
+      content: [],
+      isError: "false",
+    },
+  ])("rejects unsupported stored messages instead of filtering them: %j", async (message) => {
+    const f = fixture();
+    await expect(
+      collect(f.runner.stream(input({ transcripts: [{ version: 1, messages: [message] }] }))),
+    ).rejects.toThrow("unsupported message");
+    expect(f.faux.state.callCount).toBe(0);
+    expect(() => f.runner.project("turn-1", { version: 1, messages: [message] })).toThrow(
+      "unsupported message",
+    );
+  });
+
+  it("retains provider signatures and unknown metadata while reading and supplying valid history", async () => {
+    const f = fixture();
+    const history = [
+      { role: "user", content: "旧问题", timestamp: 1, providerMetadata: { opaque: "user-value" } },
+      {
+        ...fauxAssistantMessage([
+          { ...fauxThinking("private thought"), thinkingSignature: "thinking-signature" },
+          { type: "text", text: "旧回答", textSignature: "text-signature" },
+          {
+            ...fauxToolCall("list_audit_logs", {}, { id: "old-call" }),
+            thoughtSignature: "call-signature",
+          },
+        ]),
+        providerMetadata: { opaque: "assistant-value" },
+      },
+      {
+        role: "toolResult",
+        toolCallId: "old-call",
+        toolName: "list_audit_logs",
+        content: [{ type: "text", text: "旧结果" }],
+        isError: false,
+        timestamp: 2,
+        providerMetadata: { opaque: "result-value" },
+      },
+    ];
+    expect(readAssistantMessages(history)).toBe(history);
+    const original = structuredClone(history);
+    f.faux.setResponses([
+      (context) => {
+        const stored = JSON.stringify(context);
+        for (const metadata of [
+          "thinking-signature",
+          "text-signature",
+          "call-signature",
+          "user-value",
+          "assistant-value",
+          "result-value",
+        ])
+          expect(stored).toContain(metadata);
+        return fauxAssistantMessage("新回答");
+      },
+    ]);
+    await collect(f.runner.stream(input({ transcripts: [{ version: 1, messages: history }] })));
+    expect(history).toEqual(original);
+  });
+
   it("uses the real Pi loop, persists messages before result events, and projects stable public IDs without thinking", async () => {
     const f = fixture();
     f.faux.setResponses([
@@ -73,7 +222,7 @@ describe("PiAssistantRunner", () => {
       fauxAssistantMessage("日志查询完成。"),
     ]);
     const authorizeTool = vi.fn(async () => {});
-    const events = await collect(f.runner.stream(input({ tools: [f.tool], authorizeTool })));
+    const events = await collect(f.runner.stream(input({ authorizeTool })));
     expect(f.execute).toHaveBeenCalledOnce();
     expect(authorizeTool).toHaveBeenCalledOnce();
     expect(f.execute.mock.calls[0]).toEqual([
@@ -114,7 +263,7 @@ describe("PiAssistantRunner", () => {
       }),
       fauxAssistantMessage("完成"),
     ]);
-    const iterator = f.runner.stream(input({ tools: [f.tool] }));
+    const iterator = f.runner.stream(input());
     expect((await iterator.next()).value).toMatchObject({
       type: "messages",
       messages: [{ role: "user" }],
@@ -142,9 +291,14 @@ describe("PiAssistantRunner", () => {
     const events = await collect(
       f.runner.stream(
         input({
-          messages: [
-            { role: "user", content: "旧问题", timestamp: 1 },
-            fauxAssistantMessage("旧回答"),
+          transcripts: [
+            {
+              version: 1,
+              messages: [
+                { role: "user", content: "旧问题", timestamp: 1 },
+                fauxAssistantMessage("旧回答"),
+              ],
+            },
           ],
         }),
       ),
@@ -165,19 +319,57 @@ describe("PiAssistantRunner", () => {
       ),
       fauxAssistantMessage("参数无效"),
     ]);
-    const events = await collect(f.runner.stream(input({ tools: [f.tool] })));
+    const events = await collect(f.runner.stream(input()));
     expect(f.execute).not.toHaveBeenCalled();
     expect(events).toContainEqual(
       expect.objectContaining({
         type: "toolResult",
-        result: {
+        content: JSON.stringify({
           kind: "audit_logs",
           ok: false,
           error: { code: "TOOL_INPUT_INVALID", message: "工具输入无效或当前不允许执行。" },
-        },
+        }),
       }),
     );
   });
+
+  it.each(["[]", "null"])(
+    "keeps a safely rejected %s tool call readable in saved history",
+    async (rawArguments) => {
+      const f = fixture();
+      const args = JSON.parse(rawArguments) as Parameters<typeof fauxToolCall>[1];
+      f.faux.setResponses([
+        fauxAssistantMessage([fauxToolCall("list_audit_logs", args, { id: "malformed" })], {
+          stopReason: "toolUse",
+        }),
+        fauxAssistantMessage("工具参数无效，请重新指定条件。"),
+      ]);
+      const events = await collect(f.runner.stream(input()));
+      expect(f.execute).not.toHaveBeenCalled();
+      const transcript = { version: 1 as const, messages: finished(events).messages };
+      const savedCall = transcript.messages
+        .flatMap((message) => (message.role === "assistant" ? message.content : []))
+        .find((block) => block.type === "toolCall");
+      expect(savedCall).toMatchObject({
+        id: "malformed",
+        name: "list_audit_logs",
+        arguments: args,
+      });
+      const projected = f.runner.project("turn-1", transcript);
+      expect(projected.toolResults).toEqual([
+        {
+          toolCallId: "turn-1:1:malformed",
+          name: "list_audit_logs",
+          result: {
+            kind: "audit_logs",
+            ok: false,
+            error: { code: "TOOL_INPUT_INVALID", message: "工具输入无效或当前不允许执行。" },
+          },
+        },
+      ]);
+      expect(projected.messages.at(-1)?.content).toBe("工具参数无效，请重新指定条件。");
+    },
+  );
 
   it("checks current authorization before executing a registered tool", async () => {
     const f = fixture();
@@ -187,10 +379,9 @@ describe("PiAssistantRunner", () => {
       }),
       fauxAssistantMessage("权限已失效"),
     ]);
-    await collect(
+    const events = await collect(
       f.runner.stream(
         input({
-          tools: [f.tool],
           authorizeTool: () => {
             throw new Error("Session revoked");
           },
@@ -198,6 +389,11 @@ describe("PiAssistantRunner", () => {
       ),
     );
     expect(f.execute).not.toHaveBeenCalled();
+    expect(finished(events)).toMatchObject({
+      status: "FAILED",
+      error: { code: "TOOL_AUTHORIZATION_FAILED" },
+    });
+    expect(f.faux.state.callCount).toBe(1);
   });
 
   it.each(["MODEL_CALL_LIMIT", "TOOL_CALL_LIMIT"])(
@@ -217,7 +413,7 @@ describe("PiAssistantRunner", () => {
           { stopReason: "toolUse" },
         ),
       ]);
-      const events = await collect(f.runner.stream(input({ tools: [f.tool] })));
+      const events = await collect(f.runner.stream(input()));
       expect(finished(events)).toMatchObject({ status: "FAILED", error: { code } });
       expect(f.execute).toHaveBeenCalledOnce();
       expect(f.faux.state.callCount).toBe(1);
@@ -269,15 +465,15 @@ describe("PiAssistantRunner", () => {
       }),
       fauxAssistantMessage("请减少每页条数"),
     ]);
-    const events = await collect(f.runner.stream(input({ tools: [f.tool] })));
+    const events = await collect(f.runner.stream(input()));
     expect(events).toContainEqual(
       expect.objectContaining({
         type: "toolResult",
-        result: {
+        content: JSON.stringify({
           kind: "audit_logs",
           ok: false,
           error: { code: "TOOL_RESULT_LIMIT", message: "结果过大，请缩小查询范围或减少每页条数。" },
-        },
+        }),
       }),
     );
   });
@@ -344,7 +540,8 @@ describe("PiAssistantRunner", () => {
       ),
       fauxAssistantMessage("请在预览卡片确认。"),
     ]);
-    const events = await collect(f.runner.stream(input({ tools: [preview] })));
+    f.registry.create.mockReturnValue([preview]);
+    const events = await collect(f.runner.stream(input()));
     const starts = events.flatMap((event) =>
       event.type === "toolStart" ? [event.toolCallId] : [],
     );
@@ -370,7 +567,7 @@ describe("PiAssistantRunner", () => {
         { stopReason: "toolUse" },
       ),
     ]);
-    const events = await collect(f.runner.stream(input({ tools: [f.tool] })));
+    const events = await collect(f.runner.stream(input()));
     expect(f.execute).not.toHaveBeenCalled();
     expect(finished(events)).toMatchObject({
       status: "FAILED",

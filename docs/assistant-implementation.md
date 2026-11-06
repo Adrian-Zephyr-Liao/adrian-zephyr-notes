@@ -6,6 +6,8 @@
 
 生产版本、真实公网验证及失败探针见 [生产发布记录](./assistant-production-verification.md)。
 
+后续工程要求与本轮整改见 [工程标准](./assistant-engineering-standards.md) 和 [质量验收记录](./assistant-quality-review.md)。下文的 287 项测试与固定模型评分属于首轮重建记录，当前整改验证以质量验收记录为准。
+
 ## 开关与入口
 
 `ASSISTANT_ENABLED`、`ASSISTANT_ACTIONS_ENABLED` 默认均为 `false`。
@@ -77,13 +79,14 @@ vp run -F @adrian-zephyr-notes/server build
 vp run -F @adrian-zephyr-notes/admin build
 ```
 
-真实数据库测试必须指向已迁移的独立数据库。持久化与 HTTP 测试会模拟单实例启动的活动请求收束，不能对同一数据库并发执行这两个测试文件，更不能使用生产数据库。
+真实数据库测试必须通过显式 `ASSISTANT_TEST_DATABASE_URL` 指向已迁移的独立数据库。该变量也是既有标签仓库与应用启动测试的唯一数据库测试授权；未提供时全部数据库测试跳过。e2e 配置在应用加载前把 `DATABASE_URL` 固定为同一测试地址，活动 `.env` 或普通 `DATABASE_URL` 不会开启测试。持久化、应用启动与 HTTP 测试会模拟单实例启动的活动请求收束，配置已强制文件串行；也不能同时启动多个测试进程共用该库，更不能使用生产数据库。
 
 ```bash
 cd apps/server
 ASSISTANT_TEST_DATABASE_URL=postgresql://test:test@localhost:5432/assistant_test \
   vp test --config vitest.e2e.config.ts --no-file-parallelism \
-  test/assistant-persistence.e2e-spec.ts test/assistant-http.e2e-spec.ts
+  test/assistant-persistence.e2e-spec.ts test/assistant-http.e2e-spec.ts \
+  test/assistant-query-timeout.e2e-spec.ts
 ```
 
 SQL 超时测试使用独立的锁等待场景，也通过 `ASSISTANT_TEST_DATABASE_URL` 指向专用测试数据库。真实模型评测脚本 `apps/server/scripts/evaluate-assistant.mjs` 自建并删除临时 PostgreSQL 数据库，只读取本地模型配置，不读取生产业务数据。它会产生付费模型调用；计划检查可使用 `--plan-only`，单次预检可使用 `--preflight-only`。

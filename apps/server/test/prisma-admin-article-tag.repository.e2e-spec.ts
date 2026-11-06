@@ -1,4 +1,3 @@
-import "dotenv/config";
 import { randomUUID } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@prisma/client";
@@ -6,7 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import type { PrismaService } from "../src/database/prisma.service";
 import { PrismaAdminArticleTagRepository } from "../src/articles/infrastructure/prisma-admin-article-tag.repository";
 
-const databaseUrl = process.env.DATABASE_URL;
+const databaseUrl = process.env.ASSISTANT_TEST_DATABASE_URL;
 const describeWithDatabase = databaseUrl ? describe : describe.skip;
 
 describeWithDatabase("PrismaAdminArticleTagRepository (database)", () => {

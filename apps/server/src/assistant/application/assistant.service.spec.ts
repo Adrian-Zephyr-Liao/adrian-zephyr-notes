@@ -3,8 +3,6 @@ import { ConfigService } from "@nestjs/config";
 import { randomUUID } from "node:crypto";
 import type { AssistantRepository, AssistantTurn } from "../domain/assistant.repository";
 import type { AssistantRunner, AssistantRunnerInput } from "./assistant-runner.port";
-import type { AssistantToolsRegistry } from "../infrastructure/assistant-tools.registry";
-import type { PiAssistantModelClient } from "../infrastructure/pi-assistant-model.client";
 import { AssistantService } from "./assistant.service";
 
 describe("Assistant request lifecycle", () => {
@@ -26,7 +24,7 @@ describe("Assistant request lifecycle", () => {
       return structuredClone(fixture.turn);
     });
     const events = await collect(await fixture.service.start(fixture.input));
-    expect(events.at(-1)).toMatchObject({ type: "RUN_ERROR", code: "RUN_CANCELLED" });
+    expect(events.at(-1)).toMatchObject({ type: "runError", code: "RUN_CANCELLED" });
     expect(fixture.turn.status).toBe("CANCELLED");
   });
   it("does not start the model when Stop wins before admission returns", async () => {
@@ -51,7 +49,7 @@ describe("Assistant request lifecycle", () => {
     ).toBe("CANCELLED");
     release();
     const events = await collect(await pending);
-    expect(events.at(-1)).toMatchObject({ type: "RUN_ERROR", code: "RUN_CANCELLED" });
+    expect(events.at(-1)).toMatchObject({ type: "runError", code: "RUN_CANCELLED" });
     expect(fixture.runner.stream).not.toHaveBeenCalled();
   });
 
@@ -59,7 +57,7 @@ describe("Assistant request lifecycle", () => {
     const fixture = setup();
     fixture.repo.finishTurn.mockRejectedValue(new Error("database unavailable"));
     const events = await collect(await fixture.service.start(fixture.input));
-    expect(events.at(-1)).toMatchObject({ type: "RUN_ERROR", code: "RESULT_SAVE_FAILED" });
+    expect(events.at(-1)).toMatchObject({ type: "runError", code: "RESULT_SAVE_FAILED" });
     expect(fixture.turn.status).toBe("RUNNING");
     expect(
       (
@@ -75,7 +73,7 @@ describe("Assistant request lifecycle", () => {
   it("does not overwrite a completed receipt with a late Stop", async () => {
     const fixture = setup();
     expect((await collect(await fixture.service.start(fixture.input))).at(-1)).toMatchObject({
-      type: "RUN_FINISHED",
+      type: "runFinished",
     });
     expect(
       (
@@ -98,13 +96,13 @@ describe("Assistant request lifecycle", () => {
       turn: structuredClone(fixture.turn),
     });
     expect((await collect(await fixture.service.start(fixture.input))).at(-1)).toMatchObject({
-      type: "RUN_ERROR",
+      type: "runError",
       code: "MODEL_CALL_LIMIT",
     });
     expect(fixture.runner.stream).not.toHaveBeenCalled();
   });
 
-  it("refreshes action decisions only in model context, preserving the original transcript", async () => {
+  it("passes opaque history and current action decisions to the runtime without changing stored records", async () => {
     const fixture = setup();
     const actionId = randomUUID();
     const pending = { kind: "comment_action", ok: true, data: { id: actionId, status: "PENDING" } };
@@ -127,8 +125,9 @@ describe("Assistant request lifecycle", () => {
     ]);
     await collect(await fixture.service.start(fixture.input));
     const runtimeInput = fixture.runner.stream.mock.calls[0]![0];
-    expect(JSON.stringify(runtimeInput.messages)).toContain('"status":"APPLIED"');
-    expect(JSON.stringify(runtimeInput.messages)).toContain("audit-receipt");
+    expect(runtimeInput.transcripts).toEqual([previous.transcript]);
+    expect(JSON.stringify(runtimeInput.actions)).toContain('"status":"APPLIED"');
+    expect(JSON.stringify(runtimeInput.actions)).toContain("audit-receipt");
     expect(original.details.data.status).toBe("PENDING");
   });
 });
@@ -167,6 +166,9 @@ function setup() {
     }),
   };
   const runner = {
+    isConfigured: () => true,
+    capabilities: vi.fn(() => []),
+    project: vi.fn(() => ({ messages: [], toolResults: [] })),
     stream: vi.fn(async function* (_input: AssistantRunnerInput) {
       yield { type: "finished" as const, status: "SUCCEEDED" as const, messages: [] };
     }),
@@ -174,8 +176,6 @@ function setup() {
   const service = new AssistantService(
     repo as unknown as AssistantRepository,
     runner as AssistantRunner,
-    { create: () => [] } as unknown as AssistantToolsRegistry,
-    { isConfigured: () => true } as PiAssistantModelClient,
     new ConfigService({ ASSISTANT_ENABLED: "true" }),
   );
   const input = {

@@ -62,6 +62,58 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("AssistantWorkspace", () => {
+  it("recovers failed history before allowing another request in the existing conversation", async () => {
+    api.getAssistantHistory.mockRejectedValueOnce(new Error("offline"));
+    render(<AssistantWorkspace conversationId="conversation-1" onConversationChange={() => {}} />);
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    expect(screen.queryByText("从一个具体问题开始")).toBeNull();
+    expect((screen.getByLabelText("你的问题") as HTMLTextAreaElement).disabled).toBe(true);
+    expect(transport.streamAssistantTurn).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "重新读取会话" }));
+    await waitFor(() =>
+      expect((screen.getByLabelText("你的问题") as HTMLTextAreaElement).disabled).toBe(false),
+    );
+    ask("恢复后继续查询");
+    await waitFor(() => expect(transport.streamAssistantTurn).toHaveBeenCalledTimes(1));
+  });
+
+  it("focuses the composer when choosing an example or reusing a saved question", async () => {
+    const view = render(<AssistantWorkspace onConversationChange={() => {}} />);
+    fireEvent.click(await screen.findByRole("button", { name: "查看审计日志" }));
+    const input = screen.getByLabelText("你的问题") as HTMLTextAreaElement;
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("查看审计日志");
+    api.getAssistantHistory.mockResolvedValue({
+      conversation: conversation(),
+      turns: [turn({ status: "FAILED", input: "重新核对这个问题" })],
+      nextBefore: null,
+    });
+    view.rerender(
+      <AssistantWorkspace conversationId="conversation-1" onConversationChange={() => {}} />,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: "用此问题重新提问" }));
+    expect(document.activeElement).toBe(input);
+    expect(input.value).toBe("重新核对这个问题");
+  });
+
+  it("limits requests to 2000 characters and submits with an IME-safe keyboard shortcut", async () => {
+    render(<AssistantWorkspace onConversationChange={() => {}} />);
+    const input = screen.getByLabelText("你的问题") as HTMLTextAreaElement;
+    await waitFor(() => expect(input.disabled).toBe(false));
+    expect(input.maxLength).toBe(2000);
+    fireEvent.change(input, { target: { value: "查".repeat(2001) } });
+    fireEvent.keyDown(input, { key: "Enter", ctrlKey: true });
+    expect(transport.streamAssistantTurn).not.toHaveBeenCalled();
+    fireEvent.change(input, { target: { value: "查看审计日志" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    fireEvent.keyDown(input, { key: "Enter", ctrlKey: true, isComposing: true, keyCode: 13 });
+    fireEvent.keyDown(input, { key: "Enter", ctrlKey: true, keyCode: 229 });
+    expect(transport.streamAssistantTurn).not.toHaveBeenCalled();
+    fireEvent.keyDown(input, { key: "Enter", metaKey: true });
+    await waitFor(() => expect(transport.streamAssistantTurn).toHaveBeenCalledTimes(1));
+    expect(transport.streamAssistantTurn.mock.calls[0][0].input).toBe("查看审计日志");
+  });
+
   it("keeps execution unavailable when the server disables the assistant", async () => {
     api.getAssistantCapabilities.mockResolvedValue({ enabled: false, tools: [] });
     render(<AssistantWorkspace onConversationChange={() => {}} />);

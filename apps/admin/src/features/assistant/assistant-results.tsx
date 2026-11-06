@@ -5,7 +5,7 @@ import type {
 } from "@adrian-zephyr-notes/contracts";
 import { Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { decideAssistantAction } from "./assistant-api";
@@ -23,7 +23,7 @@ function AssistantResult({ result }: { result: AssistantToolResult }) {
   }
   const { data, pagination, queriedAt } = result.data;
   return (
-    <section className="overflow-hidden rounded-lg border border-border/60 bg-background/25">
+    <section className="min-w-0 overflow-hidden rounded-lg border border-border/60 bg-background/25 wrap-anywhere">
       <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/45 px-4 py-3">
         <h3 className="text-sm font-semibold">
           {result.kind === "audit_logs" ? "审计记录" : "评论搜索结果"}
@@ -89,19 +89,51 @@ function AssistantActionCard({
   allowDecisions?: boolean;
 }) {
   const [action, setAction] = useState(initialAction);
+  const actionRef = useRef(initialAction);
   const [isDeciding, setIsDeciding] = useState(false);
+  const [pendingDecision, setPendingDecision] = useState<AssistantActionDecision | null>(null);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => setAction(initialAction), [initialAction]);
+  useEffect(() => {
+    if (
+      actionRef.current.id === initialAction.id &&
+      actionRef.current.status !== "PENDING" &&
+      initialAction.status === "PENDING"
+    )
+      return;
+    actionRef.current = initialAction;
+    setAction(initialAction);
+    if (initialAction.status !== "PENDING") {
+      setPendingDecision(null);
+      setError(null);
+    }
+  }, [initialAction]);
+  useEffect(() => {
+    setPendingDecision(null);
+    setError(null);
+  }, [initialAction.id]);
 
   async function decide(decision: AssistantActionDecision) {
-    if (!allowDecisions || isDeciding || action.status !== "PENDING") return;
+    if (
+      !allowDecisions ||
+      isDeciding ||
+      action.status !== "PENDING" ||
+      (pendingDecision && pendingDecision !== decision)
+    )
+      return;
     setIsDeciding(true);
-    setError(null);
+    setPendingDecision(decision);
+    if (!pendingDecision) setError(null);
     try {
-      setAction(await decideAssistantAction(action.conversationId, action.id, decision));
+      const response = await decideAssistantAction(action.conversationId, action.id, decision);
+      if (actionRef.current.id !== action.id || actionRef.current.status !== "PENDING") return;
+      actionRef.current = response;
+      setAction(response);
+      setPendingDecision(null);
+      setError(null);
     } catch (cause) {
+      if (actionRef.current.id !== action.id || actionRef.current.status !== "PENDING") return;
       setError(
-        cause instanceof Error ? cause.message : "确认结果暂时无法读取，请重试以核对已有回执。",
+        `${cause instanceof Error ? cause.message : "操作结果暂时无法读取。"} 请核对原决定的回执，或刷新会话状态。`,
       );
     } finally {
       setIsDeciding(false);
@@ -109,15 +141,19 @@ function AssistantActionCard({
   }
 
   return (
-    <section className="space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4">
+    <section className="min-w-0 space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4 wrap-anywhere">
       <div className="flex flex-wrap items-center gap-2">
         <h3 className="text-sm font-semibold">单条评论操作预览</h3>
-        <Badge variant={action.status === "APPLIED" ? "success" : "outline"}>
+        <Badge role="status" variant={action.status === "APPLIED" ? "success" : "outline"}>
           {action.status === "APPLIED"
             ? "已执行"
             : action.status === "REJECTED"
               ? "已拒绝"
-              : "等待确认"}
+              : isDeciding
+                ? "正在提交"
+                : pendingDecision
+                  ? "等待核对"
+                  : "等待确认"}
         </Badge>
       </div>
       <p className="text-sm font-medium">{action.articleTitle}</p>
@@ -141,32 +177,49 @@ function AssistantActionCard({
           <p className="text-xs text-muted-foreground">
             仅修改这条评论。点击下方按钮才会提交；在聊天中回复“同意”不会执行操作。
           </p>
-          <div className="flex flex-wrap gap-2">
+          {pendingDecision && error ? (
             <Button
               disabled={!allowDecisions || isDeciding}
-              onClick={() => void decide("CONFIRM")}
-              size="sm"
-            >
-              {isDeciding ? <Loader2 className="animate-spin" /> : null}
-              确认{action.targetStatus === "HIDDEN" ? "隐藏" : "恢复"}评论
-            </Button>
-            <Button
-              disabled={!allowDecisions || isDeciding}
-              onClick={() => void decide("REJECT")}
+              onClick={() => void decide(pendingDecision)}
               size="sm"
               variant="outline"
             >
-              拒绝操作
+              {isDeciding ? <Loader2 className="animate-spin" /> : null}
+              核对并重试{pendingDecision === "CONFIRM" ? "确认" : "拒绝"}
             </Button>
-          </div>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                disabled={!allowDecisions || isDeciding}
+                onClick={() => void decide("CONFIRM")}
+                size="sm"
+              >
+                {isDeciding && pendingDecision === "CONFIRM" ? (
+                  <Loader2 className="animate-spin" />
+                ) : null}
+                确认{action.targetStatus === "HIDDEN" ? "隐藏" : "恢复"}评论
+              </Button>
+              <Button
+                disabled={!allowDecisions || isDeciding}
+                onClick={() => void decide("REJECT")}
+                size="sm"
+                variant="outline"
+              >
+                {isDeciding && pendingDecision === "REJECT" ? (
+                  <Loader2 className="animate-spin" />
+                ) : null}
+                拒绝操作
+              </Button>
+            </div>
+          )}
           {!allowDecisions ? (
             <p className="text-xs text-muted-foreground">当前未开放评论操作，预览记录仅供核对。</p>
           ) : null}
         </>
       ) : null}
       {action.receipt ? (
-        <p className="text-sm text-emerald-700 dark:text-emerald-300">
-          已于 {formatAssistantDate(action.receipt.appliedAt)}设为
+        <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
+          已于 {formatAssistantDate(action.receipt.appliedAt)} 设为
           {commentStatusLabel(action.receipt.status)}，审计记录已保存。
         </p>
       ) : null}

@@ -32,7 +32,7 @@ function AssistantTurn({
     ? turn.messages
     : [{ id: `${turn.id}:input`, role: "user" as const, content: turn.input }, ...turn.messages];
   return (
-    <article className="space-y-4 border-b border-border/45 pb-5 last:border-0">
+    <article className="min-w-0 space-y-4 border-b border-border/45 pb-5 wrap-anywhere last:border-0">
       <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <time dateTime={turn.createdAt}>{formatAssistantDate(turn.createdAt)}</time>
         <Badge variant={turn.status === "FAILED" ? "destructive" : "outline"}>
@@ -41,10 +41,7 @@ function AssistantTurn({
       </div>
       {messages.map((message) =>
         message.role === "user" ? (
-          <div className="ml-auto max-w-[90%] rounded-lg bg-primary/10 px-4 py-3" key={message.id}>
-            <p className="mb-1 text-xs font-medium text-muted-foreground">你</p>
-            <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-          </div>
+          <AssistantUserMessage content={message.content} key={message.id} />
         ) : (
           <div className="space-y-1" key={message.id}>
             <p className="text-xs font-medium text-muted-foreground">助手</p>
@@ -74,4 +71,13 @@ function AssistantTurn({
   );
 }
 
-export { AssistantTurn };
+function AssistantUserMessage({ content }: { content: string }) {
+  return (
+    <div className="ml-auto w-fit max-w-[90%] min-w-0 rounded-lg bg-primary/10 px-4 py-3 wrap-anywhere">
+      <p className="mb-1 text-xs font-medium text-muted-foreground">你</p>
+      <p className="text-sm whitespace-pre-wrap">{content}</p>
+    </div>
+  );
+}
+
+export { AssistantTurn, AssistantUserMessage };

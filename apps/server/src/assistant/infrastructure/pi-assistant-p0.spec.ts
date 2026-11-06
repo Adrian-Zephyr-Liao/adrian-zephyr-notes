@@ -77,6 +77,11 @@ describe("Pi assistant P0 compiled Nest integration", () => {
         }).outputText;
         await writeFile(target, compiled);
       }
+      // The probe isolates the compiled Pi adapter; business tools are injected as test doubles.
+      await writeFile(
+        join(directory, "src/assistant/infrastructure/assistant-tools.registry.js"),
+        "exports.AssistantToolsRegistry = class AssistantToolsRegistry {};\n",
+      );
       await writeFile(
         join(directory, "probe.cjs"),
         `
@@ -87,18 +92,20 @@ const { ConfigService } = require("@nestjs/config");
 const { PiAssistantModelClient } = require("./src/assistant/infrastructure/pi-assistant-model.client.js");
 const { PiAssistantRunner } = require("./src/assistant/infrastructure/pi-assistant.runner.js");
 const { projectAssistantTranscript } = require("./src/assistant/infrastructure/pi-assistant-projector.js");
+const { AssistantToolsRegistry } = require("./src/assistant/infrastructure/assistant-tools.registry.js");
+let calls = 0;
+const result = { kind: "audit_logs", ok: true, data: { data: [], pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 }, filters: { action: "ALL", actorLogin: null, search: null }, queriedAt: "2026-11-06T00:00:00Z" } };
+const tool = { name: "list_audit_logs", label: "Audit", description: "Read logs", parameters: { type: "object" }, kind: "audit_logs", readOnly: true, execute: async () => { calls++; return result; } };
 class ProbeModule {}
-Module({ providers: [{ provide: ConfigService, useValue: new ConfigService({ LLM_API_KEY: "fixture-key", LLM_MODEL: "MiniMax-M3", LLM_PROVIDER: "minimax", LLM_BASE_URL: "http://127.0.0.1:${address.port}/v1" }) }, PiAssistantModelClient, PiAssistantRunner] })(ProbeModule);
+Module({ providers: [{ provide: ConfigService, useValue: new ConfigService({ LLM_API_KEY: "fixture-key", LLM_MODEL: "MiniMax-M3", LLM_PROVIDER: "minimax", LLM_BASE_URL: "http://127.0.0.1:${address.port}/v1" }) }, PiAssistantModelClient, { provide: AssistantToolsRegistry, useValue: { create: () => [tool] } }, PiAssistantRunner] })(ProbeModule);
 (async () => {
   const app = await NestFactory.createApplicationContext(ProbeModule, { logger: false });
   try {
-    const runner = app.get(PiAssistantRunner); let final; let calls = 0; let text = "";
-    const result = { kind: "audit_logs", ok: true, data: { data: [], pagination: { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 }, filters: { action: "ALL", actorLogin: null, search: null }, queriedAt: "2026-11-06T00:00:00Z" } };
-    const tool = { name: "list_audit_logs", label: "Audit", description: "Read logs", parameters: { type: "object" }, kind: "audit_logs", readOnly: true, execute: async () => { calls++; return result; } };
-    for await (const event of runner.stream({ turnId: "p0", message: "查看审计日志", messages: [], tools: [tool] })) { if (event.type === "textDelta") text += event.delta; if (event.type === "finished") final = event; }
+    const runner = app.get(PiAssistantRunner); let final; let text = "";
+    for await (const event of runner.stream({ turnId: "p0", message: "查看审计日志", actor: { id: "test-admin", login: "Admin" }, conversationId: "p0-conversation", actionsEnabled: false, transcripts: [], actions: [] })) { if (event.type === "textDelta") text += event.delta; if (event.type === "finished") final = event; }
     const projected = projectAssistantTranscript("p0", final.messages);
     const controller = new AbortController(); let stopped;
-    for await (const event of runner.stream({ turnId: "p0-cancel", message: "取消查询测试", messages: [], tools: [], signal: controller.signal })) { if (event.type === "textDelta") controller.abort(); if (event.type === "finished") stopped = event; }
+    for await (const event of runner.stream({ turnId: "p0-cancel", message: "取消查询测试", actor: { id: "test-admin", login: "Admin" }, conversationId: "p0-conversation", actionsEnabled: false, transcripts: [], actions: [], signal: controller.signal })) { if (event.type === "textDelta") controller.abort(); if (event.type === "finished") stopped = event; }
     process.stdout.write(JSON.stringify({ status: final.status, text, calls, projected, stopped: stopped.status }) + "\\n");
   } finally { await app.close(); }
 })().catch(() => { process.stderr.write("Compiled assistant probe failed\\n"); process.exitCode = 1; });

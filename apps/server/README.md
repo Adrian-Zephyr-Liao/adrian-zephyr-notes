@@ -69,6 +69,20 @@ contracts. `packages/contracts` is for public HTTP shapes only.
 
 ## Commands
 
+Database integration tests, including the application smoke test, run only when
+`ASSISTANT_TEST_DATABASE_URL` explicitly names a migrated disposable database.
+Without it, `test:e2e` skips database tests. The e2e config also maps `DATABASE_URL`
+to that same test URL before loading the application; the active `.env` and an
+ordinary `DATABASE_URL` do not authorize database tests. Files run serially because
+startup reconciliation and lock tests share the database.
+
+Build the server first for the compiled HTTP tests, then run:
+
+```bash
+ASSISTANT_TEST_DATABASE_URL=postgresql://test:test@localhost:5432/assistant_test \
+  vp run -F @adrian-zephyr-notes/server test:e2e
+```
+
 | Command                                               | Description                   |
 | ----------------------------------------------------- | ----------------------------- |
 | `vp run -F @adrian-zephyr-notes/server dev`           | Start Nest in watch mode      |

@@ -13,7 +13,10 @@ import type {
   AssistantHistoryResponse,
 } from "@adrian-zephyr-notes/contracts";
 import { PrismaService } from "../src/database/prisma.service";
-import { PrismaAuthSessionRepository } from "../src/auth/infrastructure/prisma-auth-session.repository";
+import {
+  hashToken,
+  PrismaAuthSessionRepository,
+} from "../src/auth/infrastructure/prisma-auth-session.repository";
 
 // Opt in with a migrated disposable database; build dist/main.js first.
 const databaseUrl = process.env.ASSISTANT_TEST_DATABASE_URL;
@@ -260,7 +263,82 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
     expect(provider.errors).toEqual([]);
   }, 20000);
 
-  async function startApp(port: number) {
+  it("ends the turn when its session is revoked before a tool, without another model request", async () => {
+    const conversationId = await conversation();
+    const requestId = randomUUID();
+    const { token } = await new PrismaAuthSessionRepository(prisma).createSession(actorId);
+    provider.revokeSession = async () => {
+      await prisma.userSession.deleteMany({ where: { tokenHash: hashToken(token) } });
+    };
+    const requests = provider.requests;
+    try {
+      const wire = await (
+        await run(conversationId, requestId, "REVOKE_FIXTURE", {
+          headers: { Cookie: `azn_session=${token}` },
+        })
+      ).text();
+      expect(provider.requests).toBe(requests + 1);
+      expect(events(wire).filter((event) => event.type === "RUN_FINISHED")).toEqual([]);
+      expect(events(wire).filter((event) => event.type === "RUN_ERROR")).toEqual([
+        expect.objectContaining({ code: "TOOL_AUTHORIZATION_FAILED" }),
+      ]);
+      expect(await turn(conversationId, requestId)).toMatchObject({
+        status: "FAILED",
+        error: { code: "TOOL_AUTHORIZATION_FAILED" },
+      });
+      expect(
+        await prisma.assistantTurn.findUniqueOrThrow({
+          where: { conversationId_requestId: { conversationId, requestId } },
+        }),
+      ).toMatchObject({ status: "FAILED", errorCode: "TOOL_AUTHORIZATION_FAILED" });
+      await request(
+        "/api/admin/assistant/capabilities",
+        { headers: { Cookie: `azn_session=${token}` } },
+        401,
+      );
+      expect(provider.errors).toEqual([]);
+    } finally {
+      provider.revokeSession = undefined;
+    }
+  }, 20000);
+
+  it("returns the documented confirmation errors with the total switch off or read-only mode", async () => {
+    const conversationId = await conversation();
+    const requestId = randomUUID();
+    await (await run(conversationId, requestId, "PREPARE_FIXTURE")).text();
+    const action = (await turn(conversationId, requestId)).actions[0]!;
+    const path = `/api/admin/assistant/conversations/${conversationId}/actions/${action.id}/decision`;
+    const port = Number(new URL(baseUrl).port);
+    try {
+      for (const mode of [
+        { enabled: false, actionsEnabled: true, code: "ASSISTANT_UNAVAILABLE" },
+        { enabled: true, actionsEnabled: false, code: "ACTION_UNAVAILABLE" },
+      ]) {
+        await stopProcess(app);
+        await startApp(port, mode);
+        const response = await request(
+          path,
+          { method: "POST", body: JSON.stringify({ decision: "CONFIRM" }) },
+          503,
+        );
+        expect(await response.json()).toMatchObject({ error: { code: mode.code } });
+        expect((await turn(conversationId, requestId)).actions[0]!.status).toBe("PENDING");
+      }
+      const rejected = await request(path, {
+        method: "POST",
+        body: JSON.stringify({ decision: "REJECT" }),
+      });
+      expect(await rejected.json()).toMatchObject({ status: "REJECTED" });
+    } finally {
+      await stopProcess(app);
+      await startApp(port);
+    }
+  }, 30000);
+
+  async function startApp(
+    port: number,
+    mode: { enabled: boolean; actionsEnabled: boolean } = { enabled: true, actionsEnabled: true },
+  ) {
     const serverDirectory = resolve(__dirname, "..");
     app = spawn(process.execPath, [resolve(serverDirectory, "dist/main.js")], {
       cwd: serverDirectory,
@@ -269,8 +347,8 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
         DATABASE_URL: databaseUrl,
         PORT: String(port),
         ADMIN_GITHUB_LOGINS: `${login},${otherLogin}`,
-        ASSISTANT_ENABLED: "true",
-        ASSISTANT_ACTIONS_ENABLED: "true",
+        ASSISTANT_ENABLED: String(mode.enabled),
+        ASSISTANT_ACTIONS_ENABLED: String(mode.actionsEnabled),
         LLM_PROVIDER: "openai-compatible",
         LLM_BASE_URL: `${provider.url}/v1`,
         LLM_MODEL: "assistant-faux",
@@ -364,11 +442,12 @@ class FauxProvider {
   sawAppliedAction = false;
   errors: string[] = [];
   url = "";
+  revokeSession?: () => Promise<void>;
   private readonly server: Server;
   constructor(private readonly commentId: string) {
     this.server = createServer((request, response) => {
       void text(request)
-        .then((body) => {
+        .then(async (body) => {
           this.requests++;
           const input = JSON.parse(body) as {
             messages: Array<{ role: string; content: unknown }>;
@@ -376,6 +455,7 @@ class FauxProvider {
           };
           const userIndex = input.messages.findLastIndex((message) => message.role === "user");
           const user = JSON.stringify(input.messages[userIndex]?.content);
+          if (user.includes("REVOKE_FIXTURE")) await this.revokeSession?.();
           if (user.includes("WAIT_FIXTURE")) {
             response.writeHead(200, { "Content-Type": "text/event-stream" });
             response.write(

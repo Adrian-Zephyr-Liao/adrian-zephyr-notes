@@ -7,7 +7,6 @@ import {
   type OnModuleInit,
 } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
-import { EventType, type BaseEvent } from "@ag-ui/core";
 import type {
   AssistantCapabilitiesResponse,
   AssistantHistoryResponse,
@@ -22,15 +21,8 @@ import {
 import {
   ASSISTANT_RUNNER,
   type AssistantRunner,
-  type AssistantCanonicalMessage,
-  type AssistantRuntimeEvent,
+  type AssistantEvent,
 } from "./assistant-runner.port";
-import { PiAssistantModelClient } from "../infrastructure/pi-assistant-model.client";
-import { AssistantToolsRegistry } from "../infrastructure/assistant-tools.registry";
-import {
-  isAssistantToolResult,
-  projectAssistantTranscript,
-} from "../infrastructure/pi-assistant-projector";
 
 type Actor = { id: string; login: string };
 type ActiveTurn = { abort: AbortController; done: Promise<void>; resolve: () => void };
@@ -61,8 +53,6 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
   constructor(
     @Inject(ASSISTANT_REPOSITORY) private readonly repository: AssistantRepository,
     @Inject(ASSISTANT_RUNNER) private readonly runner: AssistantRunner,
-    private readonly tools: AssistantToolsRegistry,
-    private readonly model: PiAssistantModelClient,
     private readonly config: ConfigService,
   ) {}
 
@@ -90,19 +80,14 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
     return enabled(this.config.get("ASSISTANT_ACTIONS_ENABLED"));
   }
   private get enabled() {
-    return enabled(this.config.get("ASSISTANT_ENABLED")) && this.model.isConfigured();
+    return enabled(this.config.get("ASSISTANT_ENABLED")) && this.runner.isConfigured();
   }
 
   capabilities(actor: Actor): AssistantCapabilitiesResponse {
     if (!this.enabled) return { enabled: false, tools: [] };
     return {
       enabled: true,
-      tools: this.definitions(actor, "", "").map(({ name, label, description, readOnly }) => ({
-        name,
-        label,
-        description,
-        readOnly,
-      })),
+      tools: this.definitions(actor, "", ""),
     };
   }
 
@@ -129,7 +114,7 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
     return {
       conversation: conversationResponse(conversation),
       turns: page.turns.map((turn) => ({
-        ...turnResponse(turn),
+        ...this.turnResponse(turn),
         actions: actions.filter((action) => action.turnId === turn.id),
       })),
       nextBefore: page.nextBefore,
@@ -139,7 +124,7 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
   async getTurn(actor: Actor, conversationId: string, requestId: string) {
     const turn = await this.repository.getTurn(actor.id, conversationId, requestId);
     return {
-      ...turnResponse(turn),
+      ...this.turnResponse(turn),
       actions: await this.repository.listCommentActions(actor.id, conversationId, turn.id),
     };
   }
@@ -160,7 +145,7 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
     return this.getTurn(actor, conversationId, requestId);
   }
 
-  async start(input: RunInput): Promise<AsyncIterable<BaseEvent>> {
+  async start(input: RunInput): Promise<AsyncIterable<AssistantEvent>> {
     this.assertEnabled();
     input.signal.throwIfAborted();
     const admitted = await this.repository.admitTurn({
@@ -195,9 +180,12 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
   }
 
   private definitions(actor: Actor, conversationId: string, turnId: string) {
-    return this.tools
-      .create({ actor, conversationId, turnId })
-      .filter((tool) => this.actionsEnabled || tool.readOnly);
+    return this.runner.capabilities({
+      actor,
+      conversationId,
+      turnId,
+      actionsEnabled: this.actionsEnabled,
+    });
   }
 
   private async *execute(
@@ -205,7 +193,7 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
     initial: AssistantTurn,
     active: ActiveTurn,
     detach: () => void,
-  ): AsyncGenerator<BaseEvent> {
+  ): AsyncGenerator<AssistantEvent> {
     const identity = {
       ownerUserId: input.actor.id,
       conversationId: input.conversationId,
@@ -214,7 +202,7 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
     let transcript: AssistantTranscript = { version: 1, messages: [] };
     let terminal = false;
     const started = {
-      type: EventType.RUN_STARTED,
+      type: "runStarted" as const,
       threadId: input.conversationId,
       runId: input.requestId,
     };
@@ -257,17 +245,16 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
         input.actor.id,
         input.conversationId,
       );
-      const messages = refreshActionMessages(
-        history.turns
-          .filter((turn) => turn.id !== initial.id && turn.status === "COMPLETED")
-          .flatMap((turn) => turn.transcript.messages) as AssistantCanonicalMessage[],
-        currentActions,
-      );
       for await (const event of this.runner.stream({
         turnId: initial.id,
+        actor: input.actor,
+        conversationId: input.conversationId,
+        actionsEnabled: this.actionsEnabled,
         message: input.message,
-        messages,
-        tools: this.definitions(input.actor, input.conversationId, initial.id),
+        transcripts: history.turns
+          .filter((turn) => turn.id !== initial.id && turn.status === "COMPLETED")
+          .map((turn) => turn.transcript),
+        actions: currentActions,
         signal: active.abort.signal,
         authorizeTool: async (name) => {
           active.abort.signal.throwIfAborted();
@@ -309,8 +296,7 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
           terminal = true;
           yield terminalEvent(current);
         } else {
-          const wire = wireEvent(event, initial.id);
-          for (const item of wire) yield item;
+          yield event;
         }
       }
       if (!terminal) throw new Error("Assistant stream ended without a result.");
@@ -335,7 +321,7 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
           }),
         );
         yield {
-          type: EventType.RUN_ERROR,
+          type: "runError",
           code: "RESULT_SAVE_FAILED",
           message: "结果暂未保存，请稍后重新查看记录。",
         };
@@ -367,18 +353,38 @@ export class AssistantService implements OnModuleInit, OnModuleDestroy {
     return turn.status === "CANCELLING" ? this.repository.finishCancellation(input) : turn;
   }
 
-  private async *replay(turn: AssistantTurn): AsyncGenerator<BaseEvent> {
-    yield { type: EventType.RUN_STARTED, threadId: turn.conversationId, runId: turn.requestId };
-    const projected = projectAssistantTranscript(
-      turn.id,
-      turn.transcript.messages as AssistantCanonicalMessage[],
-    );
+  private async *replay(turn: AssistantTurn): AsyncGenerator<AssistantEvent> {
+    yield { type: "runStarted", threadId: turn.conversationId, runId: turn.requestId };
+    const projected = this.runner.project(turn.id, turn.transcript);
     for (const message of projected.messages.filter((item) => item.role === "assistant")) {
-      yield { type: EventType.TEXT_MESSAGE_START, messageId: message.id, role: "assistant" };
-      yield { type: EventType.TEXT_MESSAGE_CONTENT, messageId: message.id, delta: message.content };
-      yield { type: EventType.TEXT_MESSAGE_END, messageId: message.id };
+      yield { type: "textStart", messageId: message.id };
+      yield { type: "textDelta", messageId: message.id, delta: message.content };
+      yield { type: "textEnd", messageId: message.id };
     }
     yield terminalEvent(turn);
+  }
+
+  private turnResponse(turn: AssistantTurn): AssistantTurnResponse {
+    return {
+      id: turn.id,
+      conversationId: turn.conversationId,
+      requestId: turn.requestId,
+      input: turn.input,
+      status: turn.status,
+      ...this.runner.project(turn.id, turn.transcript),
+      actions: [],
+      error: turn.errorCode
+        ? {
+            code: turn.errorCode,
+            message:
+              turn.status === "INTERRUPTED"
+                ? "连接中断，已保存的记录仍可查看。"
+                : "本次请求未完成，请新建请求重试。",
+          }
+        : null,
+      createdAt: turn.createdAt.toISOString(),
+      updatedAt: turn.updatedAt.toISOString(),
+    };
   }
 }
 
@@ -390,34 +396,11 @@ function conversationResponse(conversation: { id: string; createdAt: Date; updat
   };
 }
 
-function turnResponse(turn: AssistantTurn): AssistantTurnResponse {
-  return {
-    id: turn.id,
-    conversationId: turn.conversationId,
-    requestId: turn.requestId,
-    input: turn.input,
-    status: turn.status,
-    ...projectAssistantTranscript(turn.id, turn.transcript.messages as AssistantCanonicalMessage[]),
-    actions: [],
-    error: turn.errorCode
-      ? {
-          code: turn.errorCode,
-          message:
-            turn.status === "INTERRUPTED"
-              ? "连接中断，已保存的记录仍可查看。"
-              : "本次请求未完成，请新建请求重试。",
-        }
-      : null,
-    createdAt: turn.createdAt.toISOString(),
-    updatedAt: turn.updatedAt.toISOString(),
-  };
-}
-
-function terminalEvent(turn: AssistantTurn): BaseEvent {
+function terminalEvent(turn: AssistantTurn): AssistantEvent {
   return turn.status === "COMPLETED"
-    ? { type: EventType.RUN_FINISHED, threadId: turn.conversationId, runId: turn.requestId }
+    ? { type: "runFinished", threadId: turn.conversationId, runId: turn.requestId }
     : {
-        type: EventType.RUN_ERROR,
+        type: "runError",
         code:
           turn.status === "CANCELLED" ? "RUN_CANCELLED" : turn.errorCode || `RUN_${turn.status}`,
         message:
@@ -429,69 +412,6 @@ function terminalEvent(turn: AssistantTurn): BaseEvent {
       };
 }
 
-function wireEvent(
-  event: Exclude<AssistantRuntimeEvent, { type: "messages" | "finished" }>,
-  turnId: string,
-): BaseEvent[] {
-  switch (event.type) {
-    case "textStart":
-      return [
-        { type: EventType.TEXT_MESSAGE_START, messageId: event.messageId, role: "assistant" },
-      ];
-    case "textDelta":
-      return [
-        { type: EventType.TEXT_MESSAGE_CONTENT, messageId: event.messageId, delta: event.delta },
-      ];
-    case "textEnd":
-      return [{ type: EventType.TEXT_MESSAGE_END, messageId: event.messageId }];
-    case "toolStart":
-      return [
-        {
-          type: EventType.TOOL_CALL_START,
-          toolCallId: event.toolCallId,
-          toolCallName: event.name,
-          parentMessageId: event.parentMessageId,
-        },
-        {
-          type: EventType.TOOL_CALL_ARGS,
-          toolCallId: event.toolCallId,
-          delta: JSON.stringify(event.args),
-        },
-        { type: EventType.TOOL_CALL_END, toolCallId: event.toolCallId },
-      ];
-    case "toolResult":
-      return [
-        {
-          type: EventType.TOOL_CALL_RESULT,
-          messageId: `${turnId}:result:${event.toolCallId}`,
-          toolCallId: event.toolCallId,
-          role: "tool",
-          content: event.content,
-        },
-      ];
-  }
-}
-
 function enabled(value: unknown) {
   return value === true || value === "true";
-}
-
-function refreshActionMessages(
-  messages: AssistantCanonicalMessage[],
-  actions: Awaited<ReturnType<AssistantRepository["listCommentActions"]>>,
-) {
-  return messages.map((message): AssistantCanonicalMessage => {
-    if (
-      message.role !== "toolResult" ||
-      !isAssistantToolResult(message.details) ||
-      !message.details.ok ||
-      message.details.kind !== "comment_action"
-    )
-      return message;
-    const id = message.details.data.id;
-    const current = actions.find((action) => action.id === id);
-    if (!current) return message;
-    const details = { kind: "comment_action" as const, ok: true as const, data: current };
-    return { ...message, details, content: [{ type: "text", text: JSON.stringify(details) }] };
-  });
 }

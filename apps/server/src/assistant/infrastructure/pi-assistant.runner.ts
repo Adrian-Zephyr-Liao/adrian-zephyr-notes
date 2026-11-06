@@ -3,11 +3,13 @@ import type { AgentEvent } from "@earendil-works/pi-agent-core";
 import type { Message } from "@earendil-works/pi-ai";
 import type { AssistantError, AssistantToolResult } from "@adrian-zephyr-notes/contracts";
 import {
-  AssistantToolInputError,
   type AssistantRunner,
   type AssistantRunnerInput,
   type AssistantRuntimeEvent,
+  type AssistantToolsContext,
 } from "../application/assistant-runner.port";
+import type { AssistantTranscript } from "../domain/assistant.repository";
+import { AssistantToolInputError, AssistantToolsRegistry } from "./assistant-tools.registry";
 import { PiAssistantModelClient } from "./pi-assistant-model.client";
 import { buildAssistantSystemPrompt } from "./pi-assistant-prompt";
 import {
@@ -15,6 +17,9 @@ import {
   assistantMessageText,
   assistantToolCallId,
   isAssistantToolResult,
+  projectAssistantTranscript,
+  readAssistantMessages,
+  refreshActionMessages,
 } from "./pi-assistant-projector";
 
 const defaultLimits = {
@@ -33,8 +38,30 @@ export const PI_ASSISTANT_RUNTIME_OPTIONS = Symbol("PI_ASSISTANT_RUNTIME_OPTIONS
 export class PiAssistantRunner implements AssistantRunner {
   constructor(
     private readonly modelClient: PiAssistantModelClient,
+    private readonly tools: AssistantToolsRegistry,
     @Optional() @Inject(PI_ASSISTANT_RUNTIME_OPTIONS) private readonly options: RuntimeOptions = {},
   ) {}
+
+  isConfigured() {
+    return this.modelClient.isConfigured();
+  }
+
+  capabilities(context: AssistantToolsContext) {
+    return this.definitions(context).map(({ name, label, description, readOnly }) => ({
+      name,
+      label,
+      description,
+      readOnly,
+    }));
+  }
+
+  project(turnId: string, transcript: AssistantTranscript) {
+    return projectAssistantTranscript(turnId, readAssistantMessages(transcript.messages));
+  }
+
+  private definitions(context: AssistantToolsContext) {
+    return this.tools.create(context).filter((tool) => context.actionsEnabled || tool.readOnly);
+  }
 
   async *stream(input: AssistantRunnerInput): AsyncGenerator<AssistantRuntimeEvent> {
     const limits = { ...defaultLimits, ...this.options.limits };
@@ -42,10 +69,11 @@ export class PiAssistantRunner implements AssistantRunner {
       throw new Error("Invalid assistant runtime limits.");
     if (!input.turnId || !input.message.trim() || input.message.length > limits.maxInputChars)
       throw new Error("Invalid assistant input length.");
-    if (
-      input.messages.some((message) => !["user", "assistant", "toolResult"].includes(message.role))
-    )
-      throw new Error("Canonical assistant history contains an unsupported role.");
+    const messages = refreshActionMessages(
+      readAssistantMessages(input.transcripts.flatMap((transcript) => transcript.messages)),
+      input.actions,
+    );
+    const tools = this.definitions(input);
     const canonical: Message[] = [];
     const channel = new RuntimeChannel<AssistantRuntimeEvent>();
     let failure: AssistantError | undefined;
@@ -70,8 +98,8 @@ export class PiAssistantRunner implements AssistantRunner {
         model: this.modelClient.model,
         thinkingLevel: "off",
         systemPrompt: buildAssistantSystemPrompt(this.options.now?.()),
-        messages: structuredClone(input.messages),
-        tools: input.tools.map((tool) => ({
+        messages: structuredClone(messages),
+        tools: tools.map((tool) => ({
           name: tool.name,
           label: tool.label,
           description: tool.description,
@@ -150,7 +178,13 @@ export class PiAssistantRunner implements AssistantRunner {
           await input.authorizeTool?.(toolCall.name, args, signal!);
           signal?.throwIfAborted();
         } catch {
-          return { block: true, reason: "This tool is not authorized for this request." };
+          if (!signal?.aborted)
+            stop("TOOL_AUTHORIZATION_FAILED", "执行权限已失效，本次请求已停止。");
+          return {
+            block: true,
+            reason: "This tool is not authorized for this request.",
+            terminate: true,
+          };
         }
       },
     });
@@ -226,7 +260,7 @@ export class PiAssistantRunner implements AssistantRunner {
           });
         }
         if (message.role === "toolResult" && !isAssistantToolResult(message.details)) {
-          const tool = input.tools.find((candidate) => candidate.name === message.toolName);
+          const tool = tools.find((candidate) => candidate.name === message.toolName);
           if (tool) {
             message.details = {
               kind: tool.kind,
@@ -248,11 +282,10 @@ export class PiAssistantRunner implements AssistantRunner {
         } else if (message.role === "toolResult") {
           await channel.send({
             type: "toolResult",
+            messageId: `${input.turnId}:result:${assistantToolCallId(input.turnId, message.toolCallId, assistantIndex)}`,
             toolCallId: assistantToolCallId(input.turnId, message.toolCallId, assistantIndex),
             name: message.toolName,
             content: assistantMessageText(message),
-            isError: message.isError,
-            ...(isAssistantToolResult(message.details) ? { result: message.details } : {}),
           });
         }
       }
