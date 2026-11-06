@@ -13,6 +13,7 @@ import { Route as SiteRouteImport } from './routes/site'
 import { Route as GuestbookRouteImport } from './routes/guestbook'
 import { Route as CommentsRouteImport } from './routes/comments'
 import { Route as AuditRouteImport } from './routes/audit'
+import { Route as AssistantRouteImport } from './routes/assistant'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
 import { Route as ArticlesTagsRouteImport } from './routes/articles.tags'
@@ -38,6 +39,11 @@ const CommentsRoute = CommentsRouteImport.update({
 const AuditRoute = AuditRouteImport.update({
   id: '/audit',
   path: '/audit',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssistantRoute = AssistantRouteImport.update({
+  id: '/assistant',
+  path: '/assistant',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -73,6 +79,7 @@ const ArticlesArticleIdEditRoute = ArticlesArticleIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/audit': typeof AuditRoute
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
@@ -85,6 +92,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/audit': typeof AuditRoute
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
@@ -98,6 +106,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assistant': typeof AssistantRoute
   '/audit': typeof AuditRoute
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
@@ -112,6 +121,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assistant'
     | '/audit'
     | '/comments'
     | '/guestbook'
@@ -124,6 +134,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assistant'
     | '/audit'
     | '/comments'
     | '/guestbook'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/assistant'
     | '/audit'
     | '/comments'
     | '/guestbook'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssistantRoute: typeof AssistantRoute
   AuditRoute: typeof AuditRoute
   CommentsRoute: typeof CommentsRoute
   GuestbookRoute: typeof GuestbookRoute
@@ -188,6 +201,13 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AuditRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assistant': {
+      id: '/assistant'
+      path: '/assistant'
+      fullPath: '/assistant'
+      preLoaderRoute: typeof AssistantRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -237,6 +257,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssistantRoute: AssistantRoute,
   AuditRoute: AuditRoute,
   CommentsRoute: CommentsRoute,
   GuestbookRoute: GuestbookRoute,

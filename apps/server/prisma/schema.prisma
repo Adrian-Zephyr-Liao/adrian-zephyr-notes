@@ -35,6 +35,21 @@ enum ArticleAiSummaryStatus {
   FAILED
 }
 
+enum AssistantTurnStatus {
+  RUNNING
+  CANCELLING
+  COMPLETED
+  CANCELLED
+  FAILED
+  INTERRUPTED
+}
+
+enum AssistantActionStatus {
+  PENDING
+  APPLIED
+  REJECTED
+}
+
 model Article {
   id             String                    @id @default(uuid()) @db.Uuid
   slug           String                    @unique
@@ -87,22 +102,23 @@ model ArticleAiSummary {
 }
 
 model User {
-  id                    String                    @id @default(uuid()) @db.Uuid
-  githubId              String                    @unique @map("github_id")
-  login                 String
-  name                  String?
-  email                 String?
-  avatarUrl             String?                   @map("avatar_url")
-  profileUrl            String                    @map("profile_url")
-  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt             DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
-  sessions              UserSession[]
-  articleComments       ArticleComment[]
-  articleCommentLikes   ArticleCommentLike[]
-  guestbookMessages     GuestbookMessage[]
-  guestbookMessageLikes GuestbookMessageLike[]
-  adminOperationLogs    AdminOperationLog[]
-  articleEditorDrafts   AdminArticleEditorDraft[]
+  id                     String                    @id @default(uuid()) @db.Uuid
+  githubId               String                    @unique @map("github_id")
+  login                  String
+  name                   String?
+  email                  String?
+  avatarUrl              String?                   @map("avatar_url")
+  profileUrl             String                    @map("profile_url")
+  createdAt              DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions               UserSession[]
+  articleComments        ArticleComment[]
+  articleCommentLikes    ArticleCommentLike[]
+  guestbookMessages      GuestbookMessage[]
+  guestbookMessageLikes  GuestbookMessageLike[]
+  adminOperationLogs     AdminOperationLog[]
+  articleEditorDrafts    AdminArticleEditorDraft[]
+  assistantConversations AssistantConversation[]
 
   @@map("users")
 }
@@ -153,20 +169,21 @@ model UserSession {
 }
 
 model ArticleComment {
-  id              String               @id @default(uuid()) @db.Uuid
-  articleId       String               @map("article_id") @db.Uuid
-  authorId        String               @map("author_id") @db.Uuid
-  parentCommentId String?              @map("parent_comment_id") @db.Uuid
-  body            String
-  likeCount       Int                  @default(0) @map("like_count")
-  status          ArticleCommentStatus @default(VISIBLE)
-  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
-  article         Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  author          User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parentComment   ArticleComment?      @relation("ArticleCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
-  replies         ArticleComment[]     @relation("ArticleCommentReplies")
-  likes           ArticleCommentLike[]
+  id                String               @id @default(uuid()) @db.Uuid
+  articleId         String               @map("article_id") @db.Uuid
+  authorId          String               @map("author_id") @db.Uuid
+  parentCommentId   String?              @map("parent_comment_id") @db.Uuid
+  body              String
+  likeCount         Int                  @default(0) @map("like_count")
+  status            ArticleCommentStatus @default(VISIBLE)
+  moderationVersion Int                  @default(0) @map("moderation_version")
+  createdAt         DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  article           Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author            User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment     ArticleComment?      @relation("ArticleCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies           ArticleComment[]     @relation("ArticleCommentReplies")
+  likes             ArticleCommentLike[]
 
   @@index([articleId, parentCommentId, status, createdAt])
   @@index([authorId])
@@ -312,4 +329,59 @@ model AdminOperationLog {
   @@index([action, createdAt(sort: Desc)])
   @@index([resourceType, resourceId])
   @@map("admin_operation_logs")
+}
+
+model AssistantConversation {
+  id          String          @id @default(uuid()) @db.Uuid
+  ownerUserId String          @map("owner_user_id") @db.Uuid
+  createdAt   DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+  owner       User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  turns       AssistantTurn[]
+
+  @@index([ownerUserId, createdAt(sort: Desc)])
+  @@map("assistant_conversations")
+}
+
+model AssistantTurn {
+  id             String                @id @default(uuid()) @db.Uuid
+  conversationId String                @map("conversation_id") @db.Uuid
+  requestId      String                @map("request_id") @db.VarChar(200)
+  inputHash      String                @map("input_hash")
+  input          String
+  status         AssistantTurnStatus   @default(RUNNING)
+  transcript     Json                  @default("{\"version\":1,\"messages\":[]}")
+  errorCode      String?               @map("error_code")
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+  conversation   AssistantConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  actions        AssistantAction[]
+
+  @@unique([conversationId, requestId])
+  @@unique([id, conversationId])
+  @@index([conversationId, createdAt, id])
+  // The migration enforces one RUNNING/CANCELLING turn per conversation with a partial unique index.
+  @@map("assistant_turns")
+}
+
+model AssistantAction {
+  id              String                @id @default(uuid()) @db.Uuid
+  conversationId  String                @map("conversation_id") @db.Uuid
+  turnId          String                @map("turn_id") @db.Uuid
+  toolCallId      String                @map("tool_call_id") @db.VarChar(500)
+  commentId       String                @map("comment_id") @db.Uuid
+  currentStatus   ArticleCommentStatus  @map("current_status")
+  targetStatus    ArticleCommentStatus  @map("target_status")
+  targetVersion   Int                   @map("target_version")
+  preview         Json
+  status          AssistantActionStatus @default(PENDING)
+  decidedByUserId String?               @map("decided_by_user_id") @db.Uuid
+  decidedAt       DateTime?             @map("decided_at") @db.Timestamptz(6)
+  receipt         Json?
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  turn            AssistantTurn         @relation(fields: [turnId, conversationId], references: [id, conversationId], onDelete: Cascade)
+
+  @@unique([turnId, toolCallId])
+  @@index([conversationId, createdAt])
+  @@map("assistant_actions")
 }

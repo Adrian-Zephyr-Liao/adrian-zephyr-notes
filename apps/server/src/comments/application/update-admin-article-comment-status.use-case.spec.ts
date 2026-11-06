@@ -17,11 +17,13 @@ describe("UpdateAdminArticleCommentStatusUseCase", () => {
     await useCase.execute({
       id: "comment-1",
       status: "HIDDEN",
+      actor: { id: "admin-1", login: "reviewer" },
     });
 
     expect(repository.updateStatus).toHaveBeenCalledWith({
       id: "comment-1",
       status: "HIDDEN",
+      actor: { id: "admin-1", login: "reviewer" },
     });
   });
 
@@ -30,9 +32,13 @@ describe("UpdateAdminArticleCommentStatusUseCase", () => {
     repository.updateStatus.mockResolvedValue(null);
     const useCase = new UpdateAdminArticleCommentStatusUseCase(repository);
 
-    await expect(useCase.execute({ id: "missing", status: "VISIBLE" })).rejects.toBeInstanceOf(
-      AdminArticleCommentNotFoundError,
-    );
+    await expect(
+      useCase.execute({
+        id: "missing",
+        status: "VISIBLE",
+        actor: { id: "admin-1", login: "reviewer" },
+      }),
+    ).rejects.toBeInstanceOf(AdminArticleCommentNotFoundError);
   });
 });
 

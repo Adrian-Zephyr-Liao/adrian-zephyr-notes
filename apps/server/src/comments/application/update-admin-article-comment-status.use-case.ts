@@ -3,16 +3,17 @@ import {
   ADMIN_ARTICLE_COMMENT_REPOSITORY,
   type AdminArticleCommentRepository,
   type AdminArticleCommentStatus,
+  type UpdateAdminArticleCommentStatusInput,
 } from "../domain/admin-article-comment.repository";
 import {
   AdminArticleCommentNotFoundError,
   AdminArticleCommentValidationError,
 } from "./admin-article-comment.errors";
 
-type UpdateAdminArticleCommentStatusUseCaseInput = {
-  id: string;
-  status: string;
-};
+type UpdateAdminArticleCommentStatusUseCaseInput = Omit<
+  UpdateAdminArticleCommentStatusInput,
+  "status"
+> & { status: string };
 
 @Injectable()
 class UpdateAdminArticleCommentStatusUseCase {
@@ -23,6 +24,7 @@ class UpdateAdminArticleCommentStatusUseCase {
 
   async execute(input: UpdateAdminArticleCommentStatusUseCaseInput) {
     const comment = await this.adminArticleCommentRepository.updateStatus({
+      ...input,
       id: input.id,
       status: normalizeCommentStatus(input.status),
     });

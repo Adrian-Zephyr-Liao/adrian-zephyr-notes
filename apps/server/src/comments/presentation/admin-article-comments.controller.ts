@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  ConflictException,
   Get,
   NotFoundException,
   Param,
@@ -15,7 +16,6 @@ import type {
   AdminArticleCommentListItemResponse,
   AdminArticleCommentListResponse,
 } from "@adrian-zephyr-notes/contracts";
-import { RecordAdminOperationUseCase } from "../../audit/application/record-admin-operation.use-case";
 import {
   toAdminOperationActor,
   toAdminOperationRequestContext,
@@ -26,6 +26,7 @@ import { CurrentAdmin } from "../../auth/presentation/current-admin.decorator";
 import {
   AdminArticleCommentNotFoundError,
   AdminArticleCommentValidationError,
+  AdminArticleCommentConflictError,
 } from "../application/admin-article-comment.errors";
 import { ListAdminArticleCommentsUseCase } from "../application/list-admin-article-comments.use-case";
 import { UpdateAdminArticleCommentStatusUseCase } from "../application/update-admin-article-comment-status.use-case";
@@ -41,7 +42,6 @@ import { UpdateAdminArticleCommentDto } from "./dto/update-admin-article-comment
 class AdminArticleCommentsController {
   constructor(
     private readonly listAdminArticleComments: ListAdminArticleCommentsUseCase,
-    private readonly recordAdminOperation: RecordAdminOperationUseCase,
     private readonly updateAdminArticleCommentStatus: UpdateAdminArticleCommentStatusUseCase,
   ) {}
 
@@ -71,17 +71,7 @@ class AdminArticleCommentsController {
       const comment = await this.updateAdminArticleCommentStatus.execute({
         id,
         status: body.status,
-      });
-
-      await this.recordAdminOperation.execute({
         actor: toAdminOperationActor(admin),
-        action: "COMMENT_STATUS_UPDATED",
-        resourceType: "article_comment",
-        resourceId: comment.id,
-        metadata: {
-          articleSlug: comment.article.slug,
-          status: comment.status,
-        },
         requestContext: toAdminOperationRequestContext(request),
       });
 
@@ -93,6 +83,8 @@ class AdminArticleCommentsController {
 }
 
 function mapAdminArticleCommentError(error: unknown) {
+  if (error instanceof AdminArticleCommentConflictError)
+    return new ConflictException({ error: { code: "COMMENT_CHANGED", message: error.message } });
   if (error instanceof AdminArticleCommentNotFoundError) {
     return new NotFoundException({
       error: {

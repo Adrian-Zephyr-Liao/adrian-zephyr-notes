@@ -1,10 +1,17 @@
 import { Injectable } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
+import { recordPrismaAdminOperation } from "../../audit/infrastructure/prisma-admin-operation-log.repository";
+import { createAdminOperationSummary } from "../../audit/domain/admin-operation-summary";
+import {
+  AdminArticleCommentConflictError,
+  AdminArticleCommentNotFoundError,
+} from "../application/admin-article-comment.errors";
 import type {
   AdminArticleCommentListItem,
   AdminArticleCommentRepository,
   ListAdminArticleCommentsFilters,
+  ListAdminArticleCommentsExecution,
   UpdateAdminArticleCommentStatusInput,
 } from "../domain/admin-article-comment.repository";
 
@@ -37,18 +44,41 @@ type AdminArticleCommentRecord = Prisma.ArticleCommentGetPayload<{
 class PrismaAdminArticleCommentRepository implements AdminArticleCommentRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(filters: ListAdminArticleCommentsFilters) {
+  async list(
+    filters: ListAdminArticleCommentsFilters,
+    execution?: ListAdminArticleCommentsExecution,
+  ) {
     const where = buildAdminArticleCommentWhere(filters);
-    const [records, totalItems] = await this.prisma.$transaction([
-      this.prisma.articleComment.findMany({
-        where,
-        include: adminArticleCommentInclude,
-        orderBy: [{ createdAt: filters.sort === "OLDEST" ? "asc" : "desc" }],
-        skip: (filters.page - 1) * filters.pageSize,
-        take: filters.pageSize,
-      }),
-      this.prisma.articleComment.count({ where }),
-    ]);
+    const query = {
+      where,
+      include: adminArticleCommentInclude,
+      orderBy: [{ createdAt: filters.sort === "OLDEST" ? "asc" : "desc" }],
+      skip: (filters.page - 1) * filters.pageSize,
+      take: filters.pageSize,
+    } satisfies Prisma.ArticleCommentFindManyArgs;
+    if (
+      execution &&
+      (!Number.isSafeInteger(execution.statementTimeoutMs) ||
+        execution.statementTimeoutMs < 1 ||
+        execution.statementTimeoutMs > 5000)
+    ) {
+      throw new RangeError("Read statement timeout must be between 1 and 5000 milliseconds");
+    }
+    const [records, totalItems] = execution
+      ? await this.prisma.$transaction(
+          async (tx) => {
+            await tx.$queryRaw`SELECT set_config('statement_timeout', ${String(execution.statementTimeoutMs)}, true)`;
+            return [
+              await tx.articleComment.findMany(query),
+              await tx.articleComment.count({ where }),
+            ] as const;
+          },
+          { timeout: execution.statementTimeoutMs * 2 + 1000 },
+        )
+      : await this.prisma.$transaction([
+          this.prisma.articleComment.findMany(query),
+          this.prisma.articleComment.count({ where }),
+        ]);
 
     return {
       data: records.map(toAdminArticleCommentListItem),
@@ -62,23 +92,9 @@ class PrismaAdminArticleCommentRepository implements AdminArticleCommentReposito
   }
 
   async updateStatus(input: UpdateAdminArticleCommentStatusInput) {
-    try {
-      const record = await this.prisma.articleComment.update({
-        where: { id: input.id },
-        data: {
-          status: input.status,
-        },
-        include: adminArticleCommentInclude,
-      });
-
-      return toAdminArticleCommentListItem(record);
-    } catch (error) {
-      if (isPrismaRecordNotFound(error)) {
-        return null;
-      }
-
-      throw error;
-    }
+    return this.prisma.$transaction(
+      async (tx) => (await updateCommentStatusWithAudit(tx, input)).comment,
+    );
   }
 }
 
@@ -177,8 +193,53 @@ function toAdminArticleCommentAuthor(record: AdminArticleCommentRecord["author"]
   };
 }
 
-function isPrismaRecordNotFound(error: unknown) {
-  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
+async function updateCommentStatusWithAudit(
+  tx: Prisma.TransactionClient,
+  input: UpdateAdminArticleCommentStatusInput,
+) {
+  const current = await tx.articleComment.findUnique({ where: { id: input.id } });
+  if (!current) throw new AdminArticleCommentNotFoundError();
+  if (input.expectedVersion !== undefined && current.moderationVersion !== input.expectedVersion)
+    throw new AdminArticleCommentConflictError();
+  const changed = await tx.articleComment.updateMany({
+    where: { id: input.id, moderationVersion: input.expectedVersion ?? current.moderationVersion },
+    data: { status: input.status, moderationVersion: { increment: 1 } },
+  });
+  if (!changed.count) throw new AdminArticleCommentConflictError();
+  const record = await tx.articleComment.findUniqueOrThrow({
+    where: { id: input.id },
+    include: adminArticleCommentInclude,
+  });
+  const metadata = {
+    articleSlug: record.article.slug,
+    status: record.status,
+    ...(input.assistantActionId
+      ? { assistantActionId: input.assistantActionId, source: "assistant" }
+      : {}),
+  };
+  const audit = await recordPrismaAdminOperation(tx.adminOperationLog, {
+    actor: input.actor,
+    action: "COMMENT_STATUS_UPDATED",
+    resourceType: "article_comment",
+    resourceId: record.id,
+    requestContext: input.requestContext,
+    metadata,
+    summary: createAdminOperationSummary({
+      action: "COMMENT_STATUS_UPDATED",
+      resourceType: "article_comment",
+      resourceId: record.id,
+      metadata,
+    }),
+  });
+  return {
+    comment: toAdminArticleCommentListItem(record),
+    previousStatus: current.status,
+    auditLogId: audit.id,
+  };
 }
 
-export { PrismaAdminArticleCommentRepository, buildAdminArticleCommentWhere };
+export {
+  PrismaAdminArticleCommentRepository,
+  buildAdminArticleCommentWhere,
+  updateCommentStatusWithAudit,
+};

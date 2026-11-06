@@ -82,11 +82,23 @@ async function requestAdminApi<TResponse>(
     headers.set("content-type", "application/json");
   }
 
-  const response = await fetch(`${getBackendApiBaseUrl()}${path}`, {
+  const response = await requestAdminResponse(path, {
     ...init,
     body,
-    credentials: "include",
     headers,
+  });
+
+  if (emptyResponse || response.status === 204) {
+    return undefined as TResponse;
+  }
+
+  return (await response.json()) as TResponse;
+}
+
+async function requestAdminResponse(path: string, init: RequestInit = {}) {
+  const response = await fetch(`${getBackendApiBaseUrl()}${path}`, {
+    ...init,
+    credentials: "include",
   });
 
   if (!response.ok) {
@@ -99,11 +111,7 @@ async function requestAdminApi<TResponse>(
     throw new AdminApiError(message, response.status, errorPayload.code, errorPayload.details);
   }
 
-  if (emptyResponse || response.status === 204) {
-    return undefined as TResponse;
-  }
-
-  return (await response.json()) as TResponse;
+  return response;
 }
 
 async function parseAdminApiErrorPayload(response: Response) {
@@ -159,6 +167,7 @@ export {
   buildAdminQueryString,
   getBackendApiBaseUrl,
   requestAdminApi,
+  requestAdminResponse,
   resolveBackendApiBaseUrl,
   withAdminQuery,
 };

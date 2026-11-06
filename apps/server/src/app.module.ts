@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { AssistantModule } from "./assistant/assistant.module";
 import { AuthModule } from "./auth/auth.module";
 import { AuditModule } from "./audit/audit.module";
 import { ArticlesModule } from "./articles/articles.module";
@@ -21,6 +22,7 @@ import { AppService } from "./app.service";
     CommentsModule,
     GuestbookModule,
     SiteConfigModule,
+    AssistantModule,
   ],
   controllers: [AppController],
   providers: [AppService],

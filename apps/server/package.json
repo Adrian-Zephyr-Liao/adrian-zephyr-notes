@@ -27,7 +27,12 @@
   },
   "dependencies": {
     "@adrian-zephyr-notes/contracts": "workspace:*",
+    "@ag-ui/core": "1.0.4",
+    "@ag-ui/encoder": "1.0.4",
     "@alicloud/credentials": "^2.4.5",
+    "@earendil-works/pi-agent-core": "1.5.0",
+    "@earendil-works/pi-ai": "1.5.0",
+    "@earendil-works/pi-schema": "1.5.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",

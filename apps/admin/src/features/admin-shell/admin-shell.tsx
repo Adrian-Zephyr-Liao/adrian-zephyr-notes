@@ -13,6 +13,7 @@ import {
   Settings2,
   ShieldCheck,
   Sun,
+  Sparkles,
   Tags,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -36,8 +37,16 @@ import {
 } from "../../components/ui/sidebar";
 import { logoutAdmin } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
+import { useAssistantCapabilities } from "../assistant/use-assistant-capabilities";
 
-type AdminSectionKey = "articles" | "audit" | "comments" | "guestbook" | "overview" | "site";
+type AdminSectionKey =
+  | "articles"
+  | "assistant"
+  | "audit"
+  | "comments"
+  | "guestbook"
+  | "overview"
+  | "site";
 type AdminShellProps = {
   admin: AdminUserResponse;
   articlePage?: "categories" | "list" | "tags";
@@ -50,7 +59,7 @@ type AdminNavItem = {
   icon: LucideIcon;
   key: AdminSectionKey;
   label: string;
-  to: "/" | "/articles" | "/audit" | "/comments" | "/guestbook" | "/site";
+  to: "/" | "/articles" | "/assistant" | "/audit" | "/comments" | "/guestbook" | "/site";
 };
 type AdminNavGroup = {
   items: AdminNavItem[];
@@ -62,7 +71,11 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
     section === "articles" && articlePage
       ? articlePageMeta[articlePage]
       : adminSectionMeta[section];
-  const navGroups = useMemo(() => createAdminNavGroups(), []);
+  const { capabilities } = useAssistantCapabilities(admin.id);
+  const navGroups = useMemo(
+    () => createAdminNavGroups(capabilities?.enabled === true),
+    [capabilities],
+  );
 
   return (
     <main className="min-h-dvh bg-(--gradient-soft) text-foreground">
@@ -198,6 +211,10 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
 }
 
 const adminSectionMeta: Record<AdminSectionKey, { description: string; title: string }> = {
+  assistant: {
+    description: "查询记录，核对结果，单独确认评论操作。",
+    title: "管理助手",
+  },
   articles: {
     description: "管理文章、分类、标签与发布进度。",
     title: "文章工作台",
@@ -269,7 +286,7 @@ function ArticleSubmenuItem({
   );
 }
 
-function createAdminNavGroups(): AdminNavGroup[] {
+function createAdminNavGroups(assistantEnabled: boolean): AdminNavGroup[] {
   return [
     {
       label: "总览",
@@ -280,6 +297,16 @@ function createAdminNavGroups(): AdminNavGroup[] {
           label: "运营工作台",
           to: "/",
         },
+        ...(assistantEnabled
+          ? [
+              {
+                icon: Sparkles,
+                key: "assistant" as const,
+                label: "管理助手",
+                to: "/assistant" as const,
+              },
+            ]
+          : []),
       ],
     },
     {

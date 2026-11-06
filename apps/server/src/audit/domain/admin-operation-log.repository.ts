@@ -13,6 +13,8 @@ type ListAdminOperationLogsFilters = {
   search?: string;
 };
 
+type ListAdminOperationLogsExecution = { statementTimeoutMs: number };
+
 type AdminOperationLogsPage = {
   data: AdminOperationLog[];
   pagination: {
@@ -34,7 +36,10 @@ type RecordAdminOperationInput = {
 };
 
 interface AdminOperationLogRepository {
-  list(filters: ListAdminOperationLogsFilters): Promise<AdminOperationLogsPage>;
+  list(
+    filters: ListAdminOperationLogsFilters,
+    execution?: ListAdminOperationLogsExecution,
+  ): Promise<AdminOperationLogsPage>;
   record(input: RecordAdminOperationInput): Promise<AdminOperationLog>;
 }
 
@@ -45,5 +50,6 @@ export type {
   AdminOperationLogRepository,
   AdminOperationLogsPage,
   ListAdminOperationLogsFilters,
+  ListAdminOperationLogsExecution,
   RecordAdminOperationInput,
 };

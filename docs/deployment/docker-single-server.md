@@ -76,6 +76,13 @@ specific subset without advancing the saved deployment baseline.
 
 ## Verify
 
+For the optional management assistant, keep `ASSISTANT_ENABLED=false` and
+`ASSISTANT_ACTIONS_ENABLED=false` until model and business verification pass.
+Enable the first for read-only queries, and both for confirmed single-comment
+actions. Recreate only the affected application services after changing these
+values. See [Assistant implementation](../assistant-implementation.md) for lifecycle,
+database backup and rollback boundaries; no additional runtime volume is needed.
+
 ```bash
 docker compose --env-file deploy/docker/prod.env -f deploy/docker/docker-compose.prod.yml ps
 curl -I https://notes.example.com

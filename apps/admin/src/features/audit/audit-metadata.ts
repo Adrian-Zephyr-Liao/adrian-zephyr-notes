@@ -7,6 +7,7 @@ type AuditMetadataEntry = {
 };
 
 const knownMetadataFields = [
+  ["source", "来源"],
   ["status", "评论状态"],
   ["targetId", "目标评论"],
   ["targetIds", "目标评论"],
@@ -15,6 +16,7 @@ const knownMetadataFields = [
 ] as const;
 
 const metadataValueLabel: Record<string, string> = {
+  assistant: "助手",
   HIDDEN: "已隐藏",
   VISIBLE: "可见",
 };
@@ -83,7 +85,8 @@ function formatAuditResourceLabel(log: AdminOperationLogResponse) {
 }
 
 function formatAuditClientLabel(log: AdminOperationLogResponse) {
-  return ["管理后台", formatUserAgent(log.userAgent), formatIpAddress(log.ipAddress)].join(" · ");
+  const source = log.metadata?.source === "assistant" ? "助手" : "管理后台";
+  return [source, formatUserAgent(log.userAgent), formatIpAddress(log.ipAddress)].join(" · ");
 }
 
 function formatReadableIdentifier(value: string) {

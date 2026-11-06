@@ -43,6 +43,8 @@ services:
       LLM_BASE_URL: ${LLM_BASE_URL:-https://api.minimaxi.com/v1}
       LLM_MODEL: ${LLM_MODEL:-MiniMax-M3}
       LLM_TIMEOUT_MS: ${LLM_TIMEOUT_MS:-60000}
+      ASSISTANT_ENABLED: ${ASSISTANT_ENABLED:-false}
+      ASSISTANT_ACTIONS_ENABLED: ${ASSISTANT_ACTIONS_ENABLED:-false}
     depends_on:
       postgres:
         condition: service_healthy

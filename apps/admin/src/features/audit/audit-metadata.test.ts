@@ -42,6 +42,15 @@ describe("formatAuditMetadataEntries", () => {
 });
 
 describe("audit presentation helpers", () => {
+  it("identifies confirmed assistant operations without changing ordinary audit labels", () => {
+    const log = createLog({ metadata: { source: "assistant", status: "HIDDEN" } });
+    expect(formatAuditMetadataEntries(log.metadata)).toContainEqual({
+      key: "source",
+      label: "来源",
+      value: "助手",
+    });
+    expect(formatAuditClientLabel(log)).toBe("助手 · 未知客户端 · 未知网络");
+  });
   it("formats comment and article summaries in business language", () => {
     expect(formatAuditSummary(createLog({ metadata: { status: "HIDDEN" } }))).toBe(
       "评论已设为已隐藏",

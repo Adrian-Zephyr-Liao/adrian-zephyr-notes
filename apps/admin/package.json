@@ -17,6 +17,7 @@
   "dependencies": {
     "@adrian-zephyr-notes/contracts": "workspace:*",
     "@adrian-zephyr-notes/markdown": "workspace:*",
+    "@ag-ui/client": "1.0.4",
     "@chinese-fonts/hcqyt": "^2.0.0",
     "@tailwindcss/vite": "^4.3.2",
     "@tanstack/react-router": "1.170.17",

@@ -1,5 +1,23 @@
 export type { AdminMeResponse, AdminUserResponse } from "./admin/auth.js";
 export type {
+  AssistantTurnStatus,
+  AssistantActionStatus,
+  AssistantActionDecision,
+  AssistantError,
+  AssistantMessage,
+  AssistantConversationResponse,
+  AssistantCapabilitiesResponse,
+  AssistantAuditLogsResult,
+  AssistantCommentsResult,
+  AssistantActionReceipt,
+  AssistantActionResponse,
+  AssistantToolResult,
+  AssistantToolResultResponse,
+  AssistantTurnResponse,
+  AssistantHistoryResponse,
+  AssistantActionDecisionRequest,
+} from "./admin/assistant.js";
+export type {
   AdminOperationLogAction,
   AdminOperationLogListQuery,
   AdminOperationLogListResponse,

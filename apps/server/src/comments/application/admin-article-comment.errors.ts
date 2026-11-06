@@ -10,4 +10,13 @@ class AdminArticleCommentValidationError extends Error {
   }
 }
 
-export { AdminArticleCommentNotFoundError, AdminArticleCommentValidationError };
+class AdminArticleCommentConflictError extends Error {
+  constructor() {
+    super("The comment changed. Refresh before trying again.");
+  }
+}
+export {
+  AdminArticleCommentNotFoundError,
+  AdminArticleCommentValidationError,
+  AdminArticleCommentConflictError,
+};

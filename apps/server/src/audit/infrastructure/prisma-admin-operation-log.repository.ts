@@ -5,6 +5,7 @@ import type { AdminOperationLog } from "../domain/admin-operation-log";
 import type {
   AdminOperationLogRepository,
   ListAdminOperationLogsFilters,
+  ListAdminOperationLogsExecution,
   RecordAdminOperationInput,
 } from "../domain/admin-operation-log.repository";
 
@@ -12,19 +13,37 @@ import type {
 class PrismaAdminOperationLogRepository implements AdminOperationLogRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(filters: ListAdminOperationLogsFilters) {
+  async list(filters: ListAdminOperationLogsFilters, execution?: ListAdminOperationLogsExecution) {
     const where = createAdminOperationLogWhere(filters);
-    const [records, totalItems] = await this.prisma.$transaction([
-      this.prisma.adminOperationLog.findMany({
-        where,
-        orderBy: {
-          createdAt: "desc",
-        },
-        skip: (filters.page - 1) * filters.pageSize,
-        take: filters.pageSize,
-      }),
-      this.prisma.adminOperationLog.count({ where }),
-    ]);
+    const query = {
+      where,
+      orderBy: { createdAt: "desc" },
+      skip: (filters.page - 1) * filters.pageSize,
+      take: filters.pageSize,
+    } satisfies Prisma.AdminOperationLogFindManyArgs;
+    if (
+      execution &&
+      (!Number.isSafeInteger(execution.statementTimeoutMs) ||
+        execution.statementTimeoutMs < 1 ||
+        execution.statementTimeoutMs > 5000)
+    ) {
+      throw new RangeError("Read statement timeout must be between 1 and 5000 milliseconds");
+    }
+    const [records, totalItems] = execution
+      ? await this.prisma.$transaction(
+          async (tx) => {
+            await tx.$queryRaw`SELECT set_config('statement_timeout', ${String(execution.statementTimeoutMs)}, true)`;
+            return [
+              await tx.adminOperationLog.findMany(query),
+              await tx.adminOperationLog.count({ where }),
+            ] as const;
+          },
+          { timeout: execution.statementTimeoutMs * 2 + 1000 },
+        )
+      : await this.prisma.$transaction([
+          this.prisma.adminOperationLog.findMany(query),
+          this.prisma.adminOperationLog.count({ where }),
+        ]);
 
     return {
       data: records.map(toAdminOperationLog),

@@ -31,6 +31,8 @@ LLM_PROVIDER=minimax
 LLM_BASE_URL=https://api.minimaxi.com/v1
 LLM_MODEL=MiniMax-M3
 LLM_TIMEOUT_MS=60000
+ASSISTANT_ENABLED=false
+ASSISTANT_ACTIONS_ENABLED=false
 ```
 
 Missing `LLM_API_KEY` must not prevent the server from starting. AI summaries are
@@ -55,6 +57,12 @@ Current bounded contexts:
 - `guestbook`: public guestbook messages and admin moderation
 - `site-config`: public and admin site settings, announcements
 - `audit`: admin operation log read/write model
+- `assistant`: Pi tool execution, owned conversations and explicitly confirmed comment actions
+
+Assistant setup, execution semantics, limits, verification and rollback are documented
+in [Assistant implementation](../../docs/assistant-implementation.md). Both assistant
+switches are disabled by default. Conversations use PostgreSQL; there is no separate
+Pi runtime volume or automatic execution recovery.
 
 `domain` code should not depend on Nest, Prisma, HTTP DTOs, or shared frontend
 contracts. `packages/contracts` is for public HTTP shapes only.

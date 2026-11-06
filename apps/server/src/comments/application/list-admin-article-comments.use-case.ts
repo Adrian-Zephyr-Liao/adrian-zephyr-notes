@@ -4,6 +4,7 @@ import {
   type AdminArticleCommentRepository,
   type AdminArticleCommentStatus,
   type ListAdminArticleCommentsFilters,
+  type ListAdminArticleCommentsExecution,
 } from "../domain/admin-article-comment.repository";
 
 type ListAdminArticleCommentsInput = {
@@ -29,8 +30,14 @@ class ListAdminArticleCommentsUseCase {
     private readonly adminArticleCommentRepository: AdminArticleCommentRepository,
   ) {}
 
-  execute(input: ListAdminArticleCommentsInput = {}) {
-    return this.adminArticleCommentRepository.list(normalizeListAdminArticleCommentsInput(input));
+  execute(
+    input: ListAdminArticleCommentsInput = {},
+    execution?: ListAdminArticleCommentsExecution,
+  ) {
+    const filters = normalizeListAdminArticleCommentsInput(input);
+    return execution
+      ? this.adminArticleCommentRepository.list(filters, execution)
+      : this.adminArticleCommentRepository.list(filters);
   }
 }
 

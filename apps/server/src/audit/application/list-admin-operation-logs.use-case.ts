@@ -4,6 +4,7 @@ import {
   ADMIN_OPERATION_LOG_REPOSITORY,
   type AdminOperationLogRepository,
   type ListAdminOperationLogsFilters,
+  type ListAdminOperationLogsExecution,
 } from "../domain/admin-operation-log.repository";
 
 type ListAdminOperationLogsInput = {
@@ -21,8 +22,11 @@ class ListAdminOperationLogsUseCase {
     private readonly adminOperationLogRepository: AdminOperationLogRepository,
   ) {}
 
-  execute(input: ListAdminOperationLogsInput = {}) {
-    return this.adminOperationLogRepository.list(normalizeListAdminOperationLogsInput(input));
+  execute(input: ListAdminOperationLogsInput = {}, execution?: ListAdminOperationLogsExecution) {
+    const filters = normalizeListAdminOperationLogsInput(input);
+    return execution
+      ? this.adminOperationLogRepository.list(filters, execution)
+      : this.adminOperationLogRepository.list(filters);
   }
 }
 

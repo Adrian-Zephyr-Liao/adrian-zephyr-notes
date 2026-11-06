@@ -1,3 +1,7 @@
+import type {
+  AdminOperationActor,
+  AdminOperationRequestContext,
+} from "../../audit/domain/admin-operation-log";
 type AdminArticleCommentStatus = "HIDDEN" | "VISIBLE";
 type AdminArticleCommentSort = "NEWEST" | "OLDEST";
 
@@ -16,6 +20,8 @@ type ListAdminArticleCommentsFilters = {
   search?: string;
   status?: AdminArticleCommentStatus;
 };
+
+type ListAdminArticleCommentsExecution = { statementTimeoutMs: number };
 
 type AdminArticleCommentAuthor = {
   id: string;
@@ -64,10 +70,17 @@ type AdminArticleCommentsPage = {
 type UpdateAdminArticleCommentStatusInput = {
   id: string;
   status: AdminArticleCommentStatus;
+  actor: AdminOperationActor;
+  requestContext?: AdminOperationRequestContext;
+  expectedVersion?: number;
+  assistantActionId?: string;
 };
 
 interface AdminArticleCommentRepository {
-  list(filters: ListAdminArticleCommentsFilters): Promise<AdminArticleCommentsPage>;
+  list(
+    filters: ListAdminArticleCommentsFilters,
+    execution?: ListAdminArticleCommentsExecution,
+  ): Promise<AdminArticleCommentsPage>;
   updateStatus(
     input: UpdateAdminArticleCommentStatusInput,
   ): Promise<AdminArticleCommentListItem | null>;
@@ -86,5 +99,6 @@ export type {
   AdminArticleCommentsPage,
   AdminArticleCommentStatus,
   ListAdminArticleCommentsFilters,
+  ListAdminArticleCommentsExecution,
   UpdateAdminArticleCommentStatusInput,
 };
