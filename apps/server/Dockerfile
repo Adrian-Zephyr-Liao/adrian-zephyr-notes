@@ -21,11 +21,16 @@ RUN --mount=type=cache,id=azn-pnpm-store,target=/pnpm/store \
 
 COPY . .
 
+RUN test ! -e .env && test ! -e apps/server/.env && test ! -e deploy/docker/prod.env
+
 RUN DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public \
   pnpm --filter @adrian-zephyr-notes/server prisma:generate
 RUN pnpm --filter @adrian-zephyr-notes/server build
+# Adapt only the builder lock settings for pnpm's frozen deploy path.
+# Deploy copies workspace packages; development injection stays unchanged.
 RUN --mount=type=cache,id=azn-pnpm-store,target=/pnpm/store \
-  pnpm --filter @adrian-zephyr-notes/server deploy --legacy --prod /prod/server
+  sed -i '/^  injectWorkspacePackages:/d; /^settings:$/a\  injectWorkspacePackages: true' pnpm-lock.yaml && \
+  pnpm --filter @adrian-zephyr-notes/server --config.inject-workspace-packages=true deploy --prod --offline /prod/server
 RUN cd /prod/server && \
   DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public \
   ./node_modules/.bin/prisma generate --config prisma.config.ts
