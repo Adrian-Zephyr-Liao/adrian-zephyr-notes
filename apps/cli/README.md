@@ -3,6 +3,7 @@
 Monorepo 子包 `@adrian-zephyr-notes/cli`，源码在 `apps/cli`，命令名 `azn`。
 覆盖现有管理员工作台全部 API：文章、图片、分类标签、编辑暂存、评论、留言、站点设置、公告、审计与管理助手。
 逐项映射及边界见[管理员能力表](../../docs/admin-cli-capability-map.md)。模型和文章写作由调用 CLI 的 Agent 负责。
+真实 SSH 授权、图文发布、清理及验证范围见[生产验收记录](../../docs/cli-admin-production-verification.md)。
 
 要求 Node.js **22.18+**。本包由实际执行的 `vp create vite:library` 内置模板调整而来，
 使用 `vite.config.ts` 的 `pack` 配置与 `vp pack` 生成可安装的 CLI。
@@ -18,7 +19,13 @@ node apps/cli/dist/azn.mjs --help           # 打包入口
 
 `dist` 含运行所需的依赖与动态模块，复制整个目录即可运行，无需复制仓库或安装服务端依赖。
 不要只复制 `azn.mjs` 而漏掉同目录模块。`package.json` 的 `bin` 指向 `dist/azn.mjs`；
-可在包目录运行 `vp pm pack` 生成包后安装。无需发布 npm 即可供远端 Agent 使用。
+可在包目录运行 `vp pm pack` 生成自包含包后安装；安装后的 CLI 无运行时 registry 依赖，无需发布 npm 即可供远端 Agent 使用。
+
+本次生产部署也已在 SSH 宿主安装 `/usr/local/bin/azn`，可直接运行 `azn --help`。
+该入口使用预置 Docker 镜像中的 Node，完整 CLI 产物独立存放，不依赖宿主 Node 或仓库依赖。
+先进入文章文件所在目录，再调用 CLI；包装器只挂载当前目录树、只读 CLI 与调用用户的凭据目录，
+所以绝对文件路径也应位于当前目录树。凭据遵循 `AZN_CONFIG_DIR`、`XDG_CONFIG_HOME` 和用户主目录，
+本次验收授权已注销，正式使用需要重新登录。
 
 ## 登录与权限
 

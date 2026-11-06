@@ -119,7 +119,7 @@ importers:
         version: 4.1.9(@opentelemetry/api@1.9.1)(@types/node@22.20.0)(@vitest/browser-preview@4.1.9)(jsdom@28.1.0(@noble/hashes@1.8.0))(vite@8.1.0(@types/node@22.20.0)(jiti@2.7.0)(terser@5.48.0))
 
   apps/cli:
-    dependencies:
+    devDependencies:
       '@adrian-zephyr-notes/contracts':
         specifier: workspace:*
         version: link:../../packages/contracts
@@ -129,6 +129,12 @@ importers:
       '@clack/prompts':
         specifier: ^1.8.1
         version: 1.8.1
+      '@types/mdast':
+        specifier: ^4.0.4
+        version: 4.0.4
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.2
       commander:
         specifier: ^15.0.0
         version: 15.0.0
@@ -138,22 +144,15 @@ importers:
       remark-parse:
         specifier: ^11.0.0
         version: 11.0.0
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
       unified:
         specifier: ^11.0.5
         version: 11.0.5
       unist-util-visit:
         specifier: ^5.1.0
         version: 5.1.0
-    devDependencies:
-      '@types/mdast':
-        specifier: ^4.0.4
-        version: 4.0.4
-      '@types/node':
-        specifier: ^24.0.0
-        version: 24.13.2
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
 
   apps/server:
     dependencies:

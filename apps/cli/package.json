@@ -17,20 +17,18 @@
     "check": "vp check",
     "prepack": "vp run build"
   },
-  "dependencies": {
+  "devDependencies": {
     "@adrian-zephyr-notes/contracts": "workspace:*",
     "@ag-ui/client": "1.0.4",
     "@clack/prompts": "^1.8.1",
+    "@types/mdast": "^4.0.4",
+    "@types/node": "^24.0.0",
     "commander": "^15.0.0",
     "picocolors": "^1.1.1",
     "remark-parse": "^11.0.0",
+    "typescript": "^6.0.3",
     "unified": "^11.0.5",
     "unist-util-visit": "^5.1.0"
-  },
-  "devDependencies": {
-    "@types/mdast": "^4.0.4",
-    "@types/node": "^24.0.0",
-    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=22.18.0"
