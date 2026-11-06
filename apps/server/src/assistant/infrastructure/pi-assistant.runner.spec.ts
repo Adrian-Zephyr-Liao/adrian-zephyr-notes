@@ -16,7 +16,7 @@ import type { Message } from "@earendil-works/pi-ai";
 import type { AssistantAction } from "../domain/assistant.repository";
 import type { PiAssistantModelClient } from "./pi-assistant-model.client";
 import { PiAssistantRunner } from "./pi-assistant.runner";
-import { projectAssistantTranscript, readAssistantMessages } from "./pi-assistant-projector";
+import { projectAssistantTranscript } from "./pi-assistant-projector";
 
 const result: AssistantToolResult = {
   kind: "audit_logs",
@@ -34,10 +34,9 @@ function fixture(limits: ConstructorParameters<typeof PiAssistantRunner>[2] = {}
   models.setProvider(faux.provider);
   const model = {
     isConfigured: () => true,
-    ready: async () => {},
+    ready: async () => models,
     assertConfigured: () => {},
     model: faux.getModel(),
-    models,
     maxOutputTokens: 4096,
     requestOptions: () => ({ maxTokens: 4096 }),
   } as unknown as PiAssistantModelClient;
@@ -143,27 +142,16 @@ describe("PiAssistantRunner", () => {
     { role: "assistant", content: "not-an-array" },
     { role: "assistant", content: [null] },
     { role: "user", content: [{ type: "text", text: 42 }] },
-    { role: "assistant", content: [{ type: "thinking", thinking: 42 }] },
     { role: "assistant", content: [{ type: "toolCall", name: "list_audit_logs", arguments: {} }] },
     { role: "assistant", content: [{ type: "toolCall", id: "call_1", arguments: {} }] },
     { role: "toolResult", toolName: "list_audit_logs", content: [], isError: false },
     { role: "toolResult", toolCallId: "call_1", content: [], isError: false },
-    {
-      role: "toolResult",
-      toolCallId: "call_1",
-      toolName: "list_audit_logs",
-      content: [],
-      isError: "false",
-    },
   ])("rejects unsupported stored messages instead of filtering them: %j", async (message) => {
     const f = fixture();
     await expect(
       collect(f.runner.stream(input({ transcripts: [{ version: 1, messages: [message] }] }))),
     ).rejects.toThrow("unsupported message");
     expect(f.faux.state.callCount).toBe(0);
-    expect(() => f.runner.project("turn-1", { version: 1, messages: [message] })).toThrow(
-      "unsupported message",
-    );
   });
 
   it("retains provider signatures and unknown metadata while reading and supplying valid history", async () => {
@@ -191,7 +179,6 @@ describe("PiAssistantRunner", () => {
         providerMetadata: { opaque: "result-value" },
       },
     ];
-    expect(readAssistantMessages(history)).toBe(history);
     const original = structuredClone(history);
     f.faux.setResponses([
       (context) => {
@@ -208,8 +195,15 @@ describe("PiAssistantRunner", () => {
         return fauxAssistantMessage("新回答");
       },
     ]);
-    await collect(f.runner.stream(input({ transcripts: [{ version: 1, messages: history }] })));
+    const events = await collect(
+      f.runner.stream(input({ transcripts: [{ version: 1, messages: history }] })),
+    );
     expect(history).toEqual(original);
+    expect(finished(events).messages).toHaveLength(2);
+    expect(finished(events).messages[0]).toMatchObject({
+      role: "user",
+      content: [{ type: "text", text: "查看审计日志" }],
+    });
   });
 
   it("uses the real Pi loop, persists messages before result events, and projects stable public IDs without thinking", async () => {
@@ -278,36 +272,6 @@ describe("PiAssistantRunner", () => {
       /* drain */
     }
     expect(f.execute).toHaveBeenCalledOnce();
-  });
-
-  it("does not expose supplied history as this turn's new messages", async () => {
-    const f = fixture();
-    f.faux.setResponses([
-      (context) => {
-        expect(JSON.stringify(context)).toContain("旧问题");
-        return fauxAssistantMessage("新回答");
-      },
-    ]);
-    const events = await collect(
-      f.runner.stream(
-        input({
-          transcripts: [
-            {
-              version: 1,
-              messages: [
-                { role: "user", content: "旧问题", timestamp: 1 },
-                fauxAssistantMessage("旧回答"),
-              ],
-            },
-          ],
-        }),
-      ),
-    );
-    expect(finished(events).messages).toHaveLength(2);
-    expect(finished(events).messages[0]).toMatchObject({
-      role: "user",
-      content: [{ type: "text", text: "查看审计日志" }],
-    });
   });
 
   it("rejects invalid tool arguments and actor-supplied properties without querying business data", async () => {

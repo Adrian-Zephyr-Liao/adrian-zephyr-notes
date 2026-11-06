@@ -23,8 +23,8 @@ function AssistantResult({ result }: { result: AssistantToolResult }) {
   }
   const { data, pagination, queriedAt } = result.data;
   return (
-    <section className="min-w-0 overflow-hidden rounded-lg border border-border/60 bg-background/25 wrap-anywhere">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/45 px-4 py-3">
+    <section className="min-w-0 border-l-2 border-border/70 pl-4 wrap-anywhere">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/45 pb-3">
         <h3 className="text-sm font-semibold">
           {result.kind === "audit_logs" ? "审计记录" : "评论搜索结果"}
         </h3>
@@ -36,7 +36,7 @@ function AssistantResult({ result }: { result: AssistantToolResult }) {
       <div className="divide-y divide-border/45">
         {result.kind === "audit_logs"
           ? result.data.data.map((log) => (
-              <article className="space-y-1 px-4 py-3" key={log.id}>
+              <article className="space-y-1 py-3" key={log.id}>
                 <p className="text-sm">{log.summary}</p>
                 <p className="text-xs text-muted-foreground">
                   @{log.actorLogin} · {formatAssistantDate(log.createdAt)}
@@ -49,7 +49,7 @@ function AssistantResult({ result }: { result: AssistantToolResult }) {
               </article>
             ))
           : result.data.data.map((comment) => (
-              <article className="space-y-2 px-4 py-3" key={comment.id}>
+              <article className="space-y-2 py-3" key={comment.id}>
                 <div className="flex flex-wrap items-center gap-2">
                   <p className="text-sm font-medium">{comment.article.title}</p>
                   <Badge variant={comment.status === "VISIBLE" ? "success" : "outline"}>
@@ -70,10 +70,10 @@ function AssistantResult({ result }: { result: AssistantToolResult }) {
               </article>
             ))}
         {data.length === 0 ? (
-          <p className="px-4 py-5 text-sm text-muted-foreground">没有符合条件的记录。</p>
+          <p className="py-5 text-sm text-muted-foreground">没有符合条件的记录。</p>
         ) : null}
       </div>
-      <footer className="border-t border-border/45 px-4 py-2 text-xs text-muted-foreground">
+      <footer className="space-y-1 border-t border-border/45 pt-3 text-xs/relaxed text-muted-foreground">
         <p>{formatFilters(result.data.filters)}</p>
         查询于 {formatAssistantDate(queriedAt)}；需要其他分页或筛选时请继续提问。
       </footer>
@@ -90,68 +90,61 @@ function AssistantActionCard({
 }) {
   const [action, setAction] = useState(initialAction);
   const actionRef = useRef(initialAction);
-  const [isDeciding, setIsDeciding] = useState(false);
-  const [pendingDecision, setPendingDecision] = useState<AssistantActionDecision | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState<{
+    decision: AssistantActionDecision;
+    submitting: boolean;
+    error: string | null;
+  } | null>(null);
   useEffect(() => {
+    const current = actionRef.current;
     if (
-      actionRef.current.id === initialAction.id &&
-      actionRef.current.status !== "PENDING" &&
+      current.id === initialAction.id &&
+      current.status !== "PENDING" &&
       initialAction.status === "PENDING"
     )
       return;
     actionRef.current = initialAction;
     setAction(initialAction);
-    if (initialAction.status !== "PENDING") {
-      setPendingDecision(null);
-      setError(null);
-    }
+    if (current.id !== initialAction.id || initialAction.status !== "PENDING") setPending(null);
   }, [initialAction]);
-  useEffect(() => {
-    setPendingDecision(null);
-    setError(null);
-  }, [initialAction.id]);
 
   async function decide(decision: AssistantActionDecision) {
     if (
       !allowDecisions ||
-      isDeciding ||
+      pending?.submitting ||
       action.status !== "PENDING" ||
-      (pendingDecision && pendingDecision !== decision)
+      (pending && pending.decision !== decision)
     )
       return;
-    setIsDeciding(true);
-    setPendingDecision(decision);
-    if (!pendingDecision) setError(null);
+    setPending({ decision, submitting: true, error: pending?.error ?? null });
     try {
       const response = await decideAssistantAction(action.conversationId, action.id, decision);
       if (actionRef.current.id !== action.id || actionRef.current.status !== "PENDING") return;
       actionRef.current = response;
       setAction(response);
-      setPendingDecision(null);
-      setError(null);
+      setPending(null);
     } catch (cause) {
       if (actionRef.current.id !== action.id || actionRef.current.status !== "PENDING") return;
-      setError(
-        `${cause instanceof Error ? cause.message : "操作结果暂时无法读取。"} 请核对原决定的回执，或刷新会话状态。`,
-      );
-    } finally {
-      setIsDeciding(false);
+      setPending({
+        decision,
+        submitting: false,
+        error: `${cause instanceof Error ? cause.message : "操作结果暂时无法读取。"} 请核对原决定的回执，或刷新会话状态。`,
+      });
     }
   }
 
   return (
     <section className="min-w-0 space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-4 wrap-anywhere">
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="text-sm font-semibold">单条评论操作预览</h3>
         <Badge role="status" variant={action.status === "APPLIED" ? "success" : "outline"}>
           {action.status === "APPLIED"
             ? "已执行"
             : action.status === "REJECTED"
               ? "已拒绝"
-              : isDeciding
+              : pending?.submitting
                 ? "正在提交"
-                : pendingDecision
+                : pending
                   ? "等待核对"
                   : "等待确认"}
         </Badge>
@@ -177,41 +170,28 @@ function AssistantActionCard({
           <p className="text-xs text-muted-foreground">
             仅修改这条评论。点击下方按钮才会提交；在聊天中回复“同意”不会执行操作。
           </p>
-          {pendingDecision && error ? (
-            <Button
-              disabled={!allowDecisions || isDeciding}
-              onClick={() => void decide(pendingDecision)}
-              size="sm"
-              variant="outline"
-            >
-              {isDeciding ? <Loader2 className="animate-spin" /> : null}
-              核对并重试{pendingDecision === "CONFIRM" ? "确认" : "拒绝"}
-            </Button>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              <Button
-                disabled={!allowDecisions || isDeciding}
-                onClick={() => void decide("CONFIRM")}
-                size="sm"
-              >
-                {isDeciding && pendingDecision === "CONFIRM" ? (
-                  <Loader2 className="animate-spin" />
-                ) : null}
-                确认{action.targetStatus === "HIDDEN" ? "隐藏" : "恢复"}评论
-              </Button>
-              <Button
-                disabled={!allowDecisions || isDeciding}
-                onClick={() => void decide("REJECT")}
-                size="sm"
-                variant="outline"
-              >
-                {isDeciding && pendingDecision === "REJECT" ? (
-                  <Loader2 className="animate-spin" />
-                ) : null}
-                拒绝操作
-              </Button>
-            </div>
-          )}
+          <div className="flex flex-wrap gap-2">
+            {(pending?.error ? [pending.decision] : (["CONFIRM", "REJECT"] as const)).map(
+              (decision) => (
+                <Button
+                  disabled={!allowDecisions || pending?.submitting}
+                  key={decision}
+                  onClick={() => void decide(decision)}
+                  size="sm"
+                  variant={decision === "CONFIRM" && !pending?.error ? "default" : "outline"}
+                >
+                  {pending?.submitting && pending.decision === decision ? (
+                    <Loader2 className="animate-spin" />
+                  ) : null}
+                  {pending?.error
+                    ? `核对并重试${decision === "CONFIRM" ? "确认" : "拒绝"}`
+                    : decision === "CONFIRM"
+                      ? `确认${action.targetStatus === "HIDDEN" ? "隐藏" : "恢复"}评论`
+                      : "拒绝操作"}
+                </Button>
+              ),
+            )}
+          </div>
           {!allowDecisions ? (
             <p className="text-xs text-muted-foreground">当前未开放评论操作，预览记录仅供核对。</p>
           ) : null}
@@ -223,9 +203,9 @@ function AssistantActionCard({
           {commentStatusLabel(action.receipt.status)}，审计记录已保存。
         </p>
       ) : null}
-      {error ? (
+      {pending?.error ? (
         <p className="text-sm text-destructive" role="alert">
-          {error}
+          {pending.error}
         </p>
       ) : null}
     </section>
@@ -257,22 +237,15 @@ const filterLabels: Record<string, string> = {
   action: "操作类型",
   actorLogin: "操作者",
   search: "关键词",
-  q: "关键词",
   articleId: "文章编号",
   articleSlug: "文章",
   articleTitle: "文章标题",
-  authorLogin: "评论作者",
   author: "评论作者",
-  body: "评论正文",
   content: "评论正文",
   query: "关键词",
   commentId: "评论编号",
-  bodyQuery: "评论正文",
   status: "评论状态",
-  createdAfter: "开始时间",
-  createdBefore: "结束时间",
   createdFrom: "开始时间",
-  createdTo: "结束时间",
   createdToExclusive: "结束时间（不含）",
 };
 

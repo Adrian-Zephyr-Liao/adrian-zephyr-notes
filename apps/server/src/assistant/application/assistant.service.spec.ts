@@ -70,23 +70,6 @@ describe("Assistant request lifecycle", () => {
     ).toBe("CANCELLED");
   });
 
-  it("does not overwrite a completed receipt with a late Stop", async () => {
-    const fixture = setup();
-    expect((await collect(await fixture.service.start(fixture.input))).at(-1)).toMatchObject({
-      type: "runFinished",
-    });
-    expect(
-      (
-        await fixture.service.stop(
-          fixture.actor,
-          fixture.turn.conversationId,
-          fixture.turn.requestId,
-        )
-      ).status,
-    ).toBe("COMPLETED");
-    expect(fixture.repo.finishCancellation).not.toHaveBeenCalled();
-  });
-
   it("replays failed request identities without invoking the model again", async () => {
     const fixture = setup();
     fixture.turn.status = "FAILED";

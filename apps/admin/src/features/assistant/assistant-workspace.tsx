@@ -1,4 +1,3 @@
-import { MarkdownPreview } from "@adrian-zephyr-notes/markdown";
 import { ArrowDown, Loader2, Plus, RefreshCw } from "lucide-react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
@@ -9,7 +8,7 @@ import {
   ManagementSurface,
 } from "../../components/ui/management-surface";
 import { AssistantComposer } from "./assistant-composer";
-import { AssistantTurn, AssistantUserMessage } from "./assistant-turn";
+import { AssistantMessage, AssistantTurn } from "./assistant-turn";
 import { useAssistantCapabilities } from "./use-assistant-capabilities";
 import { useAssistantConversation } from "./use-assistant-conversation";
 
@@ -72,15 +71,6 @@ function AssistantWorkspace({
   }
 
   function submit() {
-    if (
-      !enabled ||
-      conversation.busy ||
-      conversation.loading ||
-      historyUnavailable ||
-      !input.trim() ||
-      input.length > 2000
-    )
-      return;
     const message = input.trim();
     setInput("");
     followLatest.current = true;
@@ -98,7 +88,7 @@ function AssistantWorkspace({
                 disabled={conversation.sending || conversation.loading}
                 onClick={() => void conversation.refresh()}
                 size="sm"
-                variant="outline"
+                variant="ghost"
               >
                 <RefreshCw />
                 刷新状态
@@ -162,9 +152,9 @@ function AssistantWorkspace({
               !historyUnavailable &&
               !conversation.history?.turns.length &&
               !conversation.pending ? (
-                <div className="rounded-lg bg-background/20 px-4 py-8">
-                  <h3 className="text-sm font-medium">从一个具体问题开始</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                <div className="px-1 pt-10 pb-6 sm:pt-16">
+                  <h3 className="text-xl font-semibold tracking-tight">从一个具体问题开始</h3>
+                  <p className="mt-3 max-w-md text-sm/relaxed text-muted-foreground">
                     例如查询审计记录，或说明要查找的评论条件。只提供完成当前问题所需的信息。
                   </p>
                   {enabled ? (
@@ -217,17 +207,9 @@ function AssistantWorkspace({
                   ))}
                 {conversation.pending ? (
                   <article className="space-y-4">
-                    <AssistantUserMessage content={conversation.pending.input} />
+                    <AssistantMessage content={conversation.pending.input} role="user" />
                     {conversation.pending.text ? (
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-muted-foreground">助手</p>
-                        <MarkdownPreview
-                          className="text-sm"
-                          content={conversation.pending.text}
-                          disallowedElements={["img"]}
-                          variant="stream"
-                        />
-                      </div>
+                      <AssistantMessage content={conversation.pending.text} role="assistant" />
                     ) : null}
                     {conversation.sending ? (
                       <p

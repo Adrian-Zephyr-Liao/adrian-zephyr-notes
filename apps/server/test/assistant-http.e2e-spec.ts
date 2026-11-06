@@ -124,8 +124,10 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
     expect(events(wire).filter((event) => event.type === "RUN_ERROR")).toHaveLength(0);
     expect(wire).toContain("ASSISTANT_HTTP_AUDIT");
     expect(wire).not.toMatch(/PRIVATE_AUDIT_(METADATA|IP|UA)/);
+    expect(wire).not.toContain("PRIVATE_PROVIDER_THINKING");
     const saved = await turn(conversationId, requestId);
     expect(saved.status).toBe("COMPLETED");
+    expect(JSON.stringify(saved)).not.toContain("PRIVATE_PROVIDER_THINKING");
     expect(saved.toolResults.map((item) => item.name)).toEqual(["list_audit_logs"]);
     const textIds = events(wire)
       .filter((event) => event.type === "TEXT_MESSAGE_START")
@@ -349,10 +351,12 @@ describe.skipIf(!databaseUrl)("Assistant through the compiled Nest HTTP server",
         ADMIN_GITHUB_LOGINS: `${login},${otherLogin}`,
         ASSISTANT_ENABLED: String(mode.enabled),
         ASSISTANT_ACTIONS_ENABLED: String(mode.actionsEnabled),
-        LLM_PROVIDER: "openai-compatible",
+        LLM_PROVIDER: "minimax",
         LLM_BASE_URL: `${provider.url}/v1`,
-        LLM_MODEL: "assistant-faux",
+        LLM_MODEL: "MiniMax-M3",
         LLM_API_KEY: "faux-key",
+        LLM_MAX_TOKENS: "4096",
+        LLM_CONTEXT_WINDOW: "32768",
         LLM_TIMEOUT_MS: "60000",
       },
       stdio: ["ignore", "pipe", "pipe"],
@@ -453,6 +457,12 @@ class FauxProvider {
             messages: Array<{ role: string; content: unknown }>;
             tools: unknown[];
           };
+          expect(input).toMatchObject({
+            model: "MiniMax-M3",
+            max_completion_tokens: 4096,
+            reasoning_split: true,
+            thinking: { type: "adaptive" },
+          });
           const userIndex = input.messages.findLastIndex((message) => message.role === "user");
           const user = JSON.stringify(input.messages[userIndex]?.content);
           if (user.includes("REVOKE_FIXTURE")) await this.revokeSession?.();
@@ -521,6 +531,9 @@ class FauxProvider {
 }
 function completion(response: ServerResponse, delta: Record<string, unknown>) {
   response.writeHead(200, { "Content-Type": "text/event-stream" });
+  response.write(
+    `data: ${JSON.stringify({ choices: [{ index: 0, delta: { reasoning_content: "PRIVATE_PROVIDER_THINKING" } }] })}\n\n`,
+  );
   response.write(`data: ${JSON.stringify({ choices: [{ index: 0, delta }] })}\n\n`);
   response.end(
     `data: ${JSON.stringify({ choices: [{ index: 0, delta: {}, finish_reason: delta.tool_calls ? "tool_calls" : "stop" }] })}\n\ndata: [DONE]\n\n`,

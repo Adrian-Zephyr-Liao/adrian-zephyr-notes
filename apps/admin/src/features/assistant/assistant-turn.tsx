@@ -39,21 +39,9 @@ function AssistantTurn({
           {statusLabels[turn.status]}
         </Badge>
       </div>
-      {messages.map((message) =>
-        message.role === "user" ? (
-          <AssistantUserMessage content={message.content} key={message.id} />
-        ) : (
-          <div className="space-y-1" key={message.id}>
-            <p className="text-xs font-medium text-muted-foreground">助手</p>
-            <MarkdownPreview
-              className="text-sm"
-              content={message.content}
-              disallowedElements={["img"]}
-              variant="stream"
-            />
-          </div>
-        ),
-      )}
+      {messages.map((message) => (
+        <AssistantMessage content={message.content} key={message.id} role={message.role} />
+      ))}
       {turn.toolResults
         .filter(({ result }) => !result.ok || result.kind !== "comment_action")
         .map((result) => (
@@ -76,13 +64,30 @@ function AssistantTurn({
   );
 }
 
-function AssistantUserMessage({ content }: { content: string }) {
+function AssistantMessage({ content, role }: { content: string; role: "user" | "assistant" }) {
   return (
-    <div className="ml-auto w-fit max-w-[90%] min-w-0 rounded-lg bg-primary/10 px-4 py-3 wrap-anywhere">
-      <p className="mb-1 text-xs font-medium text-muted-foreground">你</p>
-      <p className="text-sm whitespace-pre-wrap">{content}</p>
+    <div
+      className={
+        role === "user"
+          ? "ml-auto w-fit max-w-[90%] min-w-0 rounded-lg bg-primary/8 px-4 py-3 wrap-anywhere"
+          : "space-y-2"
+      }
+    >
+      <p className="mb-1 text-xs font-medium text-muted-foreground">
+        {role === "user" ? "你" : "助手"}
+      </p>
+      {role === "user" ? (
+        <p className="text-sm whitespace-pre-wrap">{content}</p>
+      ) : (
+        <MarkdownPreview
+          className="text-sm/relaxed"
+          content={content}
+          disallowedElements={["img"]}
+          variant="stream"
+        />
+      )}
     </div>
   );
 }
 
-export { AssistantTurn, AssistantUserMessage };
+export { AssistantTurn, AssistantMessage };

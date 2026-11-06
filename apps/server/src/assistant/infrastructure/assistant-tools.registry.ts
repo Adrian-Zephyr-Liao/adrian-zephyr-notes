@@ -1,7 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import type { AssistantAuditLogsResult, AssistantToolResult } from "@adrian-zephyr-notes/contracts";
 import { ListAdminOperationLogsUseCase } from "../../audit/application/list-admin-operation-logs.use-case";
-import { toAdminOperationLogResponse } from "../../audit/infrastructure/admin-operation-log.mapper";
 import { ListAdminArticleCommentsUseCase } from "../../comments/application/list-admin-article-comments.use-case";
 import { toAdminArticleCommentListResponse } from "../../comments/infrastructure/admin-article-comments.mapper";
 import { AssistantActionService } from "../application/assistant-action.service";
@@ -152,31 +151,22 @@ export class AssistantToolsRegistry {
             page: number(args.page, 1),
             pageSize: number(args.pageSize, 20),
             action: optionalText(args.action) ?? "ALL",
-            actorLogin: optionalText(args.actorLogin) ?? null,
-            search: optionalText(args.search) ?? null,
+            actorLogin: optionalText(args.actorLogin),
+            search: optionalText(args.search),
           };
-          const page = await this.audit.execute(
-            {
-              page: filters.page,
-              pageSize: filters.pageSize,
-              action: filters.action,
-              actorLogin: filters.actorLogin ?? undefined,
-              search: filters.search ?? undefined,
-            },
-            { statementTimeoutMs: 5000 },
-          );
+          const page = await this.audit.execute(filters, { statementTimeoutMs: 5000 });
           execution.signal.throwIfAborted();
-          const data = page.data
-            .map(toAdminOperationLogResponse)
-            .map(({ id, actorLogin, action, resourceType, resourceId, summary, createdAt }) => ({
+          const data = page.data.map(
+            ({ id, actorLogin, action, resourceType, resourceId, summary, createdAt }) => ({
               id,
               actorLogin,
               action,
               resourceType,
               resourceId,
               summary,
-              createdAt,
-            }));
+              createdAt: createdAt.toISOString(),
+            }),
+          );
           return {
             kind: "audit_logs",
             ok: true,
@@ -185,8 +175,8 @@ export class AssistantToolsRegistry {
               pagination: page.pagination,
               filters: {
                 action: filters.action as AssistantAuditLogsResult["filters"]["action"],
-                actorLogin: filters.actorLogin,
-                search: filters.search,
+                actorLogin: filters.actorLogin ?? null,
+                search: filters.search ?? null,
               },
               queriedAt: new Date().toISOString(),
             },

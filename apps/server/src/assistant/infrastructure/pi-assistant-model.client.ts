@@ -4,8 +4,7 @@ import type { Model, Models } from "@earendil-works/pi-ai";
 
 @Injectable()
 export class PiAssistantModelClient {
-  private collection?: Models;
-  private opening?: Promise<void>;
+  private opening?: Promise<Models>;
   readonly model: Model<"openai-completions">;
   readonly maxOutputTokens: number;
 
@@ -44,10 +43,6 @@ export class PiAssistantModelClient {
   assertConfigured() {
     if (!this.isConfigured()) throw new Error("Assistant model is not configured.");
   }
-  get models(): Models {
-    if (!this.collection) throw new Error("Assistant model is not initialized.");
-    return this.collection;
-  }
   ready() {
     return (this.opening ??= this.open());
   }
@@ -75,7 +70,7 @@ export class PiAssistantModelClient {
         },
       }),
     );
-    this.collection = models;
+    return models;
   }
 
   requestOptions() {

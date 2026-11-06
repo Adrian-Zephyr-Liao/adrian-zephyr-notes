@@ -16,35 +16,23 @@ export function readAssistantMessages(messages: unknown[]): Message[] {
       (typeof message.toolCallId !== "string" ||
         !message.toolCallId ||
         typeof message.toolName !== "string" ||
-        !message.toolName ||
-        typeof message.isError !== "boolean")
+        !message.toolName)
     )
       throw invalid();
     if (message.role === "user" && typeof message.content === "string") continue;
     if (!Array.isArray(message.content)) throw invalid();
     for (const block of message.content) {
       if (!record(block)) throw invalid();
-      if (block.type === "text" && typeof block.text === "string") continue;
-      if (message.role === "assistant") {
-        if (block.type === "thinking" && typeof block.thinking === "string") continue;
-        if (
-          block.type === "toolCall" &&
-          typeof block.id === "string" &&
-          block.id &&
-          typeof block.name === "string" &&
-          block.name
-        )
-          continue;
-      } else if (
-        block.type === "image" &&
-        typeof block.data === "string" &&
-        typeof block.mimeType === "string"
+      if (block.type === "text" && typeof block.text !== "string") throw invalid();
+      if (
+        message.role === "assistant" &&
+        block.type === "toolCall" &&
+        (typeof block.id !== "string" || !block.id || typeof block.name !== "string" || !block.name)
       )
-        continue;
-      throw invalid();
+        throw invalid();
     }
   }
-  // Validate only the fields consumed here; keep provider signatures and metadata intact.
+  // Validate projection fields; leave SDK content and provider metadata opaque.
   return messages as Message[];
 }
 

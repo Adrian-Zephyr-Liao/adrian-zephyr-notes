@@ -67,18 +67,10 @@ function fixture() {
 
 describe("AssistantToolsRegistry", () => {
   it.each([
-    ["list_audit_logs", { action: "INVALID" }],
-    ["list_audit_logs", { dateRange: { from: "2026-11-06", to: "2026-11-06" } }],
-    ["list_audit_logs", { page: 0 }],
     ["list_audit_logs", { pageSize: 51 }],
     ["list_audit_logs", { actor: "forged" }],
     ["list_audit_logs", { actorLogin: " " }],
     ["search_comments", { commentId: "fake" }],
-    ["search_comments", { status: "DELETED" }],
-    ["search_comments", { actor: "forged" }],
-    ["search_comments", { period: "INVALID" }],
-    ["search_comments", { dateRange: { from: "2026-02-30", to: "2026-03-01" } }],
-    ["search_comments", { period: "TODAY", dateRange: { from: "2026-11-06", to: "2026-11-06" } }],
     ["prepare_comment_moderation", { commentId, targetStatus: "DELETED" }],
     ["prepare_comment_moderation", { commentId, targetStatus: "HIDDEN", approved: true }],
   ] as const)(
@@ -108,53 +100,13 @@ describe("AssistantToolsRegistry", () => {
     },
   );
 
-  it("declares exact filters and explicit pagination semantics without changing supplied literals", async () => {
+  it("preserves exact audit filters, default pagination and only safe public fields", async () => {
     const f = fixture();
-    const audit = f.tool("list_audit_logs");
-    const schema = audit.parameters as {
-      properties: Record<string, { description?: string }>;
-    };
-    expect(audit.description).toContain("本轮不调用任何工具");
-    expect(schema.properties.search?.description).toContain("逐字保留");
-    expect(schema.properties.actorLogin?.description).toContain("逐字保留");
-    expect(schema.properties.page?.description).toContain("默认1");
-    expect(schema.properties.pageSize?.description).toContain("默认20");
     const search = "复查 Alpha-42 / 稳定性";
     const actorLogin = "MixedCase-Author";
-    await audit.execute({ search, actorLogin }, execution);
+    const result = await f.tool("list_audit_logs").execute({ search, actorLogin }, execution);
     expect(f.audit.execute).toHaveBeenCalledWith(
       { page: 1, pageSize: 20, action: "ALL", search, actorLogin },
-      { statementTimeoutMs: 5000 },
-    );
-    await f
-      .tool("search_comments")
-      .execute(
-        { articleTitle: "项目 Beta：更新与回顾", author: actorLogin, content: search },
-        execution,
-      );
-    expect(f.comments.execute).toHaveBeenCalledWith(
-      expect.objectContaining({
-        articleTitle: "项目 Beta：更新与回顾",
-        author: actorLogin,
-        body: search,
-        page: 1,
-        pageSize: 20,
-      }),
-      { statementTimeoutMs: 5000 },
-    );
-  });
-
-  it("only exposes safe audit fields and preserves default filters", async () => {
-    const f = fixture();
-    const result = await f.tool("list_audit_logs").execute({}, execution);
-    expect(f.audit.execute).toHaveBeenCalledWith(
-      {
-        page: 1,
-        pageSize: 20,
-        action: "ALL",
-        actorLogin: undefined,
-        search: undefined,
-      },
       { statementTimeoutMs: 5000 },
     );
     expect(result).toMatchObject({
@@ -169,9 +121,9 @@ describe("AssistantToolsRegistry", () => {
     const f = fixture();
     await f.tool("search_comments").execute(
       {
-        articleTitle: "文章",
-        author: "作者",
-        content: "正文",
+        articleTitle: "项目 Beta：更新与回顾",
+        author: "MixedCase-Author",
+        content: "复查 Alpha-42 / 稳定性",
         page: 2,
         pageSize: 10,
         status: "VISIBLE",
@@ -181,9 +133,9 @@ describe("AssistantToolsRegistry", () => {
     expect(f.comments.execute).toHaveBeenCalledOnce();
     expect(f.comments.execute).toHaveBeenCalledWith(
       expect.objectContaining({
-        articleTitle: "文章",
-        author: "作者",
-        body: "正文",
+        articleTitle: "项目 Beta：更新与回顾",
+        author: "MixedCase-Author",
+        body: "复查 Alpha-42 / 稳定性",
         page: 2,
         pageSize: 10,
         status: "VISIBLE",

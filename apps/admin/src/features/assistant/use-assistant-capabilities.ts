@@ -3,29 +3,22 @@ import { useEffect, useState } from "react";
 import { getAssistantCapabilities } from "./assistant-api";
 
 function useAssistantCapabilities(owner?: string) {
-  const [capabilities, setCapabilities] = useState<AssistantCapabilitiesResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [failed, setFailed] = useState(false);
+  const [capabilities, setCapabilities] = useState<AssistantCapabilitiesResponse | null>();
   useEffect(() => {
     let stale = false;
-    setCapabilities(null);
-    setLoading(true);
-    setFailed(false);
+    setCapabilities(undefined);
     void getAssistantCapabilities()
       .then((response) => {
         if (!stale) setCapabilities(response);
       })
       .catch(() => {
-        if (!stale) setFailed(true);
-      })
-      .finally(() => {
-        if (!stale) setLoading(false);
+        if (!stale) setCapabilities(null);
       });
     return () => {
       stale = true;
     };
   }, [owner]);
-  return { capabilities, loading, failed };
+  return { capabilities, loading: capabilities === undefined, failed: capabilities === null };
 }
 
 export { useAssistantCapabilities };

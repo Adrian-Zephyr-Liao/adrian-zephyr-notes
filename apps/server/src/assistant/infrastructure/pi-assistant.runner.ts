@@ -85,7 +85,7 @@ export class PiAssistantRunner implements AssistantRunner {
     let textOpen = false;
     let invalidAssistantCalls = false;
     let consumerClosed = false;
-    await this.modelClient.ready();
+    const models = await this.modelClient.ready();
     this.modelClient.assertConfigured();
     const [{ Agent }, { estimateMessageTokens }] = await Promise.all([
       import("@earendil-works/pi-agent-core"),
@@ -146,7 +146,7 @@ export class PiAssistantRunner implements AssistantRunner {
       },
       streamFn: (model, context, options) => {
         options?.signal?.throwIfAborted();
-        return this.modelClient.models.streamSimple(model, context, {
+        return models.streamSimple(model, context, {
           ...options,
           ...this.modelClient.requestOptions(),
         });
