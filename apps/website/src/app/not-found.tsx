@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ArrowDown, Home } from "lucide-react";
 
-import { StatusPage } from "@/components/status/status-page";
+import { StatusPage } from "@/components/site/status-page";
 import { Button } from "@/components/ui/button";
 
 function NotFound() {

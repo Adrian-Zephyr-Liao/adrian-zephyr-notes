@@ -29,13 +29,17 @@ commands and should not be used for new code.
 ## Structure
 
 ```text
-src/app/                  Next.js routes and API proxy handlers
-src/components/guestbook/ guestbook product experience
-src/components/markdown/  article rendering, comments, notices, AI summary
-src/components/site/      home page, header, skeletons, transitions
-src/components/status/    empty/error/not-found states
-src/components/ui/        shared UI primitives
-src/lib/                  public API clients and backend proxy helpers
+src/app/                       Routes, metadata, data loading, and API proxies
+src/components/site/           Shared navigation, footer, page layouts, and status UI
+src/components/ui/             Reusable UI primitives
+src/entities/article/          Article cards and CDN cover presentation
+src/features/home/             Home content and discovery interactions
+src/features/article-archive/  Archive search, view selection, and pagination
+src/features/article-taxonomy/ Category and tag browsing
+src/features/article-reading/  Reading layout, contents, summaries, and notices
+src/features/article-comments/ Article comment workflow
+src/features/guestbook/         Guestbook UI, state, and API adapter
+src/lib/                       Existing public API clients and backend proxy helpers
 ```
 
 Client-side API calls should go through `src/lib/api-client.ts` or a focused

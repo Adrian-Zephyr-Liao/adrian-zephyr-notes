@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Home, RotateCcw } from "lucide-react";
 
-import { StatusPage } from "@/components/status/status-page";
+import { StatusPage } from "@/components/site/status-page";
 import { Button } from "@/components/ui/button";
 
 function ErrorPage({ reset }: { error: Error & { digest?: string }; reset: () => void }) {

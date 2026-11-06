@@ -21,7 +21,7 @@ function ThemeToggle() {
 
   return (
     <Button
-      className="bg-white/45 text-foreground/75 hover:bg-white/70 dark:bg-white/10 dark:hover:bg-white/15"
+      className="min-h-11 w-10 rounded-full bg-transparent text-muted-foreground hover:bg-accent hover:text-primary min-[851px]:w-11"
       size="icon"
       variant="ghost"
       type="button"

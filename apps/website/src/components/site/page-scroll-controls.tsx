@@ -1,13 +1,27 @@
 "use client";
 
-import { ArrowDownToLine, ArrowUpToLine } from "lucide-react";
+import { ArrowUp } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 
 function PageScrollControls() {
-  function scrollToEdge(edge: "top" | "bottom") {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    function updateVisibility() {
+      setVisible(window.scrollY > 600);
+    }
+    updateVisibility();
+    window.addEventListener("scroll", updateVisibility, { passive: true });
+    return () => window.removeEventListener("scroll", updateVisibility);
+  }, []);
+
+  if (!visible) return null;
+
+  function scrollToTop() {
     window.scrollTo({
-      top: edge === "top" ? 0 : (document.scrollingElement?.scrollHeight ?? 0),
+      top: 0,
       left: 0,
       behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches
         ? "instant"
@@ -18,29 +32,18 @@ function PageScrollControls() {
   return (
     <nav
       aria-label="页面快捷导航"
-      className="fixed right-3 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 flex gap-1 rounded-2xl border border-(--glass-border) bg-(--glass-surface-strong) p-1 shadow-(--shadow-glass) backdrop-blur-xl"
+      className="fixed right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom))] z-40 rounded-full border border-border bg-background/95 p-1 backdrop-blur"
     >
       <Button
-        className="min-h-11 min-w-11 flex-1 gap-2"
-        onClick={() => scrollToEdge("top")}
+        className="min-h-11 min-w-11 rounded-full"
+        onClick={scrollToTop}
         size="sm"
         title="回到顶部"
         type="button"
         variant="ghost"
       >
-        <ArrowUpToLine aria-hidden="true" className="size-4" />
+        <ArrowUp aria-hidden="true" className="size-4" />
         <span className="sr-only">回到顶部</span>
-      </Button>
-      <Button
-        className="min-h-11 min-w-11 flex-1 gap-2"
-        onClick={() => scrollToEdge("bottom")}
-        size="sm"
-        title="直达底部"
-        type="button"
-        variant="ghost"
-      >
-        <ArrowDownToLine aria-hidden="true" className="size-4" />
-        <span className="sr-only">直达底部</span>
       </Button>
     </nav>
   );

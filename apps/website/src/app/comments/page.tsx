@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-import { GuestbookBoard } from "@/components/guestbook/guestbook-board";
+import { GuestbookBoard } from "@/features/guestbook";
 
 export const metadata: Metadata = {
   title: "留言板 | Adrian Zephyr Notes",

@@ -39,4 +39,11 @@ Rules:
 - Internal component files should use relative imports, such as `./data` and `./types`.
 - Keep static config in `data.ts`, local type contracts in `types.ts`, and shared class strings or local styling constants in `styles.ts`.
 - Keep `components/ui` free of website-specific routes, copy, data, and product interactions.
-- Keep Tailwind CSS variable classes in canonical form, for example `bg-(--glass-surface)` and `border-(--glass-border)`.
+- Keep Tailwind CSS variable classes in canonical form, for example `max-w-(--site-width)` and `ease-(--ease-out-ui)`.
+
+## Styling and Feature Boundaries
+
+- Use Tailwind utilities with the existing `cn` and `cva` helpers. Do not introduce CSS Modules or replace them with global feature-specific CSS classes.
+- Keep `globals.css` for theme tokens, base styles, and shared Markdown integration. Component layouts, responsive states, and interaction styles belong with their components as Tailwind classes.
+- Group a workflow's UI, state, hooks, API adapter, and adjacent tests in its feature directory. Keep reusable article presentation in `entities/article` and shared page layouts in `components/site`.
+- Keep directory entrypoints focused on exports or small composition. Split files when responsibilities differ; do not split mechanically by line count or create empty architectural layers.
