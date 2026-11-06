@@ -4,7 +4,8 @@ The admin console is a React application built with Vite+, TanStack Router,
 Tailwind CSS, and shared contracts from `@adrian-zephyr-notes/contracts`.
 
 It manages articles, article comments, guestbook messages, site configuration,
-and audit logs. Authentication is handled by the API server through GitHub OAuth.
+audit logs, and the management assistant. Browser authentication is handled by the
+API server through GitHub OAuth.
 
 ## Development
 
@@ -29,11 +30,13 @@ public tunnel, configure either the Vite proxy target or the public API origin.
 
 ```text
 src/components/ui/       reusable UI primitives
+src/features/dashboard/  operations dashboard
 src/features/articles/   article list and editor workflows
 src/features/comments/   article comment moderation
 src/features/guestbook/  guestbook moderation
 src/features/site-config/site settings and announcements
 src/features/audit/      admin operation logs
+src/features/assistant/  conversations, tool results, and explicit action decisions
 src/lib/                 API client and shared utilities
 src/routes/              TanStack Router route entries
 ```

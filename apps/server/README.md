@@ -53,6 +53,7 @@ Current bounded contexts:
 
 - `articles`: public article reads, admin article writes, taxonomies, AI summaries
 - `auth`: GitHub OAuth, user sessions, admin access policy
+- `oauth`: device authorization and scoped CLI access tokens
 - `comments`: public article comments and admin moderation
 - `guestbook`: public guestbook messages and admin moderation
 - `site-config`: public and admin site settings, announcements
