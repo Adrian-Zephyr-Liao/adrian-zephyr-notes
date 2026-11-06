@@ -7,7 +7,7 @@ Let an authenticated administrator upload an article image from the Markdown edi
 ## User flow
 
 1. The administrator chooses or drops a JPEG, PNG, WebP, or GIF image in the Markdown editor.
-2. The editor validates the file type and 10 MB size limit before sending it.
+2. The editor validates the file type and 10 MiB size limit before sending it.
 3. The Admin sends `multipart/form-data` to the same authenticated API used by the rest of the console.
 4. The server validates the real file signature, creates a month-partitioned random object key, and uploads the bytes to private OSS with the ECS RAM role.
 5. The server returns the CDN URL and the editor inserts `![file name](url)` at the saved cursor position.
@@ -17,7 +17,7 @@ Let an authenticated administrator upload an article image from the Markdown edi
 
 `POST /api/admin/articles/images`
 
-- Authentication: existing Admin session cookie and `AdminAuthGuard`.
+- Authentication: `AdminApiAccessGuard` accepts the existing Admin session cookie or a CLI Bearer token with `admin:write`. Legacy `articles:write` does not grant image upload.
 - Content type: `multipart/form-data`.
 - Field: `file`, exactly one file.
 - Maximum size: 10 MiB.

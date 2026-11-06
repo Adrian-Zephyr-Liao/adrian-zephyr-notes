@@ -115,16 +115,23 @@ function isHttpUrl(value: string) {
   }
 }
 
+const editorDateTime = new Intl.DateTimeFormat("zh-CN", {
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+});
+
+function formatArticleEditorDateTime(value: string | Date) {
+  return editorDateTime.format(typeof value === "string" ? new Date(value) : value);
+}
+
 function createDefaultArticleTitle() {
-  return `未命名文章 ${new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date())}`;
+  return `未命名文章 ${formatArticleEditorDateTime(new Date())}`;
 }
 
 export {
+  formatArticleEditorDateTime,
   createNewArticleEditorValues,
   getArticleEditorValidationMessage,
   getStatusConfirmationText,

@@ -1,11 +1,17 @@
+const shortDateFormat = new Intl.DateTimeFormat("zh-CN", {
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
+const fullDateFormat = new Intl.DateTimeFormat("zh-CN", {
+  dateStyle: "medium",
+  timeStyle: "short",
+});
+
 function formatShortDate(value: string) {
-  const parts = new Intl.DateTimeFormat("zh-CN", {
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  })
+  const parts = shortDateFormat
     .formatToParts(new Date(value))
     .reduce<Record<string, string>>((accumulator, part) => {
       accumulator[part.type] = part.value;
@@ -16,10 +22,7 @@ function formatShortDate(value: string) {
 }
 
 function formatFullDate(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
+  return fullDateFormat.format(new Date(value));
 }
 
 export { formatFullDate, formatShortDate };

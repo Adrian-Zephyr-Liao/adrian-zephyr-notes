@@ -3,7 +3,7 @@ import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 import { AuthorAvatar, AuthorName, getAuthorName } from "./guestbook-avatar";
-import { formatFullDate, formatShortDate } from "./guestbook-date";
+import { formatFullDate, formatShortDate } from "@/shared/date";
 
 function GuestbookMessageList({
   canLoadMore,
@@ -112,7 +112,11 @@ function GuestbookMessageItem({
             size="sm"
             onClick={() => onToggleLike(message)}
             disabled={isLiking}
-            aria-label={`给 ${authorName} 的留言点赞`}
+            aria-label={
+              message.likedByMe
+                ? `取消给 ${authorName} 的留言点赞，当前 ${message.likeCount} 个赞`
+                : `给 ${authorName} 的留言点赞，当前 ${message.likeCount} 个赞`
+            }
             aria-pressed={message.likedByMe}
           >
             <Heart

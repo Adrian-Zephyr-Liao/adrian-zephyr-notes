@@ -43,7 +43,7 @@ export const articles: ArticleDetailResponse[] = [
   updatedAt: "2026-11-06T08:00:00.000Z",
   aiSummary: null,
   markdown:
-    "## 从问题开始\n\n记录具体问题与设计过程。\n\n## 验证方案\n\n在桌面和手机上验证阅读体验。\n\n## 留下思考\n\n持续改进，保持代码清楚。",
+    "## 从问题开始\n\n记录具体问题与设计过程。\n\n## 验证方案\n\n在桌面和手机上验证阅读体验。\n\n## 留下思考\n\n持续改进，保持代码清楚。\n\n| 阶段 | 验证方法 | 结果 |\n| --- | --- | --- |\n| 设计与工程 | 在桌面和手机上验证阅读与键盘操作 | `authorization_pending` |",
 }));
 
 export const firstArticlePage = {

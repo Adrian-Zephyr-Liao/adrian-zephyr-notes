@@ -35,6 +35,7 @@ src/components/ui/   design-system primitives
 src/entities/        article cards and resilient cover images
 src/features/        home, archive, taxonomy, reading, comments, and guestbook
 src/lib/             public API clients and backend proxy helpers
+src/shared/          cross-feature date formatting
 packages/markdown/   shared Markdown renderer and reading navigation
 ```
 
@@ -56,7 +57,14 @@ check the current content before resubmitting.
 | `vp run -F @adrian-zephyr-notes/website test`         | Run website tests                  |
 | `vp run -F @adrian-zephyr-notes/website test:browser` | Run desktop/mobile Chromium checks |
 | `vp run -F @adrian-zephyr-notes/website build`        | Build the production site          |
-| `vp run -F @adrian-zephyr-notes/website start`        | Start a production build           |
+| `vp run -F @adrian-zephyr-notes/website start`        | Start the standalone server        |
+
+The production build uses Next.js standalone output. After building, run
+`vp run -F @adrian-zephyr-notes/website start` from the repository root. The shared
+standalone launcher prepares `public` and `.next/static` assets before starting
+the same server entrypoint used by the Docker image. It defaults to
+`127.0.0.1:3002`; `HOSTNAME`, `PORT`, and `BACKEND_API_BASE_URL` can override the
+local binding and backend address.
 
 Browser checks require a current production build and Playwright's Chromium:
 
@@ -68,6 +76,7 @@ vp run -F @adrian-zephyr-notes/website test:browser
 
 The suite starts the actual standalone website on port 3104 and a fixed-response
 API fixture on port 4311. It covers layout, keyboard navigation, theme persistence,
-touch cover navigation, archive URLs, and discussion read failures. It does not
+touch cover navigation, archive URLs, discussion read failures, light/dark axe
+accessibility scans, and keyboard access to reading navigation and wide tables. It does not
 verify database behavior or production authentication. Failed tests retain traces
 and screenshots in `test-results/`; CI uploads those artifacts for seven days.

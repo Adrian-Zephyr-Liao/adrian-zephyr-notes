@@ -29,7 +29,7 @@ export default defineConfig({
     },
     {
       name: "Website",
-      command: "node e2e/start-website.mjs",
+      command: "node scripts/start-standalone.mjs",
       url: "http://127.0.0.1:3104",
       env: { BACKEND_API_BASE_URL: "http://127.0.0.1:4311", HOSTNAME: "127.0.0.1", PORT: "3104" },
       reuseExistingServer: false,

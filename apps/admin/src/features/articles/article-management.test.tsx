@@ -1,0 +1,145 @@
+// @vitest-environment jsdom
+
+import type {
+  AdminArticleListQuery,
+  AdminArticleListResponse,
+} from "@adrian-zephyr-notes/contracts";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { ArticleManagement } from "./article-management";
+
+const api = vi.hoisted(() => ({
+  listAdminArticles: vi.fn<(query: AdminArticleListQuery) => Promise<AdminArticleListResponse>>(),
+}));
+vi.mock("../../lib/admin-api", () => api);
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
+}));
+
+beforeEach(() => {
+  vi.resetAllMocks();
+  api.listAdminArticles.mockResolvedValue(response("初始文章"));
+});
+afterEach(cleanup);
+
+describe("article filter request ordering", () => {
+  it.each(["resolve", "reject"] as const)(
+    "ignores an older search %s after the latest filter has loaded",
+    async (outcome) => {
+      render(<ArticleManagement />);
+      await screen.findByText("初始文章");
+      const old = deferred<AdminArticleListResponse>();
+      const latest = deferred<AdminArticleListResponse>();
+      api.listAdminArticles.mockReturnValueOnce(old.promise).mockReturnValueOnce(latest.promise);
+      search("草稿");
+      search("已发布");
+      await act(async () => latest.resolve(response("最新筛选文章")));
+      expect(screen.getByText("最新筛选文章")).not.toBeNull();
+      await act(async () => {
+        if (outcome === "resolve") old.resolve(response("过期筛选文章", 7, 9));
+        else old.reject(new Error("old search failed"));
+      });
+      expect(screen.getByText("最新筛选文章")).not.toBeNull();
+      expect(screen.queryByText("过期筛选文章")).toBeNull();
+      expect(screen.getByText("第 1 / 2 页")).not.toBeNull();
+      expect((screen.getByRole("textbox", { name: "搜索文章" }) as HTMLInputElement).value).toBe(
+        "已发布",
+      );
+      expect(screen.queryByRole("alert")).toBeNull();
+      expect(api.listAdminArticles).toHaveBeenLastCalledWith(
+        expect.objectContaining({ q: "已发布" }),
+      );
+    },
+  );
+
+  it.each(["resolve", "reject"] as const)(
+    "keeps the current request loading when an earlier search %s settles",
+    async (outcome) => {
+      render(<ArticleManagement />);
+      await screen.findByText("初始文章");
+      const old = deferred<AdminArticleListResponse>();
+      const latest = deferred<AdminArticleListResponse>();
+      api.listAdminArticles.mockReturnValueOnce(old.promise).mockReturnValueOnce(latest.promise);
+      search("草稿");
+      search("已发布");
+      await act(async () => {
+        if (outcome === "resolve") old.resolve(response("过期筛选文章"));
+        else old.reject(new Error("old search failed"));
+      });
+      expect(screen.getByLabelText("正在加载文章")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "刷新文章" }).hasAttribute("disabled")).toBe(true);
+      expect(screen.queryByRole("alert")).toBeNull();
+      await act(async () => latest.resolve(response("最新筛选文章")));
+      expect(screen.getByText("最新筛选文章")).not.toBeNull();
+      expect(screen.getByRole("button", { name: "刷新文章" }).hasAttribute("disabled")).toBe(false);
+    },
+  );
+
+  it("ignores a stale refresh failure and still exposes a current request failure for retry", async () => {
+    render(<ArticleManagement />);
+    await screen.findByText("初始文章");
+    const refresh = deferred<AdminArticleListResponse>();
+    api.listAdminArticles.mockReturnValueOnce(refresh.promise);
+    fireEvent.click(screen.getByRole("button", { name: "刷新文章" }));
+    api.listAdminArticles.mockResolvedValueOnce(response("筛选后的文章"));
+    search("新条件");
+    await screen.findByText("筛选后的文章");
+    await act(async () => refresh.reject(new Error("old refresh failed")));
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(screen.getByText("筛选后的文章")).not.toBeNull();
+    api.listAdminArticles.mockRejectedValueOnce(new Error("current refresh failed"));
+    fireEvent.click(screen.getByRole("button", { name: "刷新文章" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("文章列表加载失败");
+    api.listAdminArticles.mockResolvedValueOnce(response("重试后的文章"));
+    fireEvent.click(screen.getByRole("button", { name: "刷新文章" }));
+    await screen.findByText("重试后的文章");
+    expect(screen.queryByRole("alert")).toBeNull();
+    expect(api.listAdminArticles).toHaveBeenLastCalledWith(
+      expect.objectContaining({ q: "新条件" }),
+    );
+  });
+});
+
+function search(value: string) {
+  const input = screen.getByRole("textbox", { name: "搜索文章" });
+  fireEvent.change(input, { target: { value } });
+  fireEvent.keyDown(input, { key: "Enter" });
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason: Error) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function response(title: string, page = 1, totalPages = 2): AdminArticleListResponse {
+  return {
+    data: [
+      {
+        aiSummaryStatus: "READY",
+        category: null,
+        commentCount: 0,
+        coverImageUrl: null,
+        createdAt: "2026-11-06T00:00:00.000Z",
+        description: "文章摘要",
+        id: title,
+        origin: "ORIGINAL",
+        publishedAt: "2026-11-06T00:00:00.000Z",
+        readingMinutes: 5,
+        slug: "test-note",
+        source: null,
+        status: "PUBLISHED",
+        tags: [],
+        title,
+        updatedAt: "2026-11-06T00:00:00.000Z",
+        wordCount: 1000,
+      },
+    ],
+    pagination: { page, pageSize: 12, totalItems: 13, totalPages },
+  };
+}

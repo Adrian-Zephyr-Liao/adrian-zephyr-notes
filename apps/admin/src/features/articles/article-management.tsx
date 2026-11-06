@@ -20,7 +20,7 @@ import {
   Search,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../../components/ui/card";
@@ -48,19 +48,32 @@ function ArticleManagement() {
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const latestRequest = useRef<symbol | null>(null);
+
+  useEffect(
+    () => () => {
+      latestRequest.current = null;
+    },
+    [],
+  );
+
   const loadArticles = useCallback(async (nextQuery: AdminArticleListQuery) => {
+    const requestId = Symbol("article-list-request");
+    latestRequest.current = requestId;
     setIsLoadingList(true);
     setErrorMessage(null);
 
     try {
       const response = await listAdminArticles(nextQuery);
+      if (latestRequest.current !== requestId) return;
 
       setArticles(response.data);
       setPagination(response.pagination);
     } catch {
-      setErrorMessage("文章列表加载失败，请检查服务端或管理员权限配置。");
+      if (latestRequest.current === requestId)
+        setErrorMessage("文章列表加载失败，请检查服务端或管理员权限配置。");
     } finally {
-      setIsLoadingList(false);
+      if (latestRequest.current === requestId) setIsLoadingList(false);
     }
   }, []);
 

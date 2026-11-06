@@ -17,6 +17,7 @@ type ArticleLocalDraftRecord = {
 };
 
 type ArticleDraftCandidate = {
+  baseArticleUpdatedAt: string | null;
   savedAt: string;
   source: "cloud" | "local";
   values: ArticleEditorValues;
@@ -99,13 +100,6 @@ function removeArticleLocalDraft(storage: Storage | undefined, key: string) {
   }
 }
 
-function shouldRestoreArticleLocalDraft(
-  record: ArticleLocalDraftRecord,
-  serverUpdatedAt: string | null | undefined,
-) {
-  return isDraftNewerThanServer(record.savedAt, serverUpdatedAt);
-}
-
 function pickLatestRestorableArticleDraft(
   candidates: Array<ArticleDraftCandidate | null>,
   serverValues: ArticleEditorValues,
@@ -115,18 +109,10 @@ function pickLatestRestorableArticleDraft(
     .filter((candidate): candidate is ArticleDraftCandidate => Boolean(candidate))
     .filter(
       (candidate) =>
-        isDraftNewerThanServer(candidate.savedAt, serverUpdatedAt) &&
+        (!serverUpdatedAt || candidate.baseArticleUpdatedAt === serverUpdatedAt) &&
         !areArticleEditorValuesEqual(candidate.values, serverValues),
     )
     .sort((left, right) => Date.parse(right.savedAt) - Date.parse(left.savedAt))[0];
-}
-
-function isDraftNewerThanServer(draftSavedAt: string, serverUpdatedAt: string | null | undefined) {
-  if (!serverUpdatedAt) {
-    return true;
-  }
-
-  return Date.parse(draftSavedAt) > Date.parse(serverUpdatedAt);
 }
 
 function areArticleEditorValuesEqual(left: ArticleEditorValues, right: ArticleEditorValues) {
@@ -219,7 +205,6 @@ export {
   pickLatestRestorableArticleDraft,
   readArticleLocalDraft,
   removeArticleLocalDraft,
-  shouldRestoreArticleLocalDraft,
   writeArticleLocalDraft,
 };
 export type { ArticleDraftCandidate, ArticleLocalDraftRecord };

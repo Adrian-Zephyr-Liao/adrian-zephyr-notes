@@ -105,7 +105,7 @@ const markdownComponents = {
   },
   table({ className, node: _node, ...props }) {
     return (
-      <div className="markdown-table-wrap">
+      <div className="markdown-table-wrap" role="region" aria-label="表格，可横向滚动" tabIndex={0}>
         <table className={className} {...props} />
       </div>
     );
