@@ -106,23 +106,21 @@ function PostToc({ headings }: { headings: MarkdownHeading[] }) {
               }}
               aria-current={activeHeadingId === heading.id ? "location" : undefined}
               className={cx(
-                "markdown-toc-link group/toc flex min-w-0 items-start gap-2 rounded-lg py-1.5 pr-10 pl-2 text-muted-foreground transition hover:bg-white/55 hover:text-foreground motion-reduce:transition-none dark:hover:bg-white/10",
+                "flex min-h-11 min-w-0 items-start gap-2 border-l-2 border-transparent p-2 text-muted-foreground transition-colors outline-offset-2 hover:bg-primary/5 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring motion-reduce:transition-none aria-[current=location]:border-primary aria-[current=location]:bg-primary/5 aria-[current=location]:font-semibold aria-[current=location]:text-primary",
                 heading.depth === 3 && "pl-6 text-xs",
-                activeHeadingId === heading.id && "markdown-toc-link-active text-foreground",
               )}
               href={`#${heading.id}`}
               onClick={() => setActiveHeadingId(heading.id)}
             >
               <span
                 className={cx(
-                  "min-w-5 shrink-0 pt-0.5 text-xs tabular-nums text-primary/75 transition motion-reduce:transition-none",
-                  activeHeadingId === heading.id && "text-primary",
+                  "min-w-5 shrink-0 pt-0.5 text-xs tabular-nums transition motion-reduce:transition-none",
+                  activeHeadingId === heading.id ? "text-primary" : "text-primary/75",
                 )}
               >
                 {heading.order}
               </span>
-              <span className="markdown-toc-link-text wrap-anywhere">{heading.text}</span>
-              <span aria-hidden="true" className="markdown-toc-link-guide" />
+              <span className="min-w-0 wrap-anywhere">{heading.text}</span>
             </a>
           </li>
         ))}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ArticleReading } from "@/features/article-reading";
+import { getArticleCoverSource } from "@/entities/article";
 import { getArticleBySlug } from "@/lib/articles-api";
 import { getSiteConfig } from "@/lib/site-config-api";
 
@@ -11,6 +12,7 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
   const { slug } = await params;
   const post = await getArticleBySlug(slug);
   if (!post) return {};
+  const cover = getArticleCoverSource(post.coverImageUrl);
   return {
     title: `${post.title} | Adrian Zephyr Notes`,
     description: post.description,
@@ -20,13 +22,13 @@ export async function generateMetadata({ params }: PostPageProps): Promise<Metad
       description: post.description,
       publishedTime: post.publishedAt,
       modifiedTime: post.updatedAt,
-      images: post.coverImageUrl ? [{ url: post.coverImageUrl, alt: post.title }] : [],
+      images: cover ? [{ url: cover, alt: post.title }] : [],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.description,
-      images: post.coverImageUrl ? [post.coverImageUrl] : [],
+      images: cover ? [cover] : [],
     },
   };
 }

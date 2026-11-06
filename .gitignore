@@ -17,6 +17,8 @@ apps/*/.output/
 apps/*/.vinxi/
 apps/*/dist/
 apps/*/coverage/
+apps/*/test-results/
+apps/*/playwright-report/
 *.tsbuildinfo
 
 # Persistent local Agent sessions and task checkpoints.

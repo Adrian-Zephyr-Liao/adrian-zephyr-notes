@@ -9,6 +9,7 @@ function GuestbookForm({
   errorMessage,
   guestNickname,
   isSubmitting,
+  isReadReady,
   loginUrl,
   onBodyChange,
   onGuestNicknameChange,
@@ -22,6 +23,7 @@ function GuestbookForm({
   errorMessage: string | null;
   guestNickname: string;
   isSubmitting: boolean;
+  isReadReady: boolean;
   loginUrl: string;
   onBodyChange: (body: string) => void;
   onGuestNicknameChange: (nickname: string) => void;
@@ -62,6 +64,7 @@ function GuestbookForm({
             variant="ghost"
             size="icon-sm"
             onClick={onLogout}
+            disabled={isSubmitting}
             aria-label="退出登录"
           >
             <LogOut className="size-4" />
@@ -80,8 +83,9 @@ function GuestbookForm({
           <label className="grid gap-[0.65rem] text-[0.8rem] text-muted-foreground">
             <span>昵称</span>
             <input
-              className="min-h-[2.85rem] w-full min-w-0 rounded-[0.65rem] border border-border bg-transparent px-[0.85rem] py-[0.65rem] text-[0.9rem] text-foreground outline-none placeholder:text-muted-foreground placeholder:opacity-70 focus:border-primary focus:ring-3 focus:ring-primary/15"
+              className="min-h-[2.85rem] w-full min-w-0 rounded-[0.65rem] border border-border bg-transparent px-[0.85rem] py-[0.65rem] text-base text-foreground outline-none placeholder:text-muted-foreground placeholder:opacity-70 focus:border-primary focus:ring-3 focus:ring-primary/15 min-[601px]:text-[0.9rem]"
               value={guestNickname}
+              disabled={isSubmitting}
               onChange={(event) => onGuestNicknameChange(event.target.value)}
               maxLength={32}
               placeholder="怎么称呼你"
@@ -91,8 +95,9 @@ function GuestbookForm({
         <label className="grid gap-[0.65rem] text-[0.8rem] text-muted-foreground">
           <span>留言内容</span>
           <textarea
-            className="min-h-40 w-full min-w-0 resize-y rounded-[0.65rem] border border-border bg-transparent p-[0.85rem] text-[0.9rem] leading-[1.9] text-foreground outline-none placeholder:text-muted-foreground placeholder:opacity-70 focus:border-primary focus:ring-3 focus:ring-primary/15"
+            className="min-h-40 w-full min-w-0 resize-y rounded-[0.65rem] border border-border bg-transparent p-[0.85rem] text-base leading-[1.9] text-foreground outline-none placeholder:text-muted-foreground placeholder:opacity-70 focus:border-primary focus:ring-3 focus:ring-primary/15 min-[601px]:text-[0.9rem]"
             value={body}
+            disabled={isSubmitting}
             onChange={(event) => onBodyChange(event.target.value)}
             minLength={1}
             maxLength={1000}
@@ -113,12 +118,22 @@ function GuestbookForm({
           <span>{body.trim().length}/1000</span>
           <Button
             type="submit"
-            disabled={isSubmitting || body.trim().length === 0 || (!user && !guestNickname.trim())}
+            disabled={
+              !isReadReady ||
+              isSubmitting ||
+              body.trim().length === 0 ||
+              (!user && !guestNickname.trim())
+            }
           >
             {isSubmitting ? "发布中" : "留下纸条"}
             <ArrowUpRight size={16} aria-hidden="true" />
           </Button>
         </div>
+        {!isReadReady ? (
+          <output className="text-xs leading-[1.8] text-muted-foreground">
+            留言加载完成后即可发布，输入的内容会保留。
+          </output>
+        ) : null}
         {errorMessage ? (
           <output className="text-[0.85rem] leading-[1.8] text-destructive">{errorMessage}</output>
         ) : null}

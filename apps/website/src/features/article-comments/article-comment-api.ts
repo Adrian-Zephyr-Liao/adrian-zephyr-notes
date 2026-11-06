@@ -21,24 +21,10 @@ async function loadArticleComments(
     pageSize: String(pageSize),
   });
 
-  try {
-    return await requestJson<ArticleCommentsResponse>(
-      `/api/articles/${encodeURIComponent(slug)}/comments?${searchParams.toString()}`,
-      {
-        cache: "no-store",
-      },
-    );
-  } catch {
-    return {
-      data: [],
-      pagination: {
-        page,
-        pageSize,
-        totalItems: 0,
-        totalPages: 0,
-      },
-    };
-  }
+  return requestJson<ArticleCommentsResponse>(
+    `/api/articles/${encodeURIComponent(slug)}/comments?${searchParams.toString()}`,
+    { cache: "no-store" },
+  );
 }
 
 async function loadCurrentUser() {

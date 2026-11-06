@@ -11,30 +11,20 @@ type AuthMeResponse = {
   user: AuthUserResponse | null;
 };
 
-async function loadGuestbookMessages(page = 1, pageSize = 20): Promise<GuestbookMessagesResponse> {
+async function loadGuestbookMessages(
+  page = 1,
+  pageSize = 20,
+  signal?: AbortSignal,
+): Promise<GuestbookMessagesResponse> {
   const searchParams = new URLSearchParams({
     page: String(page),
     pageSize: String(pageSize),
   });
 
-  try {
-    return await requestJson<GuestbookMessagesResponse>(
-      `/api/guestbook/messages?${searchParams.toString()}`,
-      {
-        cache: "no-store",
-      },
-    );
-  } catch {
-    return {
-      data: [],
-      pagination: {
-        page,
-        pageSize,
-        totalItems: 0,
-        totalPages: 0,
-      },
-    };
-  }
+  return requestJson<GuestbookMessagesResponse>(
+    `/api/guestbook/messages?${searchParams.toString()}`,
+    { cache: "no-store", signal },
+  );
 }
 
 async function loadCurrentUser() {

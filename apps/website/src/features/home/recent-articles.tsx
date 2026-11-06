@@ -15,8 +15,11 @@ function RecentArticles({ articles }: { articles: ArticleListItemResponse[] }) {
       ),
     ).values(),
   );
-  const filtered = category
-    ? articles.filter((article) => article.category?.slug === category)
+  const selectedCategory = categories.some((item) => item.slug === category) ? category : null;
+  if (category !== selectedCategory) setCategory(selectedCategory);
+
+  const filtered = selectedCategory
+    ? articles.filter((article) => article.category?.slug === selectedCategory)
     : articles;
   const lead =
     filtered.find((article) => article.category?.slug === "agent-engineering") ?? filtered[0];
@@ -33,11 +36,11 @@ function RecentArticles({ articles }: { articles: ArticleListItemResponse[] }) {
             key={item.slug ?? "all"}
             type="button"
             aria-label={item.name}
-            aria-pressed={category === item.slug}
+            aria-pressed={selectedCategory === item.slug}
             onClick={() => setCategory(item.slug)}
             className={cn(
               "relative inline-flex min-h-14 cursor-pointer items-center px-1 text-base text-foreground after:ml-7 after:text-border after:content-['/'] last:after:hidden focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-primary max-[680px]:min-h-12 max-[680px]:text-[0.8rem] max-[680px]:after:ml-3",
-              category === item.slug &&
+              selectedCategory === item.slug &&
                 "text-primary before:absolute before:right-8 before:-bottom-px before:left-0 before:h-[3px] before:rounded-[3px] before:bg-primary before:content-[''] last:before:right-0",
             )}
           >

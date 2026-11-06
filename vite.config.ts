@@ -1,8 +1,11 @@
 import { defineConfig } from "vite-plus";
+import { configDefaults } from "vitest/config";
 
 export default defineConfig({
+  resolve: { tsconfigPaths: true },
   test: {
     globals: true,
+    exclude: [...configDefaults.exclude, "apps/website/e2e/**"],
   },
   fmt: {
     ignorePatterns: [".agents/**", "apps/admin/src/routeTree.gen.ts"],

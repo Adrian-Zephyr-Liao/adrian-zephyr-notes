@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   AuthUserResponse,
   CreateGuestbookMessageRequest,
@@ -6,6 +6,7 @@ import type {
   GuestbookMessageResponse,
   GuestbookMessagesResponse,
 } from "@adrian-zephyr-notes/contracts";
+import { isApiRequestError } from "@/lib/api-client";
 
 import {
   createGuestbookMessage,
@@ -30,6 +31,13 @@ function useGuestbookBoard() {
   const [body, setBody] = useState("");
   const [website, setWebsite] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
+  const loadMoreController = useRef<AbortController | null>(null);
+  const lifecycleVersion = useRef(0);
+  const submissionPending = useRef(false);
+  const likesPending = useRef(new Set<string>());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [likingMessageIds, setLikingMessageIds] = useState<ReadonlySet<string>>(() => new Set());
@@ -39,22 +47,39 @@ function useGuestbookBoard() {
   );
 
   useEffect(() => {
-    void Promise.all([loadGuestbookMessages(), loadCurrentUser()])
-      .then(([messagesResult, userResult]) => {
-        setMessages(messagesResult.data);
+    const controller = new AbortController();
+    setLoadState("loading");
+    void loadGuestbookMessages(1, 20, controller.signal)
+      .then((messagesResult) => {
+        if (controller.signal.aborted) return;
+        setMessages((current) => appendUniqueGuestbookMessages(current, messagesResult.data));
         setPagination(messagesResult.pagination);
-        setUser(userResult);
+        setLoadState("ready");
       })
       .catch(() => {
-        setErrorMessage("留言加载失败，请稍后重试。");
+        if (!controller.signal.aborted) setLoadState("error");
       });
+
+    return () => controller.abort();
+  }, [loadAttempt]);
+
+  useEffect(() => {
+    const version = ++lifecycleVersion.current;
+    void loadCurrentUser().then((result) => {
+      if (lifecycleVersion.current === version) setUser(result);
+    });
+
+    return () => {
+      lifecycleVersion.current = version + 1;
+      loadMoreController.current?.abort();
+    };
   }, []);
 
   async function submitMessage() {
     const trimmedBody = body.trim();
     const trimmedNickname = guestNickname.trim();
 
-    if (!trimmedBody || isSubmitting) {
+    if (!trimmedBody || submissionPending.current || loadState !== "ready") {
       return;
     }
 
@@ -68,12 +93,15 @@ function useGuestbookBoard() {
       guestNickname: user ? null : trimmedNickname,
       website,
     };
+    const version = lifecycleVersion.current;
 
+    submissionPending.current = true;
     setIsSubmitting(true);
     setErrorMessage(null);
 
     try {
       const result = await createGuestbookMessage(payload);
+      if (lifecycleVersion.current !== version) return;
 
       if (result.kind === "rate-limited") {
         setErrorMessage("留言太频繁了，请稍后再试。");
@@ -94,16 +122,31 @@ function useGuestbookBoard() {
           : current,
       );
       setBody("");
-    } catch {
-      setErrorMessage("留言发布失败，请稍后重试。");
+    } catch (error) {
+      if (lifecycleVersion.current !== version) return;
+      setErrorMessage(
+        isApiRequestError(error) && error.status >= 400 && error.status < 500
+          ? "留言未发布，请检查内容或稍后重试。"
+          : "发布结果尚未确认，请刷新页面核对留言后再试。",
+      );
     } finally {
-      setIsSubmitting(false);
+      if (lifecycleVersion.current === version) {
+        submissionPending.current = false;
+        setIsSubmitting(false);
+      }
     }
   }
 
   async function logout() {
-    await logoutCurrentUser();
-    setUser(null);
+    const version = lifecycleVersion.current;
+    try {
+      await logoutCurrentUser();
+      if (lifecycleVersion.current !== version) return;
+      setUser(null);
+      setErrorMessage(null);
+    } catch {
+      if (lifecycleVersion.current === version) setErrorMessage("退出登录失败，请稍后重试。");
+    }
   }
 
   async function toggleLike(target: GuestbookMessageResponse) {
@@ -112,9 +155,10 @@ function useGuestbookBoard() {
       return;
     }
 
-    if (likingMessageIds.has(target.id)) {
+    if (likesPending.current.has(target.id)) {
       return;
     }
+    const version = lifecycleVersion.current;
 
     const previousLikeState: GuestbookMessageLikeResponse = {
       messageId: target.id,
@@ -127,12 +171,14 @@ function useGuestbookBoard() {
       likedByMe: !target.likedByMe,
     };
 
+    likesPending.current.add(target.id);
     setLikingMessageIds((current) => new Set(current).add(target.id));
     setMessages((current) => applyGuestbookMessageLikeState(current, optimisticLikeState));
     setErrorMessage(null);
 
     try {
       const result = await toggleGuestbookMessageLike(target);
+      if (lifecycleVersion.current !== version) return;
 
       if (result.kind === "auth-required") {
         window.location.href = loginUrl;
@@ -141,34 +187,46 @@ function useGuestbookBoard() {
 
       setMessages((current) => applyGuestbookMessageLikeState(current, result.likeState));
     } catch {
+      if (lifecycleVersion.current !== version) return;
       setMessages((current) => applyGuestbookMessageLikeState(current, previousLikeState));
       setErrorMessage("点赞操作失败，请稍后重试。");
     } finally {
-      setLikingMessageIds((current) => {
-        const next = new Set(current);
-        next.delete(target.id);
-        return next;
-      });
+      if (lifecycleVersion.current === version) {
+        likesPending.current.delete(target.id);
+        setLikingMessageIds((current) => {
+          const next = new Set(current);
+          next.delete(target.id);
+          return next;
+        });
+      }
     }
   }
 
   async function loadMore() {
-    if (!pagination || isLoadingMore || pagination.page >= pagination.totalPages) {
+    if (!pagination || loadMoreController.current || pagination.page >= pagination.totalPages) {
       return;
     }
 
+    const controller = new AbortController();
+    loadMoreController.current = controller;
     setIsLoadingMore(true);
-    setErrorMessage(null);
+    setLoadMoreError(null);
 
     try {
       const nextPage = pagination.page + 1;
-      const nextMessages = await loadGuestbookMessages(nextPage, pagination.pageSize);
+      const nextMessages = await loadGuestbookMessages(
+        nextPage,
+        pagination.pageSize,
+        controller.signal,
+      );
+      if (controller.signal.aborted) return;
       setMessages((current) => appendUniqueGuestbookMessages(current, nextMessages.data));
       setPagination(nextMessages.pagination);
     } catch {
-      setErrorMessage("加载更多留言失败，请稍后重试。");
+      if (!controller.signal.aborted) setLoadMoreError("加载更多留言失败，已保留当前留言。");
     } finally {
-      setIsLoadingMore(false);
+      if (loadMoreController.current === controller) loadMoreController.current = null;
+      if (!controller.signal.aborted) setIsLoadingMore(false);
     }
   }
 
@@ -177,6 +235,8 @@ function useGuestbookBoard() {
     canLoadMore: pagination ? pagination.page < pagination.totalPages : false,
     errorMessage,
     guestNickname,
+    loadState,
+    loadMoreError,
     isLoadingMore,
     isSubmitting,
     latestMessage: messages[0] ?? null,
@@ -189,9 +249,10 @@ function useGuestbookBoard() {
     setWebsite,
     submitMessage,
     loadMore,
+    retryLoad: () => setLoadAttempt((current) => current + 1),
     logout,
     toggleLike,
-    totalMessages: pagination?.totalItems ?? messages.length,
+    totalMessages: pagination?.totalItems ?? null,
     user,
     website,
   };

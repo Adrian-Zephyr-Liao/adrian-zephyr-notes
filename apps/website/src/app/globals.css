@@ -2,7 +2,6 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@adrian-zephyr-notes/markdown/styles.css";
-@plugin "@tailwindcss/typography";
 @custom-variant dark (&:is(.dark *));
 
 :root {

@@ -21,10 +21,15 @@ function FeaturedReading({ articles }: { articles: ArticleListItemResponse[] }) 
   const [active, setActive] = useState(0);
   const startX = useRef<number | null>(null);
   const count = articles.length;
+  const activeIndex = count > 0 ? active % count : 0;
+
+  if (active !== activeIndex) setActive(activeIndex);
 
   function turn(direction: number) {
-    setActive((current) => (current + direction + count) % count);
+    if (count > 1) setActive((current) => ((current % count) + direction + count) % count);
   }
+
+  if (count === 0) return null;
 
   function handleArrowKey(event: KeyboardEvent<HTMLButtonElement>) {
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
@@ -52,7 +57,7 @@ function FeaturedReading({ articles }: { articles: ArticleListItemResponse[] }) 
     >
       <div className="relative mx-auto w-full max-w-188 pt-6 pb-12 perspective-[1200px] max-[850px]:max-w-140 max-[680px]:max-w-116 max-[680px]:pb-8">
         {articles.map((article, index) => {
-          const position = (index - active + count) % count;
+          const position = (index - activeIndex + count) % count;
           return (
             <article
               key={article.id}
@@ -106,7 +111,9 @@ function FeaturedReading({ articles }: { articles: ArticleListItemResponse[] }) 
             <ArrowLeft size={17} aria-hidden="true" />
           </button>
           <p className="font-mono text-[0.95rem] text-foreground">
-            <span className="mr-[0.4rem] text-primary">{String(active + 1).padStart(2, "0")}</span>{" "}
+            <span className="mr-[0.4rem] text-primary">
+              {String(activeIndex + 1).padStart(2, "0")}
+            </span>{" "}
             / {String(count).padStart(2, "0")}
           </p>
           <button
@@ -121,7 +128,7 @@ function FeaturedReading({ articles }: { articles: ArticleListItemResponse[] }) 
         </div>
       ) : null}
       <p className="sr-only" aria-live="polite" aria-atomic="true">
-        第 {active + 1} 篇，共 {count} 篇：{articles[active]?.title}
+        第 {activeIndex + 1} 篇，共 {count} 篇：{articles[activeIndex]?.title}
       </p>
     </section>
   );

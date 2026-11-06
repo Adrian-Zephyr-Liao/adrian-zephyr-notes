@@ -20,6 +20,12 @@ class ApiRequestError extends Error {
   }
 }
 
+class ApiResponseError extends Error {
+  constructor(readonly status: number) {
+    super(`Invalid JSON response: ${status}`);
+  }
+}
+
 async function requestJson<TResponse = void>(
   input: RequestInfo | URL,
   options: RequestJsonOptions = {},
@@ -38,13 +44,20 @@ async function requestJson<TResponse = void>(
     headers,
   });
   const responseText = await response.text();
-  const payload = parseJsonPayload(responseText);
-
   if (!response.ok) {
-    throw new ApiRequestError(response.status, toApiErrorPayload(payload));
+    throw new ApiRequestError(response.status, toApiErrorPayload(parseJsonPayload(responseText)));
   }
 
-  return payload as TResponse;
+  if (response.status === 204 || response.status === 205) {
+    return undefined as TResponse;
+  }
+
+  try {
+    return JSON.parse(responseText) as TResponse;
+  } catch {
+    // A successful write may already have committed. Never repeat the request here.
+    throw new ApiResponseError(response.status);
+  }
 }
 
 function isApiRequestError(error: unknown): error is ApiRequestError {
@@ -71,5 +84,5 @@ function toApiErrorPayload(payload: unknown): ApiErrorPayload | null {
   return payload as ApiErrorPayload;
 }
 
-export { ApiRequestError, isApiRequestError, requestJson };
+export { ApiRequestError, ApiResponseError, isApiRequestError, requestJson };
 export type { ApiErrorPayload, RequestJsonOptions };

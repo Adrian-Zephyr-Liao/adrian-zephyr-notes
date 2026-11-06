@@ -21,7 +21,11 @@ function ArticleComments({ slug }: { slug: string }) {
         canLoadMore={comments.canLoadMore}
         commentThreads={comments.commentThreads}
         expandedCommentIds={comments.expandedCommentIds}
+        initialLoadState={comments.initialLoadState}
+        loadErrorMessage={comments.loadErrorMessage}
+        onRetry={comments.retryLoadComments}
         isLoadingMore={comments.isLoadingMore}
+        isSubmitting={comments.isSubmitting}
         likingCommentIds={comments.likingCommentIds}
         onLoadMore={comments.loadMore}
         onReply={comments.replyToComment}
@@ -33,6 +37,7 @@ function ArticleComments({ slug }: { slug: string }) {
         body={comments.body}
         errorMessage={comments.errorMessage}
         isSubmitting={comments.isSubmitting}
+        isReadReady={comments.initialLoadState === "ready"}
         onBodyChange={comments.setBody}
         onCancelReply={comments.cancelReply}
         onSubmit={comments.submitComment}

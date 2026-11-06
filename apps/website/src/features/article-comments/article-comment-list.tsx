@@ -12,7 +12,11 @@ function ArticleCommentList({
   canLoadMore,
   commentThreads,
   expandedCommentIds,
+  initialLoadState,
+  loadErrorMessage,
+  onRetry,
   isLoadingMore,
+  isSubmitting,
   likingCommentIds,
   onLoadMore,
   onReply,
@@ -22,7 +26,11 @@ function ArticleCommentList({
   canLoadMore: boolean;
   commentThreads: ArticleCommentThreadItem[];
   expandedCommentIds: ReadonlySet<string>;
+  initialLoadState: "loading" | "ready" | "error";
+  loadErrorMessage: string | null;
+  onRetry: () => void;
   isLoadingMore: boolean;
+  isSubmitting: boolean;
   likingCommentIds: ReadonlySet<string>;
   onLoadMore: () => void;
   onReply: (comment: ArticleCommentResponse) => void;
@@ -30,8 +38,21 @@ function ArticleCommentList({
   onToggleReplies: (commentId: string) => void;
 }) {
   return (
-    <div className="min-w-0">
-      {commentThreads.length === 0 ? (
+    <div className="min-w-0" aria-busy={initialLoadState === "loading" || isLoadingMore}>
+      {initialLoadState === "loading" ? (
+        <output className="block px-4 py-7 text-center text-sm text-muted-foreground">
+          正在加载评论…
+        </output>
+      ) : initialLoadState === "error" ? (
+        <div className="grid justify-items-center gap-3 px-4 py-7">
+          <p role="alert" className="text-sm text-destructive">
+            {loadErrorMessage}
+          </p>
+          <Button type="button" variant="outline" onClick={onRetry}>
+            重新加载评论
+          </Button>
+        </div>
+      ) : commentThreads.length === 0 ? (
         <div className="grid justify-items-center gap-3 px-4 py-7 text-center">
           <StatusIllustration className="max-w-28" variant="empty-comments" />
           <div className="grid gap-1">
@@ -48,6 +69,7 @@ function ArticleCommentList({
               depth={0}
               expandedCommentIds={expandedCommentIds}
               likingCommentIds={likingCommentIds}
+              isSubmitting={isSubmitting}
               onReply={onReply}
               onToggleLike={onToggleLike}
               onToggleReplies={onToggleReplies}
@@ -56,10 +78,16 @@ function ArticleCommentList({
         </div>
       )}
 
+      {initialLoadState === "ready" && loadErrorMessage ? (
+        <p role="alert" className="px-4 py-2 text-center text-sm text-destructive">
+          {loadErrorMessage}
+        </p>
+      ) : null}
+
       {canLoadMore ? (
         <div className="flex justify-center px-4 py-3">
           <Button type="button" variant="outline" onClick={onLoadMore} disabled={isLoadingMore}>
-            {isLoadingMore ? "加载中" : "加载更多"}
+            {isLoadingMore ? "加载中" : loadErrorMessage ? "重试加载更多" : "加载更多"}
           </Button>
         </div>
       ) : null}
@@ -72,6 +100,7 @@ function CommentItem({
   depth,
   expandedCommentIds,
   likingCommentIds,
+  isSubmitting,
   onReply,
   onToggleLike,
   onToggleReplies,
@@ -80,6 +109,7 @@ function CommentItem({
   depth: number;
   expandedCommentIds: ReadonlySet<string>;
   likingCommentIds: ReadonlySet<string>;
+  isSubmitting: boolean;
   onReply: (comment: ArticleCommentResponse) => void;
   onToggleLike: (comment: ArticleCommentResponse) => void;
   onToggleReplies: (commentId: string) => void;
@@ -124,7 +154,11 @@ function CommentItem({
             <time dateTime={comment.createdAt} title={formatFullCommentDate(comment.createdAt)}>
               {formatCommentDate(comment.createdAt)}
             </time>
-            <InlineActionButton aria-label={`回复 ${authorName}`} onClick={() => onReply(comment)}>
+            <InlineActionButton
+              aria-label={`回复 ${authorName}`}
+              onClick={() => onReply(comment)}
+              disabled={isSubmitting}
+            >
               <Reply className="size-3.5" />
               回复
             </InlineActionButton>
@@ -162,6 +196,7 @@ function CommentItem({
               depth={depth + 1}
               expandedCommentIds={expandedCommentIds}
               likingCommentIds={likingCommentIds}
+              isSubmitting={isSubmitting}
               onReply={onReply}
               onToggleLike={onToggleLike}
               onToggleReplies={onToggleReplies}

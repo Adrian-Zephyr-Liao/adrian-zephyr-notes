@@ -29,8 +29,14 @@ function SiteHeaderDisclosure({
     }
 
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        closeDetails();
+      const details = detailsRef.current;
+      if (event.key !== "Escape" || event.defaultPrevented || !details?.open) return;
+
+      const restoreFocus = details.contains(document.activeElement);
+      closeDetails();
+      if (restoreFocus) {
+        details.querySelector<HTMLElement>(":scope > summary")?.focus();
+        event.preventDefault();
       }
     }
 

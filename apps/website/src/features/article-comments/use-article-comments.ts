@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type {
   ArticleCommentLikeResponse,
   ArticleCommentResponse,
@@ -32,6 +32,11 @@ function useArticleComments(slug: string) {
     () => new Set(),
   );
   const [likingCommentIds, setLikingCommentIds] = useState<ReadonlySet<string>>(() => new Set());
+  const requestVersion = useRef(0);
+  const [initialLoadState, setInitialLoadState] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
+  const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -40,16 +45,49 @@ function useArticleComments(slug: string) {
     [slug],
   );
 
+  const loadInitialComments = useCallback(
+    async (version: number) => {
+      setInitialLoadState("loading");
+      setLoadErrorMessage(null);
+      try {
+        const result = await loadArticleComments(slug);
+        if (requestVersion.current !== version) return;
+        setComments(result.data);
+        setPagination(result.pagination);
+        setInitialLoadState("ready");
+      } catch {
+        if (requestVersion.current !== version) return;
+        setInitialLoadState("error");
+        setLoadErrorMessage("评论加载失败，请重试。");
+      }
+    },
+    [slug],
+  );
+
   useEffect(() => {
+    const version = ++requestVersion.current;
+    setComments([]);
+    setPagination(null);
+    setUser(null);
+    setBody("");
+    setReplyTarget(null);
     setExpandedCommentIds(new Set());
-    void Promise.all([loadArticleComments(slug), loadCurrentUser()]).then(
-      ([commentsResult, userResult]) => {
-        setComments(commentsResult.data);
-        setPagination(commentsResult.pagination);
-        setUser(userResult);
-      },
-    );
-  }, [slug]);
+    setLikingCommentIds(new Set());
+    setErrorMessage(null);
+    setIsSubmitting(false);
+    setIsLoadingMore(false);
+    void loadInitialComments(version);
+    void loadCurrentUser().then((currentUser) => {
+      if (requestVersion.current === version) setUser(currentUser);
+    });
+    return () => {
+      requestVersion.current = version + 1;
+    };
+  }, [loadInitialComments]);
+
+  function retryLoadComments() {
+    return loadInitialComments(requestVersion.current);
+  }
 
   useEffect(() => {
     if (replyTarget) {
@@ -60,10 +98,11 @@ function useArticleComments(slug: string) {
   async function submitComment() {
     const trimmedBody = body.trim();
 
-    if (!trimmedBody || isSubmitting) {
+    if (!trimmedBody || isSubmitting || initialLoadState !== "ready") {
       return;
     }
 
+    const version = requestVersion.current;
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -73,6 +112,7 @@ function useArticleComments(slug: string) {
         parentCommentId: replyTarget?.id ?? null,
         slug,
       });
+      if (requestVersion.current !== version) return;
       const expansionTargetId = comment.parentCommentId
         ? findReplyExpansionTargetId(comments, comment.parentCommentId)
         : null;
@@ -96,23 +136,34 @@ function useArticleComments(slug: string) {
       setBody("");
       setReplyTarget(null);
     } catch (error) {
+      if (requestVersion.current !== version) return;
       if (isApiRequestError(error) && error.status === 401) {
         window.location.href = loginUrl;
         return;
       }
 
-      setErrorMessage(replyTarget ? "回复发布失败，请稍后重试。" : "评论发布失败，请稍后重试。");
+      setErrorMessage(
+        isApiRequestError(error) && error.status >= 400 && error.status < 500
+          ? "评论未发布，请检查内容或稍后重试。"
+          : "发布结果尚未确认，请刷新页面核对评论后再试。",
+      );
     } finally {
-      setIsSubmitting(false);
+      if (requestVersion.current === version) setIsSubmitting(false);
     }
   }
 
   async function logout() {
-    await logoutCurrentUser();
-    setUser(null);
+    const version = requestVersion.current;
+    try {
+      await logoutCurrentUser();
+      if (requestVersion.current === version) setUser(null);
+    } catch {
+      if (requestVersion.current === version) setErrorMessage("退出失败，请稍后重试。");
+    }
   }
 
   function replyToComment(target: ArticleCommentResponse) {
+    if (isSubmitting) return;
     if (!user) {
       window.location.href = loginUrl;
       return;
@@ -132,6 +183,7 @@ function useArticleComments(slug: string) {
       return;
     }
 
+    const version = requestVersion.current;
     const previousLikeState: ArticleCommentLikeResponse = {
       commentId: target.id,
       likeCount: target.likeCount,
@@ -149,8 +201,10 @@ function useArticleComments(slug: string) {
 
     try {
       const likeState = await toggleArticleCommentLike(target);
+      if (requestVersion.current !== version) return;
       setComments((current) => applyCommentLikeState(current, likeState));
     } catch (error) {
+      if (requestVersion.current !== version) return;
       if (isApiRequestError(error) && error.status === 401) {
         window.location.href = loginUrl;
         return;
@@ -159,11 +213,12 @@ function useArticleComments(slug: string) {
       setComments((current) => applyCommentLikeState(current, previousLikeState));
       setErrorMessage("点赞操作失败，请稍后重试。");
     } finally {
-      setLikingCommentIds((current) => {
-        const next = new Set(current);
-        next.delete(target.id);
-        return next;
-      });
+      if (requestVersion.current === version)
+        setLikingCommentIds((current) => {
+          const next = new Set(current);
+          next.delete(target.id);
+          return next;
+        });
     }
   }
 
@@ -172,17 +227,20 @@ function useArticleComments(slug: string) {
       return;
     }
 
+    const version = requestVersion.current;
     setIsLoadingMore(true);
+    setLoadErrorMessage(null);
 
     try {
       const nextPage = pagination.page + 1;
       const nextComments = await loadArticleComments(slug, nextPage, pagination.pageSize);
+      if (requestVersion.current !== version) return;
       setComments((current) => mergeRootComments(current, nextComments.data));
       setPagination(nextComments.pagination);
     } catch {
-      setErrorMessage("加载更多评论失败，请稍后重试。");
+      if (requestVersion.current === version) setLoadErrorMessage("加载更多评论失败，请重试。");
     } finally {
-      setIsLoadingMore(false);
+      if (requestVersion.current === version) setIsLoadingMore(false);
     }
   }
 
@@ -207,6 +265,9 @@ function useArticleComments(slug: string) {
     comments,
     errorMessage,
     expandedCommentIds,
+    initialLoadState,
+    loadErrorMessage,
+    retryLoadComments,
     isLoadingMore,
     isSubmitting,
     likingCommentIds,
@@ -222,7 +283,9 @@ function useArticleComments(slug: string) {
     toggleLike,
     toggleReplyExpansion,
     user,
-    cancelReply: () => setReplyTarget(null),
+    cancelReply: () => {
+      if (!isSubmitting) setReplyTarget(null);
+    },
   };
 }
 

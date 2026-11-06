@@ -19,9 +19,12 @@ function GuestbookBoard() {
           <GuestbookMessageList
             canLoadMore={guestbook.canLoadMore}
             isLoadingMore={guestbook.isLoadingMore}
+            loadState={guestbook.loadState}
+            loadMoreError={guestbook.loadMoreError}
             likingMessageIds={guestbook.likingMessageIds}
             messages={guestbook.messages}
             onLoadMore={guestbook.loadMore}
+            onRetry={guestbook.retryLoad}
             onToggleLike={guestbook.toggleLike}
             totalItems={guestbook.pagination?.totalItems ?? null}
           />
@@ -30,6 +33,7 @@ function GuestbookBoard() {
             errorMessage={guestbook.errorMessage}
             guestNickname={guestbook.guestNickname}
             isSubmitting={guestbook.isSubmitting}
+            isReadReady={guestbook.loadState === "ready"}
             loginUrl={guestbook.loginUrl}
             onBodyChange={guestbook.setBody}
             onGuestNicknameChange={guestbook.setGuestNickname}

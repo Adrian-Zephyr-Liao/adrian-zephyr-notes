@@ -29,28 +29,45 @@ commands and should not be used for new code.
 ## Structure
 
 ```text
-src/app/                       Routes, metadata, data loading, and API proxies
-src/components/site/           Shared navigation, footer, page layouts, and status UI
-src/components/ui/             Reusable UI primitives
-src/entities/article/          Article cards and CDN cover presentation
-src/features/home/             Home content and discovery interactions
-src/features/article-archive/  Archive search, view selection, and pagination
-src/features/article-taxonomy/ Category and tag browsing
-src/features/article-reading/  Reading layout, contents, summaries, and notices
-src/features/article-comments/ Article comment workflow
-src/features/guestbook/         Guestbook UI, state, and API adapter
-src/lib/                       Existing public API clients and backend proxy helpers
+src/app/             Next.js routes, metadata, loading/error UI, and API proxies
+src/components/site/ shared header, footer, page shells, and status UI
+src/components/ui/   design-system primitives
+src/entities/        article cards and resilient cover images
+src/features/        home, archive, taxonomy, reading, comments, and guestbook
+src/lib/             public API clients and backend proxy helpers
+packages/markdown/   shared Markdown renderer and reading navigation
 ```
 
 Client-side API calls should go through `src/lib/api-client.ts` or a focused
 feature client. Cookie-sensitive browser calls should prefer same-origin
 `src/app/api/*` routes instead of calling the NestJS API directly.
 
+Production Caddy routes `/api/*` directly to the NestJS server. Verify public
+authentication and content endpoints after deployment as well as the local proxy.
+Read failures must remain distinguishable from empty content. A write without a
+confirmed response may have committed; preserve the draft and ask the reader to
+check the current content before resubmitting.
+
 ## Commands
 
-| Command                                        | Description               |
-| ---------------------------------------------- | ------------------------- |
-| `vp run -F @adrian-zephyr-notes/website dev`   | Start the dev server      |
-| `vp run -F @adrian-zephyr-notes/website test`  | Run website tests         |
-| `vp run -F @adrian-zephyr-notes/website build` | Build the production site |
-| `vp run -F @adrian-zephyr-notes/website start` | Start a production build  |
+| Command                                               | Description                        |
+| ----------------------------------------------------- | ---------------------------------- |
+| `vp run -F @adrian-zephyr-notes/website dev`          | Start the dev server               |
+| `vp run -F @adrian-zephyr-notes/website test`         | Run website tests                  |
+| `vp run -F @adrian-zephyr-notes/website test:browser` | Run desktop/mobile Chromium checks |
+| `vp run -F @adrian-zephyr-notes/website build`        | Build the production site          |
+| `vp run -F @adrian-zephyr-notes/website start`        | Start a production build           |
+
+Browser checks require a current production build and Playwright's Chromium:
+
+```bash
+vp run -F @adrian-zephyr-notes/website build
+vp exec -F @adrian-zephyr-notes/website playwright install chromium
+vp run -F @adrian-zephyr-notes/website test:browser
+```
+
+The suite starts the actual standalone website on port 3104 and a fixed-response
+API fixture on port 4311. It covers layout, keyboard navigation, theme persistence,
+touch cover navigation, archive URLs, and discussion read failures. It does not
+verify database behavior or production authentication. Failed tests retain traces
+and screenshots in `test-results/`; CI uploads those artifacts for seven days.

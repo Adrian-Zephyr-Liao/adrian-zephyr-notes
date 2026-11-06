@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ApiRequestError, isApiRequestError, requestJson } from "./api-client";
+import { ApiRequestError, ApiResponseError, isApiRequestError, requestJson } from "./api-client";
 
 describe("requestJson", () => {
   beforeEach(() => {
@@ -75,6 +75,34 @@ describe("requestJson", () => {
   it("identifies request errors", () => {
     expect(isApiRequestError(new ApiRequestError(404, null))).toBe(true);
     expect(isApiRequestError(new Error("plain"))).toBe(false);
+  });
+
+  it.each(["", "<html>upstream error</html>", '{"incomplete":'])(
+    "rejects an invalid successful JSON response without repeating a write: %s",
+    async (body) => {
+      const fetch = mockFetch(new Response(body, { status: 201 }));
+
+      await expect(
+        requestJson("/api/guestbook/messages", { method: "POST", json: { body: "hello" } }),
+      ).rejects.toBeInstanceOf(ApiResponseError);
+      expect(fetch).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([204, 205])("accepts an intentionally empty %i response", async (status) => {
+    mockFetch(new Response(null, { status }));
+
+    await expect(requestJson("/api/auth/logout", { method: "POST" })).resolves.toBeUndefined();
+  });
+
+  it("retains HTTP failure status when the error body is not JSON", async () => {
+    mockFetch(new Response("Bad gateway", { status: 502 }));
+
+    await expect(requestJson("/api/example")).rejects.toMatchObject({
+      status: 502,
+      payload: null,
+      message: "Request failed: 502",
+    });
   });
 });
 

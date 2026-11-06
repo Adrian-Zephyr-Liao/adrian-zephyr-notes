@@ -6,6 +6,7 @@ import { useState } from "react";
 import type { ArticleListItemResponse } from "@adrian-zephyr-notes/contracts";
 
 import { cn } from "@/lib/utils";
+import { getArticleCoverSource } from "./article-cover-source";
 
 function ArticleCover({
   article,
@@ -20,7 +21,7 @@ function ArticleCover({
 }) {
   const [failedSource, setFailedSource] = useState<string | null>(null);
   const [failedOptimization, setFailedOptimization] = useState<string | null>(null);
-  const source = article.coverImageUrl;
+  const source = getArticleCoverSource(article.coverImageUrl);
   const unoptimized = source
     ? failedOptimization === source ||
       (source.startsWith("http") && !source.startsWith("https://img.zephyrai.site/"))

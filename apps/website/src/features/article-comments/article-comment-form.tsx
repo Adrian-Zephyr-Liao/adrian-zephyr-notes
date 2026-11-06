@@ -9,6 +9,7 @@ function ArticleCommentForm({
   body,
   errorMessage,
   isSubmitting,
+  isReadReady,
   onBodyChange,
   onCancelReply,
   onSubmit,
@@ -19,6 +20,7 @@ function ArticleCommentForm({
   body: string;
   errorMessage: string | null;
   isSubmitting: boolean;
+  isReadReady: boolean;
   onBodyChange: (body: string) => void;
   onCancelReply: () => void;
   onSubmit: () => void;
@@ -50,6 +52,7 @@ function ArticleCommentForm({
             size="icon"
             onClick={onCancelReply}
             aria-label="取消回复"
+            disabled={isSubmitting}
           >
             <X className="size-4" />
           </Button>
@@ -71,14 +74,14 @@ function ArticleCommentForm({
           minLength={1}
           maxLength={1000}
           placeholder={user ? (replyTarget ? "回复一下..." : "说点什么...") : "登录后可以发表评论"}
-          disabled={!user || isSubmitting}
-          className="min-h-20 w-full min-w-0 resize-y rounded-xl border border-border bg-transparent px-3.5 py-3 text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={!user || !isReadReady || isSubmitting}
+          className="min-h-20 w-full min-w-0 resize-y rounded-xl border border-border bg-transparent px-3.5 py-3 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
         />
         <Button
           type="submit"
           size="icon-sm"
           className="self-end"
-          disabled={!user || body.trim().length === 0 || isSubmitting}
+          disabled={!user || !isReadReady || body.trim().length === 0 || isSubmitting}
           aria-label={replyTarget ? "发布回复" : "发布评论"}
         >
           <Send className="size-4" />

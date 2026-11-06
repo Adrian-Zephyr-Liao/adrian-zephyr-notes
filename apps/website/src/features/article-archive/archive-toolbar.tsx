@@ -50,7 +50,7 @@ function ArchiveToolbar({
               key={query.category ?? ""}
               name="category"
               defaultValue={query.category ?? ""}
-              className="min-h-[2.85rem] w-full cursor-pointer appearance-none border-0 bg-transparent py-[0.6rem] pr-8 pl-[0.85rem] text-[0.9rem] text-foreground outline-0 [&_option]:bg-background [&_option]:text-foreground"
+              className="min-h-[2.85rem] w-full cursor-pointer appearance-none border-0 bg-transparent py-[0.6rem] pr-8 pl-[0.85rem] text-[0.9rem] text-foreground outline-0 max-[600px]:text-base [&_option]:bg-background [&_option]:text-foreground"
             >
               <option value="">全部分类</option>
               {query.category && !categoryName ? (
