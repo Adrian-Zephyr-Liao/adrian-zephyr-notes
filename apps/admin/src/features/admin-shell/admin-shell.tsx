@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import type { AdminUserResponse } from "@adrian-zephyr-notes/contracts";
 import {
   BookOpenText,
-  Bot,
   ChevronRight,
   FileText,
   FolderTree,
@@ -38,14 +37,7 @@ import {
 import { logoutAdmin } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
 
-type AdminSectionKey =
-  | "agent"
-  | "articles"
-  | "audit"
-  | "comments"
-  | "guestbook"
-  | "overview"
-  | "site";
+type AdminSectionKey = "articles" | "audit" | "comments" | "guestbook" | "overview" | "site";
 type AdminShellProps = {
   admin: AdminUserResponse;
   articlePage?: "categories" | "list" | "tags";
@@ -58,7 +50,7 @@ type AdminNavItem = {
   icon: LucideIcon;
   key: AdminSectionKey;
   label: string;
-  to: "/" | "/agent" | "/articles" | "/audit" | "/comments" | "/guestbook" | "/site";
+  to: "/" | "/articles" | "/audit" | "/comments" | "/guestbook" | "/site";
 };
 type AdminNavGroup = {
   items: AdminNavItem[];
@@ -174,37 +166,29 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
           </SidebarFooter>
         </Sidebar>
 
-        <SidebarInset className={cn(section === "agent" && "overflow-hidden")}>
-          {section === "agent" ? null : (
-            <header className="sticky top-0 z-20 flex min-h-20 w-full items-center border-b border-(--glass-border) bg-(--glass-surface-strong) px-4 py-3 shadow-(--shadow-glass) backdrop-blur-2xl sm:px-6 lg:px-8 dark:border-transparent">
-              <div>
-                {section === "articles" ? (
-                  <nav
-                    aria-label="面包屑"
-                    className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+        <SidebarInset>
+          <header className="sticky top-0 z-20 flex min-h-20 w-full items-center border-b border-(--glass-border) bg-(--glass-surface-strong) px-4 py-3 shadow-(--shadow-glass) backdrop-blur-2xl sm:px-6 lg:px-8 dark:border-transparent">
+            <div>
+              {section === "articles" ? (
+                <nav
+                  aria-label="面包屑"
+                  className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground"
+                >
+                  <Link
+                    className="transition-colors duration-150 ease-(--ease-out-ui) hover:text-foreground"
+                    to="/articles"
                   >
-                    <Link
-                      className="transition-colors duration-150 ease-(--ease-out-ui) hover:text-foreground"
-                      to="/articles"
-                    >
-                      文章工作台
-                    </Link>
-                    <ChevronRight className="size-3" />
-                    <span aria-current="page">{sectionMeta.title}</span>
-                  </nav>
-                ) : null}
-                <h1 className="mt-1 text-xl font-semibold tracking-normal">{sectionMeta.title}</h1>
-                <p className="mt-0.5 text-xs text-muted-foreground">{sectionMeta.description}</p>
-              </div>
-            </header>
-          )}
-          <div
-            id="admin-content"
-            className={cn(
-              "mx-auto w-full max-w-[1600px] p-3 sm:p-5 lg:p-7",
-              section === "agent" && "max-w-none p-2 sm:p-3 lg:p-4",
-            )}
-          >
+                    文章工作台
+                  </Link>
+                  <ChevronRight className="size-3" />
+                  <span aria-current="page">{sectionMeta.title}</span>
+                </nav>
+              ) : null}
+              <h1 className="mt-1 text-xl font-semibold tracking-normal">{sectionMeta.title}</h1>
+              <p className="mt-0.5 text-xs text-muted-foreground">{sectionMeta.description}</p>
+            </div>
+          </header>
+          <div id="admin-content" className="mx-auto w-full max-w-[1600px] p-3 sm:p-5 lg:p-7">
             {children}
           </div>
         </SidebarInset>
@@ -214,10 +198,6 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
 }
 
 const adminSectionMeta: Record<AdminSectionKey, { description: string; title: string }> = {
-  agent: {
-    description: "用对话与可确认任务协助内容运营。",
-    title: "Agent 工作台",
-  },
   articles: {
     description: "管理文章、分类、标签与发布进度。",
     title: "文章工作台",
@@ -239,7 +219,7 @@ const adminSectionMeta: Record<AdminSectionKey, { description: string; title: st
     title: "运营工作台",
   },
   site: {
-    description: "维护读者侧展示与 Agent 治理策略。",
+    description: "维护首页、导航、公告和社交链接。",
     title: "站点配置",
   },
 };
@@ -310,12 +290,6 @@ function createAdminNavGroups(): AdminNavGroup[] {
           key: "articles",
           label: "文章",
           to: "/articles",
-        },
-        {
-          icon: Bot,
-          key: "agent",
-          label: "Agent 助手",
-          to: "/agent",
         },
       ],
     },

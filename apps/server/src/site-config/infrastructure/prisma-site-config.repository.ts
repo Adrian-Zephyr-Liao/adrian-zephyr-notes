@@ -28,10 +28,6 @@ class PrismaSiteConfigRepository implements SiteConfigRepository {
     const settingsByKey = new Map(records.map((record) => [record.key, record.value]));
 
     return normalizeSiteConfigSettings({
-      adminAgentAutomationPolicy: toSettingValue(
-        settingsByKey.get(SITE_SETTING_KEYS.adminAgentAutomationPolicy),
-        defaultSiteConfigSettings.adminAgentAutomationPolicy,
-      ),
       home: toSettingValue(
         settingsByKey.get(SITE_SETTING_KEYS.home),
         defaultSiteConfigSettings.home,
@@ -85,14 +81,6 @@ class PrismaSiteConfigRepository implements SiteConfigRepository {
 
     await this.prisma.$transaction([
       this.prisma.siteSetting.upsert({
-        where: { key: SITE_SETTING_KEYS.adminAgentAutomationPolicy },
-        update: { value: normalizedSettings.adminAgentAutomationPolicy },
-        create: {
-          key: SITE_SETTING_KEYS.adminAgentAutomationPolicy,
-          value: normalizedSettings.adminAgentAutomationPolicy,
-        },
-      }),
-      this.prisma.siteSetting.upsert({
         where: { key: SITE_SETTING_KEYS.home },
         update: { value: normalizedSettings.home },
         create: { key: SITE_SETTING_KEYS.home, value: normalizedSettings.home },
@@ -116,30 +104,22 @@ class PrismaSiteConfigRepository implements SiteConfigRepository {
   }
 
   async updateAnnouncement(input: UpdateSiteAnnouncementInput) {
-    return updatePrismaSiteAnnouncement(this.prisma.siteAnnouncement, input);
-  }
-}
+    try {
+      const record = await this.prisma.siteAnnouncement.update({
+        where: {
+          id: input.id,
+        },
+        data: toSiteAnnouncementUpdateData(input),
+      });
 
-/** Uses the caller's connection so an Agent effect and its receipt can share one transaction. */
-async function updatePrismaSiteAnnouncement(
-  announcements: Prisma.TransactionClient["siteAnnouncement"],
-  input: UpdateSiteAnnouncementInput,
-) {
-  try {
-    const record = await announcements.update({
-      where: {
-        id: input.id,
-      },
-      data: toSiteAnnouncementUpdateData(input),
-    });
+      return toDomainSiteAnnouncement(record);
+    } catch (error) {
+      if (isPrismaRecordNotFound(error)) {
+        return null;
+      }
 
-    return toDomainSiteAnnouncement(record);
-  } catch (error) {
-    if (isPrismaRecordNotFound(error)) {
-      return null;
+      throw error;
     }
-
-    throw error;
   }
 }
 
@@ -201,4 +181,4 @@ function isPrismaRecordNotFound(error: unknown) {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2025";
 }
 
-export { PrismaSiteConfigRepository, updatePrismaSiteAnnouncement };
+export { PrismaSiteConfigRepository };

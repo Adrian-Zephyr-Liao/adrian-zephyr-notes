@@ -199,11 +199,6 @@ const auditActionMeta: Record<
   AdminOperationLogAction,
   { label: string; variant: "default" | "destructive" | "outline" | "success" | "warning" }
 > = {
-  ADMIN_AGENT_FINDING_CREATED: { label: "Agent 建议", variant: "default" },
-  ADMIN_AGENT_FINDING_DECIDED: { label: "Agent 决策", variant: "outline" },
-  ADMIN_AGENT_TASK_CONTROLLED: { label: "Agent 操作", variant: "warning" },
-  ADMIN_AGENT_TASK_RESUMED: { label: "Agent 确认", variant: "success" },
-  ADMIN_AGENT_TASK_STARTED: { label: "Agent 发起", variant: "default" },
   ARTICLE_CREATED: { label: "文章创建", variant: "success" },
   ARTICLE_CATEGORY_CREATED: { label: "分类创建", variant: "success" },
   ARTICLE_CATEGORY_DELETED: { label: "分类删除", variant: "destructive" },

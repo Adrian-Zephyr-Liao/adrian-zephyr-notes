@@ -20,53 +20,6 @@ describe("createAdminOperationSummary", () => {
     ).toBe("评论已设为可见");
   });
 
-  it("formats agent decision summaries without implementation details", () => {
-    expect(
-      createAdminOperationSummary({
-        action: "ADMIN_AGENT_FINDING_DECIDED",
-        metadata: { decision: "EXECUTE_PROPOSED_ACTION" },
-        resourceType: "article_comment",
-      }),
-    ).toBe("管理员已批准屏蔽 Agent 建议");
-
-    expect(
-      createAdminOperationSummary({
-        action: "ADMIN_AGENT_FINDING_CREATED",
-        metadata: { findingCount: 3 },
-        resourceType: "article_comment",
-      }),
-    ).toBe("Agent 生成 3 条风险建议");
-  });
-
-  it("formats agent task lifecycle summaries without runtime details", () => {
-    expect(
-      createAdminOperationSummary({
-        action: "ADMIN_AGENT_TASK_STARTED",
-        metadata: { taskName: "comment_moderation_analysis", taskTitle: "评论治理分析" },
-        resourceId: "run-1",
-        resourceType: "ADMIN_AGENT_TASK",
-      }),
-    ).toBe("发起评论治理分析");
-
-    expect(
-      createAdminOperationSummary({
-        action: "ADMIN_AGENT_TASK_CONTROLLED",
-        metadata: { action: "retry", taskName: "comment_moderation_analysis" },
-        resourceId: "run-1",
-        resourceType: "ADMIN_AGENT_TASK",
-      }),
-    ).toBe("重新处理评论治理分析");
-
-    expect(
-      createAdminOperationSummary({
-        action: "ADMIN_AGENT_TASK_RESUMED",
-        metadata: { taskTitle: "评论治理分析" },
-        resourceId: "run-1",
-        resourceType: "ADMIN_AGENT_TASK",
-      }),
-    ).toBe("确认评论治理分析");
-  });
-
   it("formats content and site operation summaries", () => {
     expect(
       createAdminOperationSummary({

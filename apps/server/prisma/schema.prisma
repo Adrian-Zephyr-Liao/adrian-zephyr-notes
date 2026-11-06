@@ -35,103 +35,25 @@ enum ArticleAiSummaryStatus {
   FAILED
 }
 
-enum AdminAgentRunStatus {
-  PENDING
-  RUNNING
-  WAITING_FOR_APPROVAL
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum AdminAgentFindingStatus {
-  PENDING
-  REJECTED
-  EXECUTED
-  RESTORED
-  FAILED
-}
-
-enum AdminAgentWorkflowEventType {
-  RUN_CREATED
-  RUN_ATTEMPT_STARTED
-  RUN_RESUMED
-  CONTROLLED
-  NODE_STARTED
-  INTERRUPTED
-  COMPLETED
-  FAILED
-  CANCELLED
-}
-
-enum AdminAgentWorkflowActionExecutionStatus {
-  RUNNING
-  SUCCEEDED
-  FAILED
-}
-
-enum AdminAgentDecisionEffectType {
-  FINDING_DECISION_AUDIT
-  COMMENT_STATUS_AUDIT
-  RUN_COMPLETION
-}
-
-enum AdminAgentDecisionEffectStatus {
-  PENDING
-  SUCCEEDED
-  FAILED
-}
-
-enum AdminAgentMessageRole {
-  USER
-  ASSISTANT
-  REASONING
-  TOOL
-  ACTIVITY
-}
-
-enum AdminAgentFindingTargetType {
-  ARTICLE_COMMENT
-}
-
-enum AdminAgentFindingCategory {
-  SPAM
-  HARASSMENT
-  ABUSE
-  SENSITIVE
-  OTHER
-}
-
-enum AdminAgentFindingSeverity {
-  LOW
-  MEDIUM
-  HIGH
-}
-
-enum AdminAgentProposedAction {
-  HIDE_COMMENT
-  NO_ACTION
-}
-
 model Article {
-  id             String            @id @default(uuid()) @db.Uuid
-  slug           String            @unique
+  id             String                    @id @default(uuid()) @db.Uuid
+  slug           String                    @unique
   title          String
   description    String
   markdown       String
   status         ArticleStatus
-  origin         ArticleOrigin     @default(ORIGINAL)
-  sourceName     String?           @map("source_name")
-  sourceAuthor   String?           @map("source_author")
-  sourceUrl      String?           @map("source_url")
-  categoryId     String?           @map("category_id") @db.Uuid
-  coverImageUrl  String?           @map("cover_image_url")
-  wordCount      Int               @map("word_count")
-  readingMinutes Int               @map("reading_minutes")
-  publishedAt    DateTime?         @map("published_at") @db.Timestamptz(6)
-  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
-  category       ArticleCategory?  @relation(fields: [categoryId], references: [id])
+  origin         ArticleOrigin             @default(ORIGINAL)
+  sourceName     String?                   @map("source_name")
+  sourceAuthor   String?                   @map("source_author")
+  sourceUrl      String?                   @map("source_url")
+  categoryId     String?                   @map("category_id") @db.Uuid
+  coverImageUrl  String?                   @map("cover_image_url")
+  wordCount      Int                       @map("word_count")
+  readingMinutes Int                       @map("reading_minutes")
+  publishedAt    DateTime?                 @map("published_at") @db.Timestamptz(6)
+  createdAt      DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  category       ArticleCategory?          @relation(fields: [categoryId], references: [id])
   tags           ArticleTagLink[]
   revisions      ArticleRevision[]
   comments       ArticleComment[]
@@ -165,25 +87,22 @@ model ArticleAiSummary {
 }
 
 model User {
-  id             String           @id @default(uuid()) @db.Uuid
-  githubId       String           @unique @map("github_id")
-  login          String
-  name           String?
-  email          String?
-  avatarUrl      String?          @map("avatar_url")
-  profileUrl     String           @map("profile_url")
-  createdAt      DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  sessions       UserSession[]
-  articleComments ArticleComment[]
-  articleCommentLikes ArticleCommentLike[]
-  guestbookMessages GuestbookMessage[]
+  id                    String                    @id @default(uuid()) @db.Uuid
+  githubId              String                    @unique @map("github_id")
+  login                 String
+  name                  String?
+  email                 String?
+  avatarUrl             String?                   @map("avatar_url")
+  profileUrl            String                    @map("profile_url")
+  createdAt             DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  sessions              UserSession[]
+  articleComments       ArticleComment[]
+  articleCommentLikes   ArticleCommentLike[]
+  guestbookMessages     GuestbookMessage[]
   guestbookMessageLikes GuestbookMessageLike[]
-  adminOperationLogs AdminOperationLog[]
-  articleEditorDrafts AdminArticleEditorDraft[]
-  adminAgentRuns AdminAgentRun[]
-  adminAgentMessages AdminAgentMessage[]
-  adminAgentConversations AdminAgentConversation[]
+  adminOperationLogs    AdminOperationLog[]
+  articleEditorDrafts   AdminArticleEditorDraft[]
 
   @@map("users")
 }
@@ -220,13 +139,13 @@ model AdminArticleEditorDraft {
 }
 
 model UserSession {
-  id           String   @id @default(uuid()) @db.Uuid
-  userId       String   @map("user_id") @db.Uuid
-  tokenHash    String   @unique @map("token_hash")
-  expiresAt    DateTime @map("expires_at") @db.Timestamptz(6)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  lastSeenAt   DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id         String   @id @default(uuid()) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  tokenHash  String   @unique @map("token_hash")
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([expiresAt])
@@ -234,21 +153,20 @@ model UserSession {
 }
 
 model ArticleComment {
-  id              String           @id @default(uuid()) @db.Uuid
-  articleId       String           @map("article_id") @db.Uuid
-  authorId        String           @map("author_id") @db.Uuid
-  parentCommentId String?          @map("parent_comment_id") @db.Uuid
+  id              String               @id @default(uuid()) @db.Uuid
+  articleId       String               @map("article_id") @db.Uuid
+  authorId        String               @map("author_id") @db.Uuid
+  parentCommentId String?              @map("parent_comment_id") @db.Uuid
   body            String
-  likeCount       Int              @default(0) @map("like_count")
+  likeCount       Int                  @default(0) @map("like_count")
   status          ArticleCommentStatus @default(VISIBLE)
-  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(6)
-  article         Article          @relation(fields: [articleId], references: [id], onDelete: Cascade)
-  author          User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parentComment   ArticleComment?  @relation("ArticleCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
-  replies         ArticleComment[] @relation("ArticleCommentReplies")
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  article         Article              @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  author          User                 @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parentComment   ArticleComment?      @relation("ArticleCommentReplies", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  replies         ArticleComment[]     @relation("ArticleCommentReplies")
   likes           ArticleCommentLike[]
-  adminAgentFindings AdminAgentFinding[]
 
   @@index([articleId, parentCommentId, status, createdAt])
   @@index([authorId])
@@ -394,150 +312,4 @@ model AdminOperationLog {
   @@index([action, createdAt(sort: Desc)])
   @@index([resourceType, resourceId])
   @@map("admin_operation_logs")
-}
-
-model AdminAgentRun {
-  id              String              @id @default(uuid()) @db.Uuid
-  type            String
-  workflowName    String              @map("workflow_name")
-  threadId        String?             @unique @map("thread_id")
-  dedupeKey       String?             @unique @map("dedupe_key")
-  parentRunId     String?             @map("parent_run_id") @db.Uuid
-  parentRunRelation String?           @map("parent_run_relation")
-  status          AdminAgentRunStatus @default(PENDING)
-  startedByUserId String?             @map("started_by_user_id") @db.Uuid
-  input           Json
-  output          Json?
-  metadata        Json?
-  currentNode     String?             @map("current_node")
-  interruption    Json?
-  attemptCount    Int                 @default(0) @map("attempt_count")
-  summary         String?
-  errorMessage    String?             @map("error_message")
-  lastResumedAt   DateTime?           @map("last_resumed_at") @db.Timestamptz(6)
-  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz(6)
-  startedBy       User?               @relation(fields: [startedByUserId], references: [id], onDelete: SetNull)
-  parentRun       AdminAgentRun?      @relation("AdminAgentRunBranches", fields: [parentRunId], references: [id], onDelete: SetNull)
-  childRuns       AdminAgentRun[]     @relation("AdminAgentRunBranches")
-  findings        AdminAgentFinding[]
-  events          AdminAgentWorkflowEvent[]
-  actionExecutions AdminAgentWorkflowActionExecution[]
-  decisionEffects AdminAgentDecisionEffect[]
-
-  @@index([status, createdAt(sort: Desc)])
-  @@index([type, createdAt(sort: Desc)])
-  @@index([workflowName, createdAt(sort: Desc)])
-  @@index([parentRunId, createdAt(sort: Desc)])
-  @@index([parentRunRelation, createdAt(sort: Desc)])
-  @@index([startedByUserId, createdAt(sort: Desc)])
-  @@map("admin_agent_runs")
-}
-
-model AdminAgentConversation {
-  id String @id
-  ownerUserId String @map("owner_user_id") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  owner User @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
-
-  @@index([ownerUserId, createdAt])
-  @@map("admin_agent_conversations")
-}
-
-model AdminAgentMessage {
-  id             String                @id
-  conversationId String                @map("conversation_id")
-  role           AdminAgentMessageRole
-  message        Json
-  durationMs     Int?                  @map("duration_ms")
-  actorUserId    String?               @map("actor_user_id") @db.Uuid
-  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
-  actor          User?                 @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
-
-  @@index([conversationId, createdAt])
-  @@index([conversationId, role, createdAt])
-  @@index([actorUserId, createdAt])
-  @@map("admin_agent_messages")
-}
-
-model AdminAgentWorkflowEvent {
-  id        String                      @id @default(uuid()) @db.Uuid
-  runId     String                      @map("run_id") @db.Uuid
-  type      AdminAgentWorkflowEventType
-  node      String?
-  summary   String?
-  payload   Json?
-  createdAt DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
-  run       AdminAgentRun               @relation(fields: [runId], references: [id], onDelete: Cascade)
-
-  @@index([runId, createdAt])
-  @@index([type, createdAt(sort: Desc)])
-  @@map("admin_agent_workflow_events")
-}
-
-model AdminAgentWorkflowActionExecution {
-  id           String                                  @id @default(uuid()) @db.Uuid
-  runId        String                                  @map("run_id") @db.Uuid
-  approvalId   String                                  @map("approval_id")
-  action       String
-  subject      String
-  status       AdminAgentWorkflowActionExecutionStatus @default(RUNNING)
-  payload      Json
-  result       Json?
-  errorMessage String?                                 @map("error_message")
-  createdAt    DateTime                                @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime                                @updatedAt @map("updated_at") @db.Timestamptz(6)
-  run          AdminAgentRun                           @relation(fields: [runId], references: [id], onDelete: Cascade)
-
-  @@unique([runId, approvalId])
-  @@index([runId, createdAt])
-  @@index([status, updatedAt])
-  @@map("admin_agent_workflow_action_executions")
-}
-
-model AdminAgentDecisionEffect {
-  id           String                         @id @default(uuid()) @db.Uuid
-  runId        String                         @map("run_id") @db.Uuid
-  findingId    String?                        @map("finding_id") @db.Uuid
-  effectKey    String                         @unique @map("effect_key")
-  type         AdminAgentDecisionEffectType
-  status       AdminAgentDecisionEffectStatus @default(PENDING)
-  payload      Json
-  attempts     Int                            @default(0)
-  errorMessage String?                        @map("error_message")
-  createdAt    DateTime                       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt    DateTime                       @updatedAt @map("updated_at") @db.Timestamptz(6)
-  run          AdminAgentRun                  @relation(fields: [runId], references: [id], onDelete: Cascade)
-  finding      AdminAgentFinding?             @relation(fields: [findingId], references: [id], onDelete: Cascade)
-
-  @@index([runId, status, createdAt])
-  @@index([findingId, status])
-  @@index([type, status, updatedAt])
-  @@map("admin_agent_decision_effects")
-}
-
-model AdminAgentFinding {
-  id             String                      @id @default(uuid()) @db.Uuid
-  runId          String                      @map("run_id") @db.Uuid
-  targetType     AdminAgentFindingTargetType @map("target_type")
-  targetId       String                      @map("target_id") @db.Uuid
-  category       AdminAgentFindingCategory
-  severity       AdminAgentFindingSeverity
-  confidence     Decimal                     @db.Decimal(4, 3)
-  reason         String
-  evidence       Json
-  proposedAction AdminAgentProposedAction    @map("proposed_action")
-  status         AdminAgentFindingStatus     @default(PENDING)
-  executedAt     DateTime?                   @map("executed_at") @db.Timestamptz(6)
-  createdAt      DateTime                    @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt      DateTime                    @updatedAt @map("updated_at") @db.Timestamptz(6)
-  run            AdminAgentRun               @relation(fields: [runId], references: [id], onDelete: Cascade)
-  targetComment  ArticleComment              @relation(fields: [targetId], references: [id], onDelete: Cascade)
-  decisionEffects AdminAgentDecisionEffect[]
-
-  @@index([status, createdAt(sort: Desc)])
-  @@index([runId])
-  @@index([targetType, targetId, status])
-  @@map("admin_agent_findings")
 }

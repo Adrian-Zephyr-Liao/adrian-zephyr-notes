@@ -100,7 +100,6 @@ class AdminSiteConfigController {
   ): Promise<AdminSiteConfigResponse> {
     try {
       await this.updateAdminSiteSettings.execute({
-        adminAgentAutomationPolicy: body.adminAgentAutomationPolicy,
         home: body.home,
         navigationItems: body.navigationItems,
         socialLinks: body.socialLinks,
@@ -112,7 +111,6 @@ class AdminSiteConfigController {
         resourceType: "site_settings",
         resourceId: null,
         metadata: {
-          adminAgentAutomationPolicyMode: body.adminAgentAutomationPolicy.mode,
           navigationItemCount: body.navigationItems.length,
           socialLinkCount: body.socialLinks.length,
         },

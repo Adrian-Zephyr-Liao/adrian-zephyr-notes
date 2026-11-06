@@ -154,7 +154,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
             className="flex flex-col gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary sm:flex-row sm:items-center sm:justify-between"
             role="status"
           >
-            <span>已定位到 Agent 风险卡片关联的评论。</span>
+            <span>已定位到指定评论。</span>
             <Button
               size="sm"
               type="button"

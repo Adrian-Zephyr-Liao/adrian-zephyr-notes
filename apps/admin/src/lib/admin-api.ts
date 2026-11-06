@@ -14,21 +14,6 @@ import type {
   AdminArticleTagListQuery,
   AdminArticleTagListResponse,
   AdminArticleTagResponse,
-  AdminAgentConversationMessagesResponse,
-  AdminAgentHomeResponse,
-  AdminAgentTaskSummaryResponse,
-  AdminAgentTaskListQuery,
-  AdminAgentTaskListResponse,
-  ControlAdminAgentTaskRequest,
-  ControlAdminAgentTaskResponse,
-  DecideAdminAgentFindingsRequest,
-  DecideAdminAgentFindingsResponse,
-  ModerateAdminAgentCommentAnalysisRequest,
-  ModerateAdminAgentCommentAnalysisResponse,
-  ResumeAdminAgentTaskRequest,
-  ResumeAdminAgentTaskResponse,
-  StartAdminAgentTaskRequest,
-  StartAdminAgentTaskResponse,
   AdminGuestbookMessageListItemResponse,
   AdminGuestbookMessagesQuery,
   AdminGuestbookMessagesResponse,
@@ -138,89 +123,6 @@ async function getCurrentAdminArticleEditorDraft(articleId?: string | null) {
   return requestAdminApi<AdminArticleEditorDraftResponse | null>(
     withAdminQuery("/api/admin/article-drafts/current", { articleId }),
   );
-}
-
-async function getAdminAgentHome() {
-  return requestAdminApi<AdminAgentHomeResponse>("/api/admin/agent/home");
-}
-
-async function listAdminAgentConversationMessages(conversationId: string) {
-  return requestAdminApi<AdminAgentConversationMessagesResponse>(
-    `/api/admin/agent/conversations/${encodeURIComponent(conversationId)}/messages`,
-  );
-}
-
-async function stopAdminAgentConversation(conversationId: string) {
-  return requestAdminApi<{ stopped: boolean }>(
-    `/api/admin/agent/conversations/${encodeURIComponent(conversationId)}/stop`,
-    { method: "POST" },
-  );
-}
-
-async function listAdminAgentTasks(query: AdminAgentTaskListQuery = {}) {
-  return requestAdminApi<AdminAgentTaskListResponse>(
-    withAdminQuery("/api/admin/agent/tasks", query),
-  );
-}
-
-async function getAdminAgentTask(taskId: string) {
-  return requestAdminApi<AdminAgentTaskSummaryResponse>(`/api/admin/agent/tasks/${taskId}`);
-}
-
-async function startAdminAgentTask(input: StartAdminAgentTaskRequest, signal?: AbortSignal) {
-  return requestAdminApi<StartAdminAgentTaskResponse>("/api/admin/agent/tasks", {
-    json: input,
-    method: "POST",
-    signal,
-  });
-}
-
-async function controlAdminAgentTask(
-  taskId: string,
-  input: ControlAdminAgentTaskRequest,
-  signal?: AbortSignal,
-) {
-  return requestAdminApi<ControlAdminAgentTaskResponse>(
-    `/api/admin/agent/tasks/${taskId}/control`,
-    {
-      json: input,
-      method: "POST",
-      signal,
-    },
-  );
-}
-
-async function decideAdminAgentFindings(input: DecideAdminAgentFindingsRequest) {
-  return requestAdminApi<DecideAdminAgentFindingsResponse>("/api/admin/agent/findings/decisions", {
-    json: input,
-    method: "POST",
-  });
-}
-
-async function hideAdminAgentCommentAnalysisFindings(
-  conversationId: string,
-  analysisId: string,
-  input: ModerateAdminAgentCommentAnalysisRequest,
-) {
-  return requestAdminApi<ModerateAdminAgentCommentAnalysisResponse>(
-    `/api/admin/agent/conversations/${encodeURIComponent(conversationId)}/comment-analyses/${encodeURIComponent(analysisId)}/hide`,
-    {
-      json: input,
-      method: "POST",
-    },
-  );
-}
-
-async function resumeAdminAgentTask(
-  taskId: string,
-  input: ResumeAdminAgentTaskRequest,
-  signal?: AbortSignal,
-) {
-  return requestAdminApi<ResumeAdminAgentTaskResponse>(`/api/admin/agent/tasks/${taskId}/resume`, {
-    json: input,
-    method: "POST",
-    signal,
-  });
 }
 
 async function saveCurrentAdminArticleEditorDraft(input: SaveAdminArticleEditorDraftRequest) {
@@ -333,26 +235,18 @@ async function logoutAdmin() {
 
 export {
   AdminApiError,
-  controlAdminAgentTask,
   createAdminArticle,
   createAdminArticleCategory,
   createAdminArticleTag,
-  decideAdminAgentFindings,
   deleteAdminArticle,
   deleteAdminArticleCategory,
   deleteAdminArticleTag,
   deleteCurrentAdminArticleEditorDraft,
-  getAdminAgentHome,
-  getAdminAgentTask,
   getAdminArticle,
   getCurrentAdminArticleEditorDraft,
   getAdminLoginUrl,
   getAdminSiteConfig,
   getCurrentAdmin,
-  hideAdminAgentCommentAnalysisFindings,
-  listAdminAgentTasks,
-  listAdminAgentConversationMessages,
-  stopAdminAgentConversation,
   listAdminArticleComments,
   listAdminArticleCategories,
   listAdminArticleTaxonomies,
@@ -362,9 +256,7 @@ export {
   listAdminOperationLogs,
   logoutAdmin,
   mergeAdminArticleTag,
-  resumeAdminAgentTask,
   saveCurrentAdminArticleEditorDraft,
-  startAdminAgentTask,
   updateAdminArticle,
   uploadAdminArticleImage,
   updateAdminArticleCategory,

@@ -2,24 +2,27 @@ import { describe, expect, it } from "vitest";
 import { defaultSiteConfigSettings, normalizeSiteConfigSettings } from "./site-settings";
 
 describe("normalizeSiteConfigSettings", () => {
-  it("keeps admin agent automatic hiding disabled in site-level settings", () => {
-    expect(
+  it("normalizes home text and retains navigation and social links", () => {
+    const settings = normalizeSiteConfigSettings({
+      ...defaultSiteConfigSettings,
+      home: {
+        ...defaultSiteConfigSettings.home,
+        title: "  Site title  ",
+        secondaryActionLabel: "  ",
+      },
+    });
+    expect(settings.home.title).toBe("Site title");
+    expect(settings.home.secondaryActionLabel).toBeNull();
+    expect(settings.navigationItems).toEqual(defaultSiteConfigSettings.navigationItems);
+    expect(settings.socialLinks).toEqual(defaultSiteConfigSettings.socialLinks);
+  });
+
+  it("rejects a blank home title", () => {
+    expect(() =>
       normalizeSiteConfigSettings({
         ...defaultSiteConfigSettings,
-        adminAgentAutomationPolicy: {
-          autoHideEnabled: true,
-          confidenceThreshold: 0.99,
-          eligibleCategories: ["SPAM"],
-          mode: "MANUAL_REVIEW",
-          requiresStrongEvidence: false,
-        },
-      }).adminAgentAutomationPolicy,
-    ).toEqual({
-      autoHideEnabled: false,
-      confidenceThreshold: 0.99,
-      eligibleCategories: ["SPAM"],
-      mode: "MANUAL_REVIEW",
-      requiresStrongEvidence: false,
-    });
+        home: { ...defaultSiteConfigSettings.home, title: "  " },
+      }),
+    ).toThrow("Home title cannot be empty");
   });
 });

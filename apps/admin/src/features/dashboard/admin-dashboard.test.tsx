@@ -6,7 +6,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminDashboard } from "./admin-dashboard";
 
 const adminApiMocks = vi.hoisted(() => ({
-  getAdminAgentHome: vi.fn(),
   listAdminArticleComments: vi.fn(),
   listAdminArticles: vi.fn(),
   listAdminGuestbookMessages: vi.fn(),
@@ -31,10 +30,6 @@ describe("AdminDashboard", () => {
         data: [],
         pagination: { page: 1, pageSize: 1, totalItems: 3, totalPages: 3 },
       });
-    adminApiMocks.getAdminAgentHome.mockResolvedValue({
-      pendingFindingCount: 4,
-      todayCommentCount: 7,
-    });
     adminApiMocks.listAdminArticleComments.mockResolvedValue({
       data: [],
       pagination: { page: 1, pageSize: 1, totalItems: 2, totalPages: 2 },
@@ -60,8 +55,8 @@ describe("AdminDashboard", () => {
 
     expect(within(metrics).getByText("全部文章").parentElement?.textContent).toContain("12");
     expect(within(metrics).getByText("待完成草稿").parentElement?.textContent).toContain("3");
-    expect(within(metrics).getByText("今日评论").parentElement?.textContent).toContain("7");
-    expect(within(metrics).getByText("Agent 待确认").parentElement?.textContent).toContain("4");
+    expect(within(metrics).getByText("已隐藏评论").parentElement?.textContent).toContain("2");
+    expect(within(metrics).getByText("已移除留言").parentElement?.textContent).toContain("1");
     expect(screen.getByText("Markdown 语法全量展示")).not.toBeNull();
     expect(screen.getByText("更新文章《Markdown 语法全量展示》")).not.toBeNull();
     expect(screen.queryByText("更新文章 bb70e94b")).toBeNull();

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { buildAdminArticleCommentWhere } from "./prisma-admin-article-comment.repository";
 
 describe("buildAdminArticleCommentWhere", () => {
-  it("filters directly by comment id for Agent Home deep links", () => {
+  it("filters directly by comment id", () => {
     expect(
       buildAdminArticleCommentWhere({
         commentId: "comment-1",

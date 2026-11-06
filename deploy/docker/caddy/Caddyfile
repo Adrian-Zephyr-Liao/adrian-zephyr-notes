@@ -3,10 +3,7 @@
 }
 
 {$WEBSITE_HOST} {
-	@notCopilot {
-		not path /api/copilotkit
-	}
-	encode @notCopilot zstd gzip
+	encode zstd gzip
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -14,18 +11,12 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	reverse_proxy /api/copilotkit server:3001 {
-		flush_interval -1
-	}
 	reverse_proxy /api/* server:3001
 	reverse_proxy website:3002
 }
 
 {$ADMIN_HOST} {
-	@notCopilot {
-		not path /api/copilotkit
-	}
-	encode @notCopilot zstd gzip
+	encode zstd gzip
 
 	header {
 		Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
@@ -33,9 +24,6 @@
 		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 
-	reverse_proxy /api/copilotkit server:3001 {
-		flush_interval -1
-	}
 	reverse_proxy /api/* server:3001
 	reverse_proxy admin:80
 }

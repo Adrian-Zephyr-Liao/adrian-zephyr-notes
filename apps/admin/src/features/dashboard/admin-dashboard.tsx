@@ -5,7 +5,6 @@ import type {
 import { Link } from "@tanstack/react-router";
 import {
   ArrowRight,
-  Bot,
   CircleAlert,
   FilePenLine,
   FileText,
@@ -13,7 +12,6 @@ import {
   RefreshCw,
   Settings2,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -21,7 +19,6 @@ import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import {
-  getAdminAgentHome,
   listAdminArticleComments,
   listAdminArticles,
   listAdminGuestbookMessages,
@@ -32,11 +29,9 @@ import { cn } from "../../lib/utils";
 type DashboardSnapshot = {
   draftCount: number;
   hiddenCommentCount: number;
-  pendingFindingCount: number;
   recentArticles: AdminArticleListItemResponse[];
   recentLogs: AdminOperationLogResponse[];
   removedGuestbookCount: number;
-  todayCommentCount: number;
   totalArticles: number;
 };
 
@@ -50,24 +45,20 @@ function AdminDashboard() {
     setErrorMessage(null);
 
     try {
-      const [articles, drafts, agentHome, hiddenComments, removedGuestbook, logs] =
-        await Promise.all([
-          listAdminArticles({ page: 1, pageSize: 5, status: "ALL" }),
-          listAdminArticles({ page: 1, pageSize: 1, status: "DRAFT" }),
-          getAdminAgentHome(),
-          listAdminArticleComments({ page: 1, pageSize: 1, status: "HIDDEN" }),
-          listAdminGuestbookMessages({ page: 1, pageSize: 1, status: "DELETED" }),
-          listAdminOperationLogs({ action: "ALL", page: 1, pageSize: 5 }),
-        ]);
+      const [articles, drafts, hiddenComments, removedGuestbook, logs] = await Promise.all([
+        listAdminArticles({ page: 1, pageSize: 5, status: "ALL" }),
+        listAdminArticles({ page: 1, pageSize: 1, status: "DRAFT" }),
+        listAdminArticleComments({ page: 1, pageSize: 1, status: "HIDDEN" }),
+        listAdminGuestbookMessages({ page: 1, pageSize: 1, status: "DELETED" }),
+        listAdminOperationLogs({ action: "ALL", page: 1, pageSize: 5 }),
+      ]);
 
       setSnapshot({
         draftCount: drafts.pagination.totalItems,
         hiddenCommentCount: hiddenComments.pagination.totalItems,
-        pendingFindingCount: agentHome.pendingFindingCount,
         recentArticles: articles.data,
         recentLogs: logs.data,
         removedGuestbookCount: removedGuestbook.pagination.totalItems,
-        todayCommentCount: agentHome.todayCommentCount,
         totalArticles: articles.pagination.totalItems,
       });
     } catch {
@@ -96,15 +87,15 @@ function AdminDashboard() {
     },
     {
       icon: MessageCircle,
-      label: "今日评论",
+      label: "已隐藏评论",
       tone: "success",
-      value: snapshot?.todayCommentCount ?? 0,
+      value: snapshot?.hiddenCommentCount ?? 0,
     },
     {
-      icon: Sparkles,
-      label: "Agent 待确认",
+      icon: CircleAlert,
+      label: "已移除留言",
       tone: "neutral",
-      value: snapshot?.pendingFindingCount ?? 0,
+      value: snapshot?.removedGuestbookCount ?? 0,
     },
   ] satisfies DashboardMetric[];
 
@@ -117,7 +108,7 @@ function AdminDashboard() {
             先处理待确认事项，再继续内容创作
           </h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            汇总内容进度、互动治理和 Agent 建议，减少在模块之间来回查找。
+            汇总内容进度和互动治理，减少在模块之间来回查找。
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
@@ -199,14 +190,6 @@ function AdminDashboard() {
           <SectionHeader description="需要留意或周期复核的项目" title="待办与风险" />
           <div className="grid gap-2 px-4 pb-4">
             <AttentionItem
-              count={snapshot?.pendingFindingCount ?? 0}
-              icon={Bot}
-              label="Agent 建议待确认"
-              loading={isLoading}
-              tone="primary"
-              to="/agent"
-            />
-            <AttentionItem
               count={snapshot?.draftCount ?? 0}
               icon={FilePenLine}
               label="草稿等待完成"
@@ -273,7 +256,6 @@ function AdminDashboard() {
         <section className="rounded-lg bg-(--glass-surface) p-4 shadow-(--shadow-glass) backdrop-blur-2xl">
           <h2 className="text-sm font-semibold">快捷入口</h2>
           <div className="mt-3 grid gap-2">
-            <QuickLink icon={Bot} label="打开 Agent 助手" to="/agent" />
             <QuickLink icon={MessageCircle} label="处理评论" to="/comments" />
             <QuickLink icon={Settings2} label="调整站点配置" to="/site" />
             <QuickLink icon={ShieldCheck} label="查看审计记录" to="/audit" />
@@ -376,7 +358,7 @@ function AttentionItem({
   label: string;
   loading: boolean;
   tone: keyof typeof metricToneStyles;
-  to: "/agent" | "/articles" | "/comments" | "/guestbook";
+  to: "/articles" | "/comments" | "/guestbook";
 }) {
   return (
     <Link
@@ -402,7 +384,7 @@ function QuickLink({
 }: {
   icon: LucideIcon;
   label: string;
-  to: "/agent" | "/audit" | "/comments" | "/site";
+  to: "/audit" | "/comments" | "/site";
 }) {
   return (
     <Link

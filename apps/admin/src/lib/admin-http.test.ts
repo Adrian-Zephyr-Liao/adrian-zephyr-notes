@@ -119,11 +119,11 @@ describe("admin HTTP helpers", () => {
     mockFetch(
       new Response(
         JSON.stringify({
-          code: "ADMIN_AGENT_TASK_BRANCH_UNAVAILABLE",
+          code: "ARTICLE_VERSION_CONFLICT",
           details: {
-            taskId: "run-1",
+            articleId: "article-1",
           },
-          message: "Agent 业务处理当前不能另开分支。",
+          message: "文章版本已更新，请刷新。",
         }),
         {
           headers: {
@@ -134,12 +134,12 @@ describe("admin HTTP helpers", () => {
       ),
     );
 
-    await expect(requestAdminApi("/api/admin/agent/tasks/run-1/control")).rejects.toMatchObject({
-      code: "ADMIN_AGENT_TASK_BRANCH_UNAVAILABLE",
+    await expect(requestAdminApi("/api/admin/articles/article-1")).rejects.toMatchObject({
+      code: "ARTICLE_VERSION_CONFLICT",
       details: {
-        taskId: "run-1",
+        articleId: "article-1",
       },
-      message: "Agent 业务处理当前不能另开分支。",
+      message: "文章版本已更新，请刷新。",
       status: 409,
     } satisfies Partial<AdminApiError>);
   });

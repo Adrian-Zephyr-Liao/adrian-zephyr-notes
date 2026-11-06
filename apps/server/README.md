@@ -31,44 +31,10 @@ LLM_PROVIDER=minimax
 LLM_BASE_URL=https://api.minimaxi.com/v1
 LLM_MODEL=MiniMax-M3
 LLM_TIMEOUT_MS=60000
-LLM_CONTEXT_WINDOW=32768
-LLM_MAX_TOKENS=8192
-PI_AGENT_STORAGE_DIR=.data/pi
-PI_AGENT_LEGACY_CHECKPOINT_SCHEMA=public
 ```
 
 Missing `LLM_API_KEY` must not prevent the server from starting. AI summaries are
 generated only when the provider is configured.
-
-## Agent Workflow Persistence
-
-Admin Agent conversations and business tasks run on pinned `pi-ai` and
-`pi-durable` packages. PostgreSQL keeps business records, approvals, execution
-receipts, and audit history; SQLite keeps the durable execution state in
-`PI_AGENT_STORAGE_DIR`. Docker mounts the `agent-runtime-data` volume at
-`/app/data/pi`. Keep that volume across deployments and back it up together with
-PostgreSQL while the server is stopped.
-
-Each store has one writer, enforced by a PostgreSQL advisory lock. Losing the
-ownership connection invalidates the store and aborts its Harness. Do not run
-multiple application replicas against the same runtime files without explicit
-session routing and ownership transfer.
-
-The business task runner automatically reacquires ownership and reopens failed
-runtime storage, then resumes durable work. Retries back off from 100 ms to a
-10-second ceiling; application shutdown cancels them. Initial migration or
-missing-snapshot errors still fail startup rather than retrying unsafe state.
-
-During an upgrade, stop the old server first. Startup reads active legacy tasks
-from the existing checkpoint tables and imports their plain business snapshots.
-`PI_AGENT_LEGACY_CHECKPOINT_SCHEMA` selects that historical schema, defaults to
-`public`, and must be a lowercase PostgreSQL identifier. Unknown or incomplete
-snapshots fail startup rather than silently restarting a task. Historical tables
-and Prisma migrations remain intact; no old runtime package or table-setup
-command is needed.
-
-Agent 工作台的产品边界、pi 内部运行时约束、CopilotKit 人工确认交互和新增
-业务处理清单见 [`docs/agent-workflow-architecture.md`](../../docs/agent-workflow-architecture.md)。
 
 ## Architecture
 

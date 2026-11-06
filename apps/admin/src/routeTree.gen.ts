@@ -13,7 +13,6 @@ import { Route as SiteRouteImport } from './routes/site'
 import { Route as GuestbookRouteImport } from './routes/guestbook'
 import { Route as CommentsRouteImport } from './routes/comments'
 import { Route as AuditRouteImport } from './routes/audit'
-import { Route as AgentRouteImport } from './routes/agent'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ArticlesIndexRouteImport } from './routes/articles.index'
 import { Route as ArticlesTagsRouteImport } from './routes/articles.tags'
@@ -39,11 +38,6 @@ const CommentsRoute = CommentsRouteImport.update({
 const AuditRoute = AuditRouteImport.update({
   id: '/audit',
   path: '/audit',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AgentRoute = AgentRouteImport.update({
-  id: '/agent',
-  path: '/agent',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -79,7 +73,6 @@ const ArticlesArticleIdEditRoute = ArticlesArticleIdEditRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/agent': typeof AgentRoute
   '/audit': typeof AuditRoute
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
@@ -92,7 +85,6 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/agent': typeof AgentRoute
   '/audit': typeof AuditRoute
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
@@ -106,7 +98,6 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/agent': typeof AgentRoute
   '/audit': typeof AuditRoute
   '/comments': typeof CommentsRoute
   '/guestbook': typeof GuestbookRoute
@@ -121,7 +112,6 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/agent'
     | '/audit'
     | '/comments'
     | '/guestbook'
@@ -134,7 +124,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/agent'
     | '/audit'
     | '/comments'
     | '/guestbook'
@@ -147,7 +136,6 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
-    | '/agent'
     | '/audit'
     | '/comments'
     | '/guestbook'
@@ -161,7 +149,6 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AgentRoute: typeof AgentRoute
   AuditRoute: typeof AuditRoute
   CommentsRoute: typeof CommentsRoute
   GuestbookRoute: typeof GuestbookRoute
@@ -201,13 +188,6 @@ declare module '@tanstack/react-router' {
       path: '/audit'
       fullPath: '/audit'
       preLoaderRoute: typeof AuditRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/agent': {
-      id: '/agent'
-      path: '/agent'
-      fullPath: '/agent'
-      preLoaderRoute: typeof AgentRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -257,7 +237,6 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AgentRoute: AgentRoute,
   AuditRoute: AuditRoute,
   CommentsRoute: CommentsRoute,
   GuestbookRoute: GuestbookRoute,
