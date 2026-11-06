@@ -4,7 +4,7 @@ import { expect, test } from "@playwright/test";
 for (const theme of ["light", "dark"]) {
   test(`${theme} reading surfaces have no detected accessibility violations`, async ({ page }) => {
     await page.addInitScript((value) => localStorage.setItem("theme", value), theme);
-    for (const path of ["/", "/archives", "/comments", "/posts/note-1"]) {
+    for (const path of ["/", "/archives", "/categories", "/tags", "/comments", "/posts/note-1"]) {
       await page.goto(path);
       await expect(page.locator("html")).toHaveClass(new RegExp(theme));
       await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();

@@ -45,7 +45,6 @@ function CategoryDirectory({ categories }: { categories: CategoryEntry[] }) {
               <Link
                 className="group/category grid h-full gap-6 rounded-[0.85rem] outline-offset-4 focus-visible:outline-2 focus-visible:outline-primary max-[680px]:gap-4"
                 href={`/categories/${encodeURIComponent(category.slug)}`}
-                aria-label={`${category.name}，${category.publishedArticleCount} 篇文章，浏览分类`}
               >
                 <div className="relative overflow-hidden rounded-[0.85rem] bg-muted [&_img]:transition-transform [&_img]:duration-600 [&_img]:ease-(--ease-out-ui) motion-reduce:[&_img]:transition-none motion-safe:[@media(hover:hover)_and_(pointer:fine)]:group-hover/category:[&_img]:scale-[1.045]">
                   {article ? (

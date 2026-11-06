@@ -57,7 +57,6 @@ function TagDirectory({ tags }: { tags: ArticleTagListResponse }) {
                     ? "text-2xl max-[680px]:text-xl"
                     : "text-base",
               )}
-              aria-label={`${tag.name}，${tag.publishedArticleCount} 篇文章`}
             >
               <span className="font-display text-primary italic opacity-70" aria-hidden="true">
                 #
