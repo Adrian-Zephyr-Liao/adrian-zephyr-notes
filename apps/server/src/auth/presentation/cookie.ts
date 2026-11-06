@@ -40,16 +40,20 @@ function parseCookies(cookieHeader: string | undefined) {
       .split(";")
       .map((part) => part.trim())
       .filter(Boolean)
-      .map((part) => {
+      .flatMap((part): [string, string][] => {
         const separatorIndex = part.indexOf("=");
 
         if (separatorIndex < 0) {
-          return [part, ""];
+          return [[part, ""]];
         }
 
         const key = part.slice(0, separatorIndex);
-        const value = decodeURIComponent(part.slice(separatorIndex + 1));
-        return [key, value];
+        try {
+          return [[key, decodeURIComponent(part.slice(separatorIndex + 1))]];
+        } catch {
+          // An invalid cookie must not prevent other cookies from being read.
+          return [];
+        }
       }),
   );
 }

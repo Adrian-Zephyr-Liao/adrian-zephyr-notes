@@ -33,28 +33,31 @@ class CreateGuestbookMessageUseCase<TMessage = unknown> {
     }
 
     const body = GuestbookMessageBody.create(input.body);
-    const now = input.now ?? new Date();
-    const guestNickname = input.user ? null : GuestbookNickname.create(input.guestNickname);
-
-    if (!input.user) {
-      const recentMessageCount = await this.guestbookMessageRepository.countRecentAnonymousMessages(
-        {
-          guestFingerprint: input.guestFingerprint,
-          since: new Date(now.getTime() - ANONYMOUS_MESSAGE_WINDOW_MS),
-        },
-      );
-
-      if (recentMessageCount >= ANONYMOUS_MESSAGE_LIMIT) {
-        throw new GuestbookMessageRateLimitedError();
-      }
+    if (input.user) {
+      return this.guestbookMessageRepository.create({
+        authorUserId: input.user.id,
+        guestNickname: null,
+        guestFingerprint: null,
+        body: body.toString(),
+      });
     }
 
-    return this.guestbookMessageRepository.create({
-      authorUserId: input.user?.id ?? null,
-      guestNickname: guestNickname?.toString() ?? null,
-      guestFingerprint: input.user ? null : input.guestFingerprint,
-      body: body.toString(),
-    });
+    const guestNickname = GuestbookNickname.create(input.guestNickname);
+    const now = input.now ?? new Date();
+    const message = await this.guestbookMessageRepository.createAnonymousWithinLimit(
+      {
+        guestNickname: guestNickname.toString(),
+        guestFingerprint: input.guestFingerprint,
+        body: body.toString(),
+      },
+      {
+        limit: ANONYMOUS_MESSAGE_LIMIT,
+        since: new Date(now.getTime() - ANONYMOUS_MESSAGE_WINDOW_MS),
+      },
+    );
+
+    if (message === null) throw new GuestbookMessageRateLimitedError();
+    return message;
   }
 }
 

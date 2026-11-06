@@ -31,6 +31,7 @@ describe("CreateGuestbookMessageUseCase", () => {
       guestFingerprint: null,
       body: "很喜欢这个站点",
     });
+    expect(repository.createAnonymousWithinLimit).not.toHaveBeenCalled();
   });
 
   it("creates anonymous messages with a trimmed nickname", async () => {
@@ -42,14 +43,14 @@ describe("CreateGuestbookMessageUseCase", () => {
       guestNickname: "  路过的人  ",
       guestFingerprint: "fingerprint-1",
       user: null,
+      now: new Date("2026-07-02T12:00:00.000Z"),
     });
 
-    expect(repository.create).toHaveBeenCalledWith({
-      authorUserId: null,
-      guestNickname: "路过的人",
-      guestFingerprint: "fingerprint-1",
-      body: "hello",
-    });
+    expect(repository.createAnonymousWithinLimit).toHaveBeenCalledWith(
+      { guestNickname: "路过的人", guestFingerprint: "fingerprint-1", body: "hello" },
+      { limit: 3, since: new Date("2026-07-02T11:50:00.000Z") },
+    );
+    expect(repository.create).not.toHaveBeenCalled();
   });
 
   it("rejects anonymous messages without a nickname", async () => {
@@ -64,6 +65,7 @@ describe("CreateGuestbookMessageUseCase", () => {
       }),
     ).rejects.toBeInstanceOf(GuestbookNicknameRequiredError);
     expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createAnonymousWithinLimit).not.toHaveBeenCalled();
   });
 
   it("rejects overly long anonymous nicknames", async () => {
@@ -79,6 +81,7 @@ describe("CreateGuestbookMessageUseCase", () => {
       }),
     ).rejects.toBeInstanceOf(GuestbookNicknameTooLongError);
     expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createAnonymousWithinLimit).not.toHaveBeenCalled();
   });
 
   it("rejects empty message bodies", async () => {
@@ -93,6 +96,7 @@ describe("CreateGuestbookMessageUseCase", () => {
         user: null,
       }),
     ).rejects.toBeInstanceOf(GuestbookMessageBodyEmptyError);
+    expect(repository.createAnonymousWithinLimit).not.toHaveBeenCalled();
   });
 
   it("rejects overly long message bodies", async () => {
@@ -107,6 +111,7 @@ describe("CreateGuestbookMessageUseCase", () => {
         user: null,
       }),
     ).rejects.toBeInstanceOf(GuestbookMessageBodyTooLongError);
+    expect(repository.createAnonymousWithinLimit).not.toHaveBeenCalled();
   });
 
   it("rejects honeypot submissions", async () => {
@@ -123,11 +128,12 @@ describe("CreateGuestbookMessageUseCase", () => {
       }),
     ).rejects.toBeInstanceOf(GuestbookMessageRejectedAsSpamError);
     expect(repository.create).not.toHaveBeenCalled();
+    expect(repository.createAnonymousWithinLimit).not.toHaveBeenCalled();
   });
 
   it("rate limits anonymous messages by fingerprint", async () => {
     const repository = createRepositoryDouble();
-    repository.countRecentAnonymousMessages.mockResolvedValue(3);
+    repository.createAnonymousWithinLimit.mockResolvedValue(null);
     const useCase = new CreateGuestbookMessageUseCase(repository);
 
     await expect(
@@ -145,11 +151,11 @@ describe("CreateGuestbookMessageUseCase", () => {
 
 function createRepositoryDouble() {
   return {
-    countRecentAnonymousMessages: vi.fn().mockResolvedValue(0),
+    createAnonymousWithinLimit: vi.fn().mockResolvedValue({ id: "message-1" }),
     create: vi.fn(),
     listVisible: vi.fn(),
   } as unknown as GuestbookMessageRepository & {
-    countRecentAnonymousMessages: ReturnType<typeof vi.fn>;
+    createAnonymousWithinLimit: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
   };
 }
