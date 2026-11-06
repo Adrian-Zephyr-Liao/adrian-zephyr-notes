@@ -109,8 +109,13 @@ vp check
 vp test
 vp run -F @adrian-zephyr-notes/server build
 vp run -F @adrian-zephyr-notes/website build
+vp run -F @adrian-zephyr-notes/website test:browser
 vp run -F @adrian-zephyr-notes/admin build
 ```
+
+For website browser checks, install Chromium once with
+`vp exec -F @adrian-zephyr-notes/website playwright install chromium`. The
+[website guide](apps/website/README.md) describes the isolated fixture and failure evidence.
 
 For database changes, include a Prisma migration and verify:
 

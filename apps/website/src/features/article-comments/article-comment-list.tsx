@@ -5,7 +5,7 @@ import { StatusIllustration } from "@/components/site/status-page";
 import { Button } from "@/components/ui/button";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 import { AuthorAvatar } from "./article-comment-avatar";
-import { formatCommentDate, formatFullCommentDate } from "./article-comment-date";
+import { formatFullDate, formatShortDate } from "@/shared/date";
 import { getVisibleCommentReplies, type ArticleCommentThreadItem } from "./article-comment-thread";
 
 function ArticleCommentList({
@@ -151,8 +151,8 @@ function CommentItem({
             {comment.body}
           </p>
           <div className="mt-1 flex min-w-0 items-center gap-2 text-xs font-medium text-muted-foreground">
-            <time dateTime={comment.createdAt} title={formatFullCommentDate(comment.createdAt)}>
-              {formatCommentDate(comment.createdAt)}
+            <time dateTime={comment.createdAt} title={formatFullDate(comment.createdAt)}>
+              {formatShortDate(comment.createdAt)}
             </time>
             <InlineActionButton
               aria-label={`回复 ${authorName}`}

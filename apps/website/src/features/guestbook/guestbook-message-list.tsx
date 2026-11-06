@@ -3,7 +3,7 @@ import { Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { InlineActionButton } from "@/components/ui/inline-action-button";
 import { AuthorAvatar, AuthorName, getAuthorName } from "./guestbook-avatar";
-import { formatFullDate, formatShortDate } from "./guestbook-date";
+import { formatFullDate, formatShortDate } from "@/shared/date";
 
 function GuestbookMessageList({
   canLoadMore,

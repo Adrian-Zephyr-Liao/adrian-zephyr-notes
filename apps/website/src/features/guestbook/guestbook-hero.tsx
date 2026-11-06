@@ -1,5 +1,5 @@
 import type { AuthUserResponse, GuestbookMessageResponse } from "@adrian-zephyr-notes/contracts";
-import { formatShortDate } from "./guestbook-date";
+import { formatShortDate } from "@/shared/date";
 import { GuestbookMascot } from "./guestbook-mascot";
 
 function GuestbookHero({
