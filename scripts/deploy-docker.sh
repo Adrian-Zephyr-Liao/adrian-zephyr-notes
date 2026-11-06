@@ -11,6 +11,7 @@ SHA="${RELEASE_SHA:?Use build-release.sh and publish-release.sh; production neve
 }
 [[ -f "$ENV_FILE" ]] || { echo "Missing environment file: $ENV_FILE" >&2; exit 1; }
 command -v flock >/dev/null
+command -v python3 >/dev/null
 if [[ "${DEPLOY_LOCK_HELD:-0}" == 1 ]]; then
   [[ "$(readlink /proc/self/fd/9)" == "$ROOT_DIR/.git/az-notes-deploy.lock" ]] || {
     echo 'Invalid inherited deployment lock.' >&2; exit 1;
@@ -67,7 +68,29 @@ wait_healthy() {
 }
 
 reload_proxy() {
-  docker exec "$caddy_id" caddy reload --config /etc/caddy/Caddyfile --adapter caddyfile
+  docker exec -i "$caddy_id" caddy reload --config - --adapter caddyfile < "$CADDY_FILE"
+}
+
+verify_upstream() {
+  docker exec "$caddy_id" wget -qO- http://127.0.0.1:2019/config/ > "$work_dir/proxy-live.json"
+  python3 - "$work_dir/proxy-live.json" "$1" "$2" <<'PYTHON'
+import json, sys
+
+def dials(node):
+    if isinstance(node, dict):
+        if "dial" in node:
+            yield node["dial"]
+        for value in node.values():
+            yield from dials(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from dials(value)
+
+with open(sys.argv[1]) as source:
+    active = set(dials(json.load(source)))
+if sys.argv[2] not in active or sys.argv[3] in active:
+    raise SystemExit("Caddy did not activate the expected upstream; keeping the old frontend.")
+PYTHON
 }
 
 rollback() {
@@ -81,7 +104,7 @@ rollback() {
         exit "$status"
       fi
       cat "$work_dir/Caddyfile.before" > "$CADDY_FILE"
-      if ! reload_proxy; then
+      if ! reload_proxy || ! verify_upstream "$upstream" "$candidate:$port"; then
         echo "CRITICAL: proxy rollback failed; keep candidate $candidate for recovery. See $work_dir" >&2
         exit "$status"
       fi
@@ -140,6 +163,7 @@ for service in "${services[@]}"; do
   changed_proxy=true
   cat "$work_dir/Caddyfile.next" > "$CADDY_FILE"
   reload_proxy
+  verify_upstream "$candidate:$port" "$upstream"
   host_var=ADMIN_HOST
   [[ "$service" != website ]] || host_var=WEBSITE_HOST
   host="$(docker inspect --format '{{range .Config.Env}}{{println .}}{{end}}' "$caddy_id" | sed -n "s/^$host_var=//p")"
@@ -147,6 +171,9 @@ for service in "${services[@]}"; do
   curl --fail --silent --show-error --max-time 20 --resolve "$host:443:127.0.0.1" "https://$host/" > /dev/null
   # Keep the old process alive while requests already assigned to it finish.
   sleep "${DEPLOY_DRAIN_SECONDS:-30}"
+  wait_healthy "$candidate"
+  verify_upstream "$candidate:$port" "$upstream"
+  curl --fail --silent --show-error --max-time 20 --resolve "$host:443:127.0.0.1" "https://$host/" > /dev/null
   docker stop --time 30 "$old_container" > /dev/null
   # Stopped previous containers are the rollback record; remove them only during explicit retention cleanup.
   printf '%s\n' "$candidate" > "$state_dir/$service.active"

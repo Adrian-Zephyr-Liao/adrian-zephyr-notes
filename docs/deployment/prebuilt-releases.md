@@ -118,7 +118,12 @@ The actual service list comes from `services.txt`. The publisher forwards
 `DEPLOY_LOCK_HELD=1` and the open lock descriptor to the deployment script, which
 validates the inherited lock rather than opening a second, independent lock.
 Frontend deployment uses healthy
-candidate containers and a Caddy routing switch in the deployment script. Database,
+candidate containers and a Caddy routing switch in the deployment script. Reloads
+pass the persisted host configuration through stdin, since an existing file bind
+mount may still refer to an older inode. Before retiring the old frontend, the
+script checks Caddy's live admin API for both the new upstream and removal of the
+old upstream, then repeats health and HTTPS checks after draining. Python 3 is
+required on the production host for the JSON configuration check. Database,
 Caddy and ERP containers must remain running; candidate readiness, public requests,
 rollback and the deployment marker are the deployment script's responsibility.
 
