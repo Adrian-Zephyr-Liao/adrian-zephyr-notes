@@ -1,10 +1,17 @@
+import { constants } from "node:fs";
 import { open } from "node:fs/promises";
 import { CliError, isRecord } from "./errors.ts";
 
 const MAX_INPUT_BYTES = 1024 * 1024;
 
 async function readText(path: string): Promise<string> {
-  const stream = path === "-" ? process.stdin : (await open(path, "r")).createReadStream();
+  const handle =
+    path === "-" ? undefined : await open(path, constants.O_RDONLY | constants.O_NONBLOCK);
+  if (handle && !(await handle.stat()).isFile()) {
+    await handle.close();
+    throw new CliError("INVALID_INPUT_FILE", "Input must be a regular file; use '-' for stdin");
+  }
+  const stream = handle ? handle.createReadStream() : process.stdin;
   if (path === "-" && process.stdin.isTTY)
     throw new CliError("INVALID_ARGUMENT", "Pipe input to stdin when using '-'");
   const chunks: Buffer[] = [];

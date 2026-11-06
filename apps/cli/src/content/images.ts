@@ -1,3 +1,4 @@
+import { constants } from "node:fs";
 import { open, realpath } from "node:fs/promises";
 import { basename, isAbsolute, relative, resolve, sep } from "node:path";
 import type { AdminArticleImageUploadResponse } from "@adrian-zephyr-notes/contracts";
@@ -39,7 +40,7 @@ function imageMime(bytes: Buffer): string {
 }
 
 async function readImage(path: string): Promise<LocalImage> {
-  const file = await open(path, "r");
+  const file = await open(path, constants.O_RDONLY | constants.O_NONBLOCK);
   try {
     const stat = await file.stat();
     if (!stat.isFile() || stat.size < 1 || stat.size > MAX_IMAGE_BYTES)

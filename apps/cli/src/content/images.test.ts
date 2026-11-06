@@ -1,3 +1,5 @@
+import { execFileSync } from "node:child_process";
+import { readText } from "../core/input.ts";
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -123,3 +125,14 @@ it("uses the first CommonMark reference definition without uploading a later dup
   expect(prepared.images).toEqual([]);
   expect(prepared.replacements).toEqual([]);
 });
+
+it.skipIf(process.platform === "win32")(
+  "rejects named pipes without waiting for a writer",
+  async () => {
+    const root = await directory();
+    const path = join(root, "pipe.png");
+    execFileSync("mkfifo", [path]);
+    await expect(readImage(path)).rejects.toMatchObject({ code: "INVALID_IMAGE" });
+    await expect(readText(path)).rejects.toMatchObject({ code: "INVALID_INPUT_FILE" });
+  },
+);
