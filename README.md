@@ -38,8 +38,9 @@ Open:
 - Server: <http://localhost:3001>
 
 Use separate terminals for the three dev servers. The website talks to the API
-through Next.js API routes for cookie-sensitive browser flows, while the admin
-console calls the server directly with `credentials: include`.
+through Next.js API routes for cookie-sensitive browser flows. Local admin
+requests use the Vite same-origin `/api` proxy; a configured backend origin is
+used on non-localhost hosts. Admin requests include cookies.
 
 ## Environment
 
@@ -56,7 +57,7 @@ Start from `.env.example`. The most important variables are:
 | `GITHUB_OAUTH_CALLBACK_URL`                             | server          | Website callback URL, usually `/api/auth/github/callback` |
 | `LLM_API_KEY` / `LLM_BASE_URL` / `LLM_MODEL`            | server          | OpenAI-compatible article summary provider                |
 | `BACKEND_API_BASE_URL`                                  | website         | Backend URL used by Next.js route handlers                |
-| `VITE_BACKEND_API_BASE_URL`                             | admin           | Backend URL baked into the admin client build             |
+| `VITE_BACKEND_API_BASE_URL`                             | admin           | Optional API origin for non-localhost hosts               |
 
 Do not commit real `.env`, `.env.localhost`, or `.env.ngrok` files. They are
 ignored by git; committed examples must use `*.env.example`.
