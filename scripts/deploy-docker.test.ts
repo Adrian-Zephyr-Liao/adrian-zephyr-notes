@@ -41,6 +41,12 @@ function deploy(extra: Record<string, string | undefined> = {}) {
       elif [[ "$1" == cp ]]; then
         mkdir -p "$3"
         echo static-asset > "$3/old-chunk.js"
+      elif [[ "$1" == exec && "$*" == *'wget -qO-'* ]]; then
+        if [[ "\${STALE_PROXY:-0}" == 1 ]]; then
+          echo '{"upstreams":[{"dial":"website:3002"}]}'
+        else
+          /usr/bin/awk '$1 == "reverse_proxy" {print $2}' "$TEST_ROOT/deploy/docker/caddy/Caddyfile" | python3 -c 'import json,sys; print(json.dumps({"upstreams":[{"dial":v.strip()} for v in sys.stdin]}))'
+        fi
       elif [[ "$1" == exec && "$2" == -i ]]; then
         cat > /dev/null
       elif [[ "$1" == compose ]]; then
@@ -68,6 +74,7 @@ function deploy(extra: Record<string, string | undefined> = {}) {
       ...process.env,
       PATH: `${root}/bin:${process.env.PATH}`,
       TEST_LOG: log,
+      TEST_ROOT: root,
       RELEASE_SHA: sha,
       DEPLOY_SERVICES: "website",
       ...extra,
@@ -100,6 +107,14 @@ describe("production release safety", () => {
     expect(result.proxy).toBe(proxy);
     expect(result.log).toContain("rm -f azn-website-");
     expect(result.log).not.toMatch(/^stop |caddy reload/m);
+  });
+
+  it("keeps the old frontend when reload succeeds but Caddy retains stale routing", () => {
+    const result = deploy({ STALE_PROXY: "1" });
+    expect(result.status).not.toBe(0);
+    expect(result.proxy).toBe(proxy);
+    expect(result.log).not.toContain("stop --time 30 old-website");
+    expect(result.log).toContain("caddy reload --config - --adapter caddyfile");
   });
 
   it("restores the old route if the routed smoke check fails", () => {
