@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
+import { PageScrollControls } from "@/components/site/page-scroll-controls";
 import { RouteTransitionProgress } from "@/components/site/route-transition-progress";
 import { SiteHeader } from "@/components/site/site-header";
 import { ThemeProvider } from "@/components/site/theme-provider";
@@ -22,10 +24,13 @@ export default function RootLayout({
           className="site-viewport-background pointer-events-none fixed inset-0 z-0"
         />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
-          <div className="relative z-10 flex min-h-screen flex-col">
-            <RouteTransitionProgress />
+          <div className="relative z-10 flex min-h-screen flex-col pb-[calc(5rem+env(safe-area-inset-bottom))]">
+            <Suspense fallback={null}>
+              <RouteTransitionProgress />
+            </Suspense>
             <SiteHeader />
             {children}
+            <PageScrollControls />
           </div>
         </ThemeProvider>
       </body>

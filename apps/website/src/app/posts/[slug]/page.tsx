@@ -20,7 +20,6 @@ import {
 import { ArticleSidebarProfile } from "@/components/markdown/article-sidebar-profile";
 import { ArticleComments } from "@/components/markdown/article-comments";
 import { ArticleAiSummaryCard } from "@/components/markdown/article-ai-summary-card";
-import { ArticleMotionShell } from "@/components/markdown/article-motion-shell";
 import { GlassPanel } from "@/components/primitives/glass-panel";
 import { Badge } from "@/components/ui/badge";
 import { getArticleBySlug } from "@/lib/articles-api";
@@ -58,170 +57,170 @@ async function PostPage({ params }: PostPageProps) {
 
   return (
     <main className="flex-1 overflow-x-clip px-3 pb-12 sm:px-4 sm:pb-14">
-      <ArticleMotionShell>
-        <div className="mx-auto grid w-full max-w-[1180px] gap-4 pt-5 sm:gap-5 sm:pt-8">
+      <div className="mx-auto grid w-full max-w-[1180px] gap-4 pt-5 sm:gap-5 sm:pt-8">
+        <GlassPanel
+          tone="strong"
+          className="relative min-w-0 overflow-hidden rounded-2xl px-4 py-6 sm:rounded-3xl sm:px-8 lg:px-10 lg:py-12"
+        >
+          <div className="absolute inset-0 -z-10 bg-(image:--gradient-brand) opacity-10" />
+          <div className="absolute -top-20 right-8 -z-10 size-64 rounded-full bg-primary/20 blur-3xl" />
+          <Link
+            className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-white/50 px-3 py-1.5 text-sm font-semibold text-muted-foreground transition hover:bg-white/75 hover:text-foreground sm:mb-8 dark:bg-white/10 dark:hover:bg-white/15"
+            href="/"
+          >
+            <ChevronLeft className="size-4" />
+            返回首页
+          </Link>
+          <div className="grid gap-5">
+            <div className="flex flex-wrap items-center gap-2">
+              {post.category ? (
+                <Badge asChild variant="secondary" className="gap-1.5">
+                  <Link href={`/categories/${post.category.slug}`}>
+                    <FolderOpen className="size-3" />
+                    {post.category.name}
+                  </Link>
+                </Badge>
+              ) : (
+                <Badge variant="secondary" className="gap-1.5">
+                  <FolderOpen className="size-3" />
+                  未分类
+                </Badge>
+              )}
+              <Badge variant="outline" className="gap-1.5 bg-white/40 dark:bg-white/5">
+                {post.origin === "REPOSTED" ? (
+                  <Repeat2 className="size-3" />
+                ) : (
+                  <ShieldCheck className="size-3" />
+                )}
+                {post.origin === "REPOSTED" ? "转载" : "原创"}
+              </Badge>
+              {post.tags.map((tag) => (
+                <Badge
+                  key={tag.slug}
+                  asChild
+                  variant="outline"
+                  className="gap-1.5 bg-white/40 dark:bg-white/5"
+                >
+                  <Link href={`/tags/${tag.slug}`}>
+                    <Tag className="size-3" />
+                    {tag.name}
+                  </Link>
+                </Badge>
+              ))}
+            </div>
+            <div className="grid min-w-0 gap-4">
+              <h1 className="flex max-w-full min-w-0 flex-wrap gap-x-2 gap-y-1 text-2xl/tight font-black tracking-normal wrap-anywhere text-foreground sm:max-w-4xl sm:gap-x-3 sm:text-5xl lg:text-6xl">
+                {post.title.split(" ").map((part) => (
+                  <span key={part} className="max-w-full min-w-0 wrap-anywhere">
+                    {part}
+                  </span>
+                ))}
+              </h1>
+              <p className="max-w-3xl text-sm leading-7 wrap-anywhere text-muted-foreground sm:text-lg sm:leading-8">
+                {post.description}
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
+                <CalendarDays className="size-4 text-primary" />
+                发表于 {formatArticleDate(post.publishedAt)}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
+                <History className="size-4 text-primary" />
+                更新于 {formatArticleDate(post.updatedAt)}
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
+                <FileText className="size-4 text-primary" />
+                {post.wordCount.toLocaleString("zh-CN")} 字
+              </span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
+                <Clock3 className="size-4 text-primary" />
+                {post.readingMinutes} 分钟
+              </span>
+            </div>
+          </div>
+        </GlassPanel>
+
+        <div className="grid min-w-0 items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
           <GlassPanel
             tone="strong"
-            className="relative min-w-0 overflow-hidden rounded-2xl px-4 py-6 sm:rounded-3xl sm:px-8 lg:px-10 lg:py-12"
+            className="min-w-0 rounded-2xl px-4 py-5 sm:rounded-3xl sm:px-8 sm:py-7 lg:px-10"
           >
-            <div className="absolute inset-0 -z-10 bg-(image:--gradient-brand) opacity-10" />
-            <div className="absolute -top-20 right-8 -z-10 size-64 rounded-full bg-primary/20 blur-3xl" />
-            <Link
-              className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-white/50 px-3 py-1.5 text-sm font-semibold text-muted-foreground transition hover:bg-white/75 hover:text-foreground sm:mb-8 dark:bg-white/10 dark:hover:bg-white/15"
-              href="/"
-            >
-              <ChevronLeft className="size-4" />
-              返回首页
-            </Link>
-            <div className="grid gap-5">
-              <div className="flex flex-wrap items-center gap-2">
-                {post.category ? (
-                  <Badge asChild variant="secondary" className="gap-1.5">
-                    <Link href={`/categories/${post.category.slug}`}>
-                      <FolderOpen className="size-3" />
-                      {post.category.name}
-                    </Link>
+            {post.origin === "REPOSTED" && post.source ? (
+              <aside className="mb-6 grid gap-1 border-l-2 border-primary pl-4 text-sm text-muted-foreground">
+                <p className="font-semibold text-foreground">
+                  本文转载自 {post.source.name}
+                  {post.source.author ? ` · 原作者 ${post.source.author}` : ""}
+                </p>
+                <a
+                  className="inline-flex w-fit items-center gap-1.5 text-primary hover:underline"
+                  href={post.source.url}
+                  rel="nofollow noreferrer"
+                  target="_blank"
+                >
+                  查看原文
+                  <ExternalLink className="size-3.5" />
+                </a>
+              </aside>
+            ) : null}
+            {post.aiSummary ? <ArticleAiSummaryCard summary={post.aiSummary} /> : null}
+            <MarkdownRenderer content={post.markdown} />
+            <ArticleComments slug={post.slug} />
+
+            <div className="mt-10 grid gap-4">
+              <GlassPanel className="rounded-2xl p-4 sm:p-5">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                      <Copyright className="size-5" />
+                    </span>
+                    <div>
+                      <div className="font-semibold text-foreground">
+                        {post.origin === "REPOSTED" ? "转载说明" : "版权声明"}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {post.origin === "REPOSTED"
+                          ? "本文版权归原作者及原发布方所有，转载信息以上方来源为准。"
+                          : "本文采用 CC BY-NC-SA 4.0 协议，转载请注明作者与链接。"}
+                      </p>
+                    </div>
+                  </div>
+                  <Badge className="w-fit gap-1.5" variant="secondary">
+                    {post.origin === "REPOSTED" ? (
+                      <Repeat2 className="size-3" />
+                    ) : (
+                      <ShieldCheck className="size-3" />
+                    )}
+                    {post.origin === "REPOSTED" ? "转载" : "原创"}
                   </Badge>
-                ) : (
-                  <Badge variant="secondary" className="gap-1.5">
-                    <FolderOpen className="size-3" />
-                    未分类
-                  </Badge>
-                )}
-                <Badge variant="outline" className="gap-1.5 bg-white/40 dark:bg-white/5">
-                  {post.origin === "REPOSTED" ? (
-                    <Repeat2 className="size-3" />
-                  ) : (
-                    <ShieldCheck className="size-3" />
-                  )}
-                  {post.origin === "REPOSTED" ? "转载" : "原创"}
-                </Badge>
+                </div>
+              </GlassPanel>
+
+              <div className="flex flex-wrap gap-2">
                 {post.tags.map((tag) => (
                   <Badge
                     key={tag.slug}
-                    asChild
                     variant="outline"
-                    className="gap-1.5 bg-white/40 dark:bg-white/5"
+                    className="gap-1.5 bg-white/45 dark:bg-white/5"
                   >
-                    <Link href={`/tags/${tag.slug}`}>
-                      <Tag className="size-3" />
-                      {tag.name}
-                    </Link>
+                    <Hash className="size-3" />
+                    {tag.name}
                   </Badge>
                 ))}
-              </div>
-              <div className="grid min-w-0 gap-4">
-                <h1 className="flex max-w-full min-w-0 flex-wrap gap-x-2 gap-y-1 text-2xl/tight font-black tracking-normal wrap-anywhere text-foreground sm:max-w-4xl sm:gap-x-3 sm:text-5xl lg:text-6xl">
-                  {post.title.split(" ").map((part) => (
-                    <span key={part} className="max-w-full min-w-0 wrap-anywhere">
-                      {part}
-                    </span>
-                  ))}
-                </h1>
-                <p className="max-w-3xl text-sm leading-7 wrap-anywhere text-muted-foreground sm:text-lg sm:leading-8">
-                  {post.description}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
-                  <CalendarDays className="size-4 text-primary" />
-                  发表于 {formatArticleDate(post.publishedAt)}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
-                  <History className="size-4 text-primary" />
-                  更新于 {formatArticleDate(post.updatedAt)}
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
-                  <FileText className="size-4 text-primary" />
-                  {post.wordCount.toLocaleString("zh-CN")} 字
-                </span>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-white/45 px-3 py-1.5 dark:bg-white/10">
-                  <Clock3 className="size-4 text-primary" />
-                  {post.readingMinutes} 分钟
-                </span>
               </div>
             </div>
           </GlassPanel>
 
-          <div className="grid min-w-0 items-start gap-4 sm:gap-5 lg:grid-cols-[minmax(0,1fr)_18rem]">
-            <GlassPanel
-              tone="strong"
-              className="min-w-0 rounded-2xl px-4 py-5 sm:rounded-3xl sm:px-8 sm:py-7 lg:px-10"
-            >
-              {post.origin === "REPOSTED" && post.source ? (
-                <aside className="mb-6 grid gap-1 border-l-2 border-primary pl-4 text-sm text-muted-foreground">
-                  <p className="font-semibold text-foreground">
-                    本文转载自 {post.source.name}
-                    {post.source.author ? ` · 原作者 ${post.source.author}` : ""}
-                  </p>
-                  <a
-                    className="inline-flex w-fit items-center gap-1.5 text-primary hover:underline"
-                    href={post.source.url}
-                    rel="nofollow noreferrer"
-                    target="_blank"
-                  >
-                    查看原文
-                    <ExternalLink className="size-3.5" />
-                  </a>
-                </aside>
-              ) : null}
-              {post.aiSummary ? <ArticleAiSummaryCard summary={post.aiSummary} /> : null}
-              <MarkdownRenderer content={post.markdown} />
-              <ArticleComments slug={post.slug} />
-
-              <div className="mt-10 grid gap-4">
-                <GlassPanel className="rounded-2xl p-4 sm:p-5">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex items-center gap-3">
-                      <span className="flex size-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-                        <Copyright className="size-5" />
-                      </span>
-                      <div>
-                        <div className="font-semibold text-foreground">
-                          {post.origin === "REPOSTED" ? "转载说明" : "版权声明"}
-                        </div>
-                        <p className="text-sm text-muted-foreground">
-                          {post.origin === "REPOSTED"
-                            ? "本文版权归原作者及原发布方所有，转载信息以上方来源为准。"
-                            : "本文采用 CC BY-NC-SA 4.0 协议，转载请注明作者与链接。"}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge className="w-fit gap-1.5" variant="secondary">
-                      {post.origin === "REPOSTED" ? (
-                        <Repeat2 className="size-3" />
-                      ) : (
-                        <ShieldCheck className="size-3" />
-                      )}
-                      {post.origin === "REPOSTED" ? "转载" : "原创"}
-                    </Badge>
-                  </div>
-                </GlassPanel>
-
-                <div className="flex flex-wrap gap-2">
-                  {post.tags.map((tag) => (
-                    <Badge
-                      key={tag.slug}
-                      variant="outline"
-                      className="gap-1.5 bg-white/45 dark:bg-white/5"
-                    >
-                      <Hash className="size-3" />
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </GlassPanel>
-
-            <aside className="hidden lg:grid lg:content-start lg:gap-4 lg:self-stretch">
-              <ArticleSidebarProfile announcements={siteConfig.announcements} />
-              <GlassPanel className="rounded-3xl p-4 lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:overflow-y-auto">
+          <aside className="hidden min-w-0 lg:grid lg:content-start lg:gap-4 lg:self-stretch">
+            <ArticleSidebarProfile announcements={siteConfig.announcements} />
+            {headings.length > 0 ? (
+              <GlassPanel className="flex min-h-0 min-w-0 flex-col rounded-3xl p-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-7rem)]">
                 <PostToc headings={headings} />
               </GlassPanel>
-            </aside>
-          </div>
+            ) : null}
+          </aside>
         </div>
-      </ArticleMotionShell>
+      </div>
     </main>
   );
 }

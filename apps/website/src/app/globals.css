@@ -121,6 +121,7 @@
 
   html {
     min-height: 100%;
+    scrollbar-gutter: stable;
   }
 
   *::-webkit-scrollbar {
