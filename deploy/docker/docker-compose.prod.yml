@@ -18,6 +18,7 @@ services:
 
   server:
     image: adrian-zephyr-notes-server:${RELEASE_SHA:-latest}
+    pull_policy: never
     mem_limit: 512m
     memswap_limit: 768m
     cpus: 1.0
@@ -56,6 +57,7 @@ services:
 
   website:
     image: adrian-zephyr-notes-website:${RELEASE_SHA:-latest}
+    pull_policy: never
     mem_limit: 384m
     memswap_limit: 512m
     cpus: 1.0
@@ -74,6 +76,7 @@ services:
 
   admin:
     image: adrian-zephyr-notes-admin:${RELEASE_SHA:-latest}
+    pull_policy: never
     mem_limit: 128m
     memswap_limit: 192m
     cpus: 0.5
