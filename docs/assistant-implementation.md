@@ -4,6 +4,8 @@
 
 技术取舍见 [重建方案](./agent-rebuild-plan.md)，真实浏览器联调见 [浏览器记录](./assistant-browser-verification.md)，真实模型结果见 [固定评测报告](./assistant-evaluation-results.json)。模型评测的历史失败尝试也保留在报告中；不能用单元测试或浏览器模拟上游结果代替该门槛。
 
+生产版本、真实公网验证及失败探针见 [生产发布记录](./assistant-production-verification.md)。
+
 ## 开关与入口
 
 `ASSISTANT_ENABLED`、`ASSISTANT_ACTIONS_ENABLED` 默认均为 `false`。

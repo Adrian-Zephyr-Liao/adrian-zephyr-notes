@@ -1,0 +1,177 @@
+{
+  "verifiedAt": "2026-11-06T14:44:00+08:00",
+  "codeCommit": "ed6f3cd28ed0ea08766680bdc7bcfa6433a43417",
+  "ci": {
+    "runId": 42175001630,
+    "conclusion": "success"
+  },
+  "publicBusinessWritesPerformed": false,
+  "initialAdditionalInstructionProbes": [
+    {
+      "stage": "assistant-production-smoke",
+      "passed": false,
+      "runId": "production-smoke-b2f04cd8-842c-4efe-99e5-edfeabfd92d2",
+      "checks": {
+        "anonymousDenied": true,
+        "authenticated": true,
+        "exactCapabilitiesAndReadOnlyLabels": true
+      },
+      "counts": {
+        "capabilities": 3
+      },
+      "toolNames": [],
+      "cleanup": {
+        "session": true,
+        "conversation": true
+      },
+      "errorCode": "AUDIT_TOOL_NOT_SUCCESSFUL"
+    },
+    {
+      "stage": "assistant-production-smoke",
+      "passed": false,
+      "runId": "production-smoke-15d14ee3-2a44-4473-94a1-a8bdb01dcaec",
+      "checks": {
+        "anonymousDenied": true,
+        "authenticated": true,
+        "exactCapabilitiesAndReadOnlyLabels": true,
+        "firstEventBeforeTerminal": true
+      },
+      "counts": {
+        "capabilities": 3,
+        "firstEventMs": 31,
+        "terminalMs": 10450,
+        "initialEvents": 9,
+        "textDeltas": 1
+      },
+      "toolNames": ["list_audit_logs"],
+      "cleanup": {
+        "session": true,
+        "conversation": true
+      },
+      "toolResultKind": "audit_logs",
+      "errorCode": "AUDIT_FILTER_MISMATCH"
+    }
+  ],
+  "acceptedBaselineInput": "查看审计日志",
+  "baseline": {
+    "stage": "assistant-production-smoke",
+    "passed": true,
+    "runId": "production-smoke-fe848f8c-1132-40e0-b056-a4ff459feb95",
+    "checks": {
+      "anonymousDenied": true,
+      "authenticated": true,
+      "exactCapabilitiesAndReadOnlyLabels": true,
+      "firstEventBeforeTerminal": true,
+      "defaultFilters": {
+        "actionAll": true,
+        "actorUnspecified": true,
+        "searchUnspecified": true
+      },
+      "auditRecordExists": true,
+      "publicAuditFieldsSafe": true,
+      "streamMatchesHistory": true,
+      "noReasoningEvents": true,
+      "sameRequestReplay": true,
+      "historyIdsStable": true
+    },
+    "counts": {
+      "capabilities": 3,
+      "firstEventMs": 24,
+      "terminalMs": 10875,
+      "initialEvents": 17,
+      "textDeltas": 7,
+      "messages": 3,
+      "auditRows": 20,
+      "assistantActions": 0,
+      "replayEvents": 8,
+      "turns": 1
+    },
+    "toolNames": ["list_audit_logs"],
+    "cleanup": {
+      "session": true,
+      "conversation": true
+    },
+    "toolResultKind": "audit_logs"
+  },
+  "anonymousBrowser": {
+    "stage": "production-anonymous-frontend",
+    "passed": true,
+    "target": "https://admin.zephyrai.site/assistant",
+    "checkedAt": "2026-11-06T06:38:40.856Z",
+    "consoleErrors": [],
+    "pageErrors": [],
+    "requestFailures": [],
+    "assets": [
+      {
+        "path": "/assets/index-BzSpyMKB.js",
+        "type": "script",
+        "status": 200
+      },
+      {
+        "path": "/assets/rolldown-runtime-QTnfLwEv.js",
+        "type": "script",
+        "status": 200
+      },
+      {
+        "path": "/assets/index-BibGI02c.css",
+        "type": "stylesheet",
+        "status": 200
+      },
+      {
+        "path": "/assets/vendor-icons-Cx6vCt8u.js",
+        "type": "script",
+        "status": 200
+      },
+      {
+        "path": "/assets/vendor-tanstack-B1zoAUHZ.js",
+        "type": "script",
+        "status": 200
+      },
+      {
+        "path": "/assets/vendor-react-CGB6PN5E.js",
+        "type": "script",
+        "status": 200
+      },
+      {
+        "path": "/assets/vendor-markdown-BNqSvoaL.js",
+        "type": "script",
+        "status": 200
+      }
+    ],
+    "checks": {
+      "initialCookiesEmpty": true,
+      "loginGateVisible": true,
+      "loginHeadingVisible": true,
+      "noAssistantInput": true,
+      "noSessionCookie": true,
+      "locationUnchanged": true,
+      "htmlLoaded": true,
+      "javascriptLoaded": true,
+      "cssLoaded": true
+    },
+    "cleanup": true,
+    "browserVersion": "156.0.8078.81",
+    "status": 200,
+    "contentType": "text/html",
+    "screenshot": "/private/tmp/azn-assistant-browser.6SXRuX/production-anonymous-login-gate.png",
+    "counts": {
+      "scripts": 6,
+      "stylesheets": 1,
+      "consoleErrors": 0,
+      "pageErrors": 0,
+      "requestFailures": 0
+    }
+  },
+  "database": {
+    "migrationApplied": true,
+    "remainingSmokeTurns": 0,
+    "activeTurnsAtVerification": 0
+  },
+  "limits": [
+    "The first two additional-instruction probes failed and were not rescored as passes.",
+    "The first failed probe did not capture a detailed tool error code.",
+    "The baseline input is the existing planned audit request; extra-instruction performance is not established by its success.",
+    "No production comment decision was sent; mutation tests used isolated data.",
+    "The baseline conversation was initialized directly in PostgreSQL for deterministic cleanup ownership."
+  ]
+}
