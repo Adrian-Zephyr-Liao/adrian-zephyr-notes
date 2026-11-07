@@ -1,15 +1,19 @@
 import type { AdminUserResponse } from "@adrian-zephyr-notes/contracts";
-import { LogOut } from "lucide-react";
-import { logoutAdmin } from "../../lib/admin-api";
+import { Loader2, LogOut } from "lucide-react";
+import type { RefObject } from "react";
 import { Button } from "../ui/button";
 
 function AdminAccount({
   admin,
+  buttonRef,
   onLogout,
+  pending,
   showIdentity = true,
 }: {
   admin: AdminUserResponse;
-  onLogout: () => void;
+  buttonRef: RefObject<HTMLButtonElement | null>;
+  onLogout: (button: HTMLButtonElement) => void;
+  pending: boolean;
   showIdentity?: boolean;
 }) {
   return (
@@ -21,16 +25,20 @@ function AdminAccount({
         </div>
       ) : null}
       <Button
-        aria-label="退出登录"
-        title={`退出 @${admin.login}`}
+        ref={buttonRef}
+        aria-busy={pending}
+        aria-disabled={pending}
+        aria-label={pending ? "正在退出登录" : "退出登录"}
+        className={pending ? "cursor-wait opacity-50" : undefined}
+        title={pending ? "正在退出登录" : `退出 @${admin.login}`}
         size="icon"
         type="button"
         variant="ghost"
-        onClick={() => {
-          void logoutAdmin().finally(onLogout);
+        onClick={(event) => {
+          if (!pending) onLogout(event.currentTarget);
         }}
       >
-        <LogOut />
+        {pending ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <LogOut />}
       </Button>
     </div>
   );

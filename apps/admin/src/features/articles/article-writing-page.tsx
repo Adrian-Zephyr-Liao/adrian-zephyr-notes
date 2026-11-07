@@ -1,7 +1,7 @@
 import type { AdminUserResponse } from "@adrian-zephyr-notes/contracts";
 import { useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, Cloud, CloudOff, HardDrive, Loader2, Save, Trash2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { AdminAccount } from "../../components/admin/admin-account";
 import { AdminThemeToggle } from "../../components/admin/admin-theme-toggle";
@@ -12,6 +12,7 @@ import {
 } from "./article-editor";
 import { createArticleLocalDraftKey } from "./article-local-draft";
 import { formatArticleEditorDateTime } from "./article-editor-model";
+import { useAdminLogout } from "../auth/use-admin-logout";
 import { useArticleWriting } from "./use-article-writing";
 
 type ArticleWritingPageProps = {
@@ -33,6 +34,8 @@ function ArticleWritingPage({ admin, articleId, onLogout }: ArticleWritingPagePr
 
 function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPageProps) {
   const navigate = useNavigate();
+  const logoutButton = useRef<HTMLButtonElement>(null);
+  const logout = useAdminLogout(onLogout, [logoutButton]);
   const isCreating = !articleId;
   const [editorMode, setEditorMode] = useState<ArticleEditorViewMode>("split");
   const {
@@ -111,7 +114,13 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
         </div>
         <div className="col-start-2 row-start-1 flex items-center gap-1 lg:order-3">
           <AdminThemeToggle />
-          <AdminAccount admin={admin} onLogout={onLogout} showIdentity={false} />
+          <AdminAccount
+            admin={admin}
+            buttonRef={logoutButton}
+            onLogout={logout.requestLogout}
+            pending={logout.pending}
+            showIdentity={false}
+          />
         </div>
       </header>
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-muted/25 px-3 py-2 md:hidden">
@@ -182,6 +191,7 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
         )}
       </section>
       {confirmationDialog}
+      {logout.feedback}
     </main>
   );
 }

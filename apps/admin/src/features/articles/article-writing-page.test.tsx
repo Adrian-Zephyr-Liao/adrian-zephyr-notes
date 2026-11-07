@@ -78,6 +78,24 @@ afterEach(() => {
 });
 
 describe("article writing async safety", () => {
+  it("preserves the writing draft when logout fails and its feedback is closed", async () => {
+    api.logoutAdmin.mockRejectedValueOnce(new Error("offline"));
+    const onLogout = vi.fn();
+    render(<ArticleWritingPage admin={admin} articleId="a" onLogout={onLogout} />);
+    await title("Article a");
+    editTitle("Keep this unsaved title");
+    fireEvent.click(screen.getByRole("button", { name: "退出登录" }));
+    const dialog = await screen.findByRole("alertdialog", { name: "未能确认退出登录" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "关闭" }));
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    expect((screen.getByLabelText("标题") as HTMLInputElement).value).toBe(
+      "Keep this unsaved title",
+    );
+    expect(onLogout).not.toHaveBeenCalled();
+    expect(router.navigate).not.toHaveBeenCalled();
+    expect(api.logoutAdmin).toHaveBeenCalledTimes(1);
+  });
+
   it("returns directly to the article list", async () => {
     render(<ArticleWritingPage admin={admin} articleId="a" onLogout={() => {}} />);
     await title("Article a");

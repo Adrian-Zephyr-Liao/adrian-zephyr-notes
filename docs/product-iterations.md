@@ -543,3 +543,115 @@ clear only frontend identity after a failed logout. PM must reproduce with
 isolated 503/abort and canonical identity/reload evidence before any fix is
 selected; this is not yet a confirmed defect or an accepted implementation.
 No unattended background recovery/iteration was scheduled.
+
+## Round 4: logout failure recovery
+
+The admin redesign merged as PR #7 /
+`8c96d56729dfd43d5a04f8e395d802bdff67a563` after final head CI
+`42331674070` succeeded. Its tree exactly matches release source
+`82ce826f581d36494b33c620e461ea23b6e67f16`; the verified three-service package
+is `iteration-03/prebuilt-accepted`. It remains unpublished at the normal
+Tailscale identity check, with no production upload/restart.
+
+LOGOUT-PM-001 confirmed a separate P2: the shared account control calls
+`onLogout` in `finally`, so 503/network failure opens the login gate without
+feedback while canonical identity remains valid; reloading shows the admin
+again, and the rejected promise creates a page error. A successful-logout
+control stays unauthenticated on reload. This is isolated fixture evidence,
+not a real production logout or a newly introduced redesign regression.
+
+Selected scope LOGOUT-001: consume all failures; clear frontend identity only
+after confirmed logout; show pending and explicit unconfirmed-result/retry/close
+feedback while preserving page/input state. The real `POST /api/auth/logout`
+returns 204 after deleting the session and clearing the cookie, has no auth
+guard, and its repository deleteMany is idempotent. Retrying the same logout is
+safe; an extra auth/me query is unnecessary and user:null would not prove the
+logout itself succeeded. No backend, OAuth, permissions, credentials, API shape,
+database, dependency or Agent change is selected.
+
+Work reuses the primary checkout on `codex/admin-logout-recovery-20261107`,
+from clean merged `8c96d56`; `vp install` completed before implementation.
+PM owns LOGOUT-PM-001 discovery/acceptance; design owns LOGOUT-UX-001; the
+existing developer exclusively owns LOGOUT-DEV-002 account UI, one necessary
+transient logout coordinator/dialog and Shell/Writing assembly plus adjacent
+behavior tests; QA owns LOGOUT-QA-001 independent validation and the 4341
+candidate service. Leader owns this record and integration/release. Roles and
+chat IDs remain those recorded above; no team expansion or concurrent source
+ownership.
+
+Design freezes a 44px trigger with readable pending state; a single local
+AlertDialog explains an unconfirmed result and offers retry/close. Desktop and
+mobile account triggers coexist in Shell, so they share one in-flight lock and
+one dialog. Closing feedback does not cancel HTTP or imply successful logout;
+Escape/close returns focus to the currently visible trigger, including after a
+breakpoint change. Retry busy state is explicit and feedback remains closable.
+Only the API's success invokes the existing onLogout callback.
+
+Acceptance: success then unauthenticated reload; 503/abort retains page with
+feedback and no pageerror; lost response then explicit idempotent retry works;
+rapid clicks or a breakpoint switch create only one pending request; closing
+creates zero new requests and preserves page drafts; keyboard/focus/bright/dark
+and mobile/sidebar/writing entries remain usable. All writes are local fixture
+only. New evidence lives under
+`/Users/liaowenrun/.codex/visualizations/2026/11/07/01a1b1a3-9a22-7af0-8847-123cea344932/iteration-04`;
+initial read-only discovery evidence may remain at its original round-3 paths.
+
+LOGOUT-DEV-002 froze a single transient page-level coordinator and pure account
+triggers. Shell shares it between responsive entries; Writing creates one for
+its independent page. The in-flight lock prevents duplicate requests, all API
+failures are consumed, and only confirmed success clears frontend identity.
+One existing AlertDialog provides retry/close; closing during retry preserves
+the HTTP operation and restores the currently visible, focusable guarded
+trigger. Unmounted owners cannot clear a later page. No API/canonical identity
+query or session store was added. Leader reviewed the actual fetch-boundary
+tests, callback ownership, focus candidates and one-coordinator assembly.
+
+Integrated candidate gates passed: `vp check` (620 formatted / 557 lint-type
+files), 102 files / 588 tests, admin production build and whitespace check.
+Logs: `iteration-04/check.log`, `test.log`, `admin-build.log`. Independent
+candidate browser/product/design acceptance and production remain pending.
+QA independently reproduced five baseline failures and prepared 16 scenarios;
+all baseline and candidate evidence must remain separate.
+
+LOGOUT candidate `13f01aaa21dd68d4e421ab82130232f7da86ebfd` is PR #8
+(draft). PM-002 passed its four scoped outcome/retry checks; QA's original
+16 scenarios and strengthened cross-breakpoint visible-trigger focus checks
+passed. Design then found, and QA independently reproduced, a new P2: pure
+Close -> Tab -> Retry -> Enter -> held response -> repeated Tab/ShiftTab can
+leave the still-open dialog when the focused Retry becomes native disabled.
+Mouse close/Escape passing cannot substitute for this keyboard path.
+
+LOGOUT-DEV-003 owns only the coordinator and its adjacent regression test.
+Transfer focus to the usable Close control before disabling the focused retry
+button; retain closable pending feedback and all previous semantics. Never
+change the shared primitive or force-focus a control in browser tests to hide
+the failure. Preserve old version-bound failure evidence under
+`iteration-04/logout-ux-002` and `qa/logout-keyboard`. New targeted pure-keyboard
+acceptance is required before the PR can leave draft. Production is unchanged.
+
+LOGOUT application `97109921dbe56ad7413203387b14f855f6282c3a` passed the
+focused fix: transfer focus to Close before the current Retry is disabled.
+The regression test first establishes actual Retry focus, so it would fail
+without that transfer; it does not rely on click implicitly focusing a button.
+Full `vp check`, 102 files / 588 tests and admin build passed again; CI
+`42333630051` succeeded. The shared primitive and business flow were untouched.
+
+QA-003 retained both original failing keyboard assertions, now 2/2 passing,
+plus eight nearby cases and 128 real Tab/ShiftTab checks. UX-003 independently
+passed 72 focus records across four isolated sessions, including pending close,
+breakpoint changes, page/draft retention, repeat failure and confirmed success.
+Leader reviewed source, version binding and actual light/mobile and dark dialog
+screenshots. All design/test blockers are closed. The earlier 16-case outcome
+matrix and PM's four independent success/unknown/retry cases remain valid; no
+claim of rerunning unchanged checks is made. Reports live in
+`iteration-04/qa/LOGOUT-QA-003-report.md` and
+`iteration-04/logout-ux-003/LOGOUT-UX-003-report.md`.
+
+The final bundle will include the accepted redesign, logout recovery and all
+previous pending code. Record its exact documentation-only descendant release
+revision, image identities, checksums, merge and CI in the round-4 release receipt.
+Existing release/rollback documentation remains the publication procedure.
+Production is still unchanged: normal SSH requires Tailscale identity check,
+and the latest native attempt still reports the Mac locked. A concise asynchronous
+unlock request was sent while independent work continued; no answer or access
+change is assumed. Do not bypass the lock/check or claim a production release.
