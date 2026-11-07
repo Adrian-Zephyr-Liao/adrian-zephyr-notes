@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Select as SelectPrimitive } from "radix-ui";
 import { cn } from "../../lib/utils";
 
@@ -61,28 +61,33 @@ function Select({
       <SelectPrimitive.Trigger
         aria-label={ariaLabel}
         className={cn(
-          "flex h-11 w-full cursor-pointer items-center justify-between gap-2 rounded-lg border border-border bg-background px-3 text-base md:text-sm text-foreground outline-none transition-[background-color,border-color,box-shadow,scale] duration-200 ease-(--ease-out-ui) focus-visible:border-ring focus-visible:bg-background focus-visible:ring-3 focus-visible:ring-ring/35 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:active:scale-100",
+          "flex h-10 w-full max-sm:h-11 cursor-pointer items-center justify-between gap-2 rounded-lg border border-input bg-card px-3.5 text-base text-foreground md:text-sm outline-none transition-[background-color,border-color,box-shadow] duration-200 ease-(--ease-out-ui) hover:border-foreground/35 focus-visible:border-ring focus-visible:bg-card focus-visible:ring-1 focus-visible:ring-ring/20 data-[state=open]:border-primary/70 data-[state=open]:ring-1 data-[state=open]:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none",
           className,
         )}
         data-slot="select"
         id={id}
       >
-        <SelectPrimitive.Value placeholder={selectedOption?.label ?? placeholder} />
+        <span className="min-w-0 truncate text-left">
+          <SelectPrimitive.Value placeholder={selectedOption?.label ?? placeholder} />
+        </span>
         <SelectPrimitive.Icon asChild>
-          <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+          <ChevronDown className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 in-data-[state=open]:rotate-180 motion-reduce:transition-none" />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
         <SelectPrimitive.Content
-          className="z-50 max-h-80 min-w-(--radix-select-trigger-width) origin-(--radix-select-content-transform-origin) overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-(--shadow-glass-strong)"
+          className="z-50 max-h-(--radix-select-content-available-height) min-w-(--radix-select-trigger-width) origin-(--radix-select-content-transform-origin) overflow-hidden rounded-lg border border-border bg-popover text-popover-foreground shadow-(--shadow-glass-strong) data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 motion-reduce:animate-none"
           position="popper"
           sideOffset={6}
         >
-          <SelectPrimitive.Viewport className="p-1">
+          <SelectPrimitive.ScrollUpButton className="flex h-7 items-center justify-center border-b border-border/60 bg-popover text-muted-foreground">
+            <ChevronUp className="size-3.5" />
+          </SelectPrimitive.ScrollUpButton>
+          <SelectPrimitive.Viewport className="max-h-72 p-1">
             {options.map((option) => (
               <SelectPrimitive.Item
                 key={option.value}
-                className="relative flex cursor-pointer items-center rounded-md py-1.5 pr-8 pl-2 text-base outline-none select-none focus:bg-accent focus:text-accent-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50 md:text-sm"
+                className="relative flex min-h-10 cursor-pointer items-center rounded-md py-2 pr-9 pl-3 text-base transition-colors outline-none select-none focus:bg-accent focus:text-accent-foreground data-disabled:cursor-not-allowed data-disabled:opacity-50 data-[state=checked]:font-medium data-[state=checked]:text-primary motion-reduce:transition-none md:min-h-9 md:text-sm"
                 disabled={option.disabled}
                 value={encodeSelectValue(option.value) ?? EMPTY_SELECT_VALUE}
               >
@@ -93,6 +98,9 @@ function Select({
               </SelectPrimitive.Item>
             ))}
           </SelectPrimitive.Viewport>
+          <SelectPrimitive.ScrollDownButton className="flex h-7 items-center justify-center border-t border-border/60 bg-popover text-muted-foreground">
+            <ChevronDown className="size-3.5" />
+          </SelectPrimitive.ScrollDownButton>
         </SelectPrimitive.Content>
       </SelectPrimitive.Portal>
     </SelectPrimitive.Root>

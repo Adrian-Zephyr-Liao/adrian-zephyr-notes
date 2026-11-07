@@ -5,7 +5,7 @@ import type {
   UpdateAdminSiteSettingsRequest,
 } from "@adrian-zephyr-notes/contracts";
 import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { Check, RefreshCw } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import {
@@ -21,7 +21,9 @@ import {
 } from "./site-settings-editor";
 
 function SiteConfigManagement() {
-  const [activeSection, setActiveSection] = useState<"settings" | "announcements">("settings");
+  const [activeSection, setActiveSection] = useState<
+    "home" | "navigation" | "announcements" | "social"
+  >("home");
   const [config, setConfig] = useState<AdminSiteConfigResponse | null>(null);
   const [draftSettings, setDraftSettings] = useState<UpdateAdminSiteSettingsRequest | null>(null);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
@@ -128,6 +130,12 @@ function SiteConfigManagement() {
       return;
     }
 
+    const confirmed = await confirm({
+      title: "保存站点配置",
+      description: "将首页文案、导航与社交链接的当前修改一起保存。",
+      confirmLabel: "保存更改",
+    });
+    if (!confirmed) return;
     setIsSavingSettings(true);
     setErrorMessage(null);
 
@@ -155,37 +163,59 @@ function SiteConfigManagement() {
     );
   }
 
+  const changedSections =
+    config && draftSettings
+      ? [
+          JSON.stringify(config.home) !== JSON.stringify(draftSettings.home),
+          JSON.stringify(config.navigationItems) !== JSON.stringify(draftSettings.navigationItems),
+          JSON.stringify(config.socialLinks) !== JSON.stringify(draftSettings.socialLinks),
+        ].filter(Boolean).length
+      : 0;
+
   return (
     <div className="grid min-w-0 gap-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
-        <div role="group" aria-label="配置分区" className="flex flex-wrap gap-2">
-          <Button
-            aria-pressed={activeSection === "settings"}
-            aria-controls="site-settings"
-            variant={activeSection === "settings" ? "secondary" : "ghost"}
-            onClick={() => setActiveSection("settings")}
-          >
-            展示设置
-          </Button>
-          <Button
-            aria-pressed={activeSection === "announcements"}
-            aria-controls="site-announcements"
-            variant={activeSection === "announcements" ? "secondary" : "ghost"}
-            onClick={() => setActiveSection("announcements")}
-          >
-            公告
-          </Button>
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border">
+        <div role="group" aria-label="配置分区" className="flex flex-wrap gap-6">
+          {(
+            [
+              { key: "home", label: "首页" },
+              { key: "navigation", label: "导航" },
+              { key: "announcements", label: "公告" },
+              { key: "social", label: "链接" },
+            ] as const
+          ).map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              aria-pressed={activeSection === item.key}
+              onClick={() => setActiveSection(item.key)}
+              className={`border-b-2 px-2 py-4 text-sm transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-ring ${activeSection === item.key ? "border-primary font-semibold text-primary" : "border-transparent text-muted-foreground"}`}
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
-        <Button
-          disabled={isLoading || isSavingSettings || Boolean(savingAnnouncementId)}
-          variant="outline"
-          onClick={() => void reloadConfig()}
-        >
-          <RefreshCw
-            className={isLoading ? "animate-spin motion-reduce:animate-none" : undefined}
-          />
-          {isLoading ? "正在读取" : "重新读取配置"}
-        </Button>
+        <div className="flex items-center gap-2 pb-2 sm:pb-0">
+          <Button
+            disabled={isLoading || isSavingSettings || Boolean(savingAnnouncementId)}
+            variant="ghost"
+            onClick={() => void reloadConfig()}
+          >
+            <RefreshCw
+              className={isLoading ? "animate-spin motion-reduce:animate-none" : undefined}
+            />
+            {isLoading ? "正在读取" : "重新读取配置"}
+          </Button>
+          {activeSection !== "announcements" ? (
+            <Button
+              disabled={!draftSettings || isLoading || isSavingSettings}
+              onClick={() => void saveSettings()}
+            >
+              <Check />
+              {isSavingSettings ? "保存中" : "保存更改"}
+            </Button>
+          ) : null}
+        </div>
       </div>
       {errorMessage ? (
         <p
@@ -196,19 +226,23 @@ function SiteConfigManagement() {
         </p>
       ) : null}
       {!config && isLoading ? (
-        <p role="status" className="py-10 text-sm text-muted-foreground">
+        <p
+          role="status"
+          className="rounded-xl border border-border/70 bg-card px-6 py-12 text-center text-sm text-muted-foreground"
+        >
           正在读取站点配置…
         </p>
       ) : null}
       <fieldset
         id="site-settings"
         disabled={isLoading}
-        hidden={activeSection !== "settings"}
+        hidden={activeSection === "announcements"}
         className="min-w-0"
       >
         {draftSettings ? (
           <SiteSettingsEditor
             settings={draftSettings}
+            section={activeSection === "announcements" ? "home" : activeSection}
             saving={isSavingSettings}
             onChange={setDraftSettings}
             onSave={() => void saveSettings()}
@@ -231,6 +265,11 @@ function SiteConfigManagement() {
           />
         ) : null}
       </div>
+      {config ? (
+        <p className="border-t border-border pt-4 text-xs/6 text-muted-foreground" role="status">
+          {changedSections > 0 ? `有 ${changedSections} 个分区未保存更改` : "当前配置已保存"}
+        </p>
+      ) : null}
       {confirmationDialog}
     </div>
   );

@@ -33,7 +33,7 @@ function AssistantComposer({
 
   return (
     <form
-      className="mx-auto w-full max-w-3xl shrink-0 space-y-3 rounded-lg border border-border/60 bg-background p-3 focus-within:border-ring/60 sm:p-4"
+      className="mx-auto w-full max-w-3xl shrink-0 space-y-2 rounded-lg border border-border bg-card p-3 transition-[border-color,box-shadow] focus-within:border-ring/60 focus-within:ring-3 focus-within:ring-ring/10 sm:p-3"
       onSubmit={submit}
     >
       <div className="flex items-center justify-between gap-3">
@@ -46,7 +46,7 @@ function AssistantComposer({
       </div>
       <Textarea
         aria-describedby="assistant-input-help assistant-input-length"
-        className="max-h-40 min-h-24 resize-none rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:bg-transparent focus-visible:ring-0"
+        className="max-h-32 min-h-14 resize-none rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:bg-transparent focus-visible:ring-0"
         disabled={disabled}
         id="assistant-input"
         maxLength={inputLimit}
@@ -64,10 +64,10 @@ function AssistantComposer({
         }}
         placeholder="说明想查询的内容和筛选条件…"
         ref={inputRef}
-        rows={3}
+        rows={2}
         value={input}
       />
-      <div className="flex flex-wrap items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 pt-2">
         <p className="text-xs text-muted-foreground" id="assistant-input-help">
           Ctrl / ⌘ + Enter 发送，Enter 换行
         </p>

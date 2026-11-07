@@ -69,8 +69,8 @@ function AssistantMessage({ content, role }: { content: string; role: "user" | "
     <div
       className={
         role === "user"
-          ? "ml-auto w-fit max-w-[90%] min-w-0 rounded-lg bg-primary/8 px-4 py-3 wrap-anywhere"
-          : "space-y-2"
+          ? "ml-auto w-fit max-w-[90%] min-w-0 rounded-lg rounded-tr-sm border border-primary/10 bg-primary/8 px-4 py-3 wrap-anywhere"
+          : "space-y-2 border-l-2 border-primary/25 pl-4"
       }
     >
       <p className="mb-1 text-xs font-medium text-muted-foreground">

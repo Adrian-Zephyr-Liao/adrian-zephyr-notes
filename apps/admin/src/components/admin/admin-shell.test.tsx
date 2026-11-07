@@ -12,9 +12,11 @@ import { AdminShell } from "./admin-shell";
 const api = vi.hoisted(() => ({
   getAssistantCapabilities: vi.fn<() => Promise<AssistantCapabilitiesResponse>>(),
 }));
+const navigation = vi.hoisted(() => ({ navigate: vi.fn() }));
 vi.mock("../../features/assistant/assistant-api", () => api);
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
+  useNavigate: () => navigation.navigate,
 }));
 beforeEach(() => vi.stubGlobal("localStorage", { getItem: () => null, setItem: () => {} }));
 afterEach(() => {
@@ -35,8 +37,8 @@ describe("assistant navigation", () => {
     api.getAssistantCapabilities.mockRejectedValue(new Error("unavailable"));
     rerender(shell("admin-3"));
     await waitFor(() => expect(screen.queryByRole("link", { name: "管理助手" })).toBeNull());
-    expect(screen.getByRole("link", { name: "评论" })).not.toBeNull();
-    expect(screen.getByRole("link", { name: "审计日志" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "互动" })).not.toBeNull();
+    expect(screen.getByRole("link", { name: "站点" })).not.toBeNull();
   });
 });
 
@@ -68,4 +70,16 @@ it("opens the mobile navigation and returns focus to its trigger on Escape", asy
   fireEvent.keyDown(dialog, { key: "Escape" });
   await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   await waitFor(() => expect(document.activeElement).toBe(trigger));
+});
+
+it("opens global article search from the keyboard and sends the trimmed query to the archive", async () => {
+  api.getAssistantCapabilities.mockResolvedValue({ enabled: false, tools: [] });
+  render(shell("admin-1"));
+  fireEvent.keyDown(window, { key: "k", metaKey: true });
+  const input = await screen.findByRole("textbox", { name: "全局文章搜索关键词" });
+  await waitFor(() => expect(document.activeElement).toBe(input));
+  fireEvent.change(input, { target: { value: "  Markdown  " } });
+  fireEvent.submit(input.closest("form")!);
+  expect(navigation.navigate).toHaveBeenCalledWith({ to: "/articles", search: { q: "Markdown" } });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
 });

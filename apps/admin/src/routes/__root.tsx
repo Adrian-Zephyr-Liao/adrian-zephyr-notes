@@ -8,8 +8,12 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   useEffect(() => {
-    const storedTheme = window.localStorage.getItem("admin-theme");
-    const resolvedTheme = storedTheme === "light" ? "light" : "dark";
+    let resolvedTheme = "light";
+    try {
+      if (window.localStorage.getItem("admin-theme") === "dark") resolvedTheme = "dark";
+    } catch {
+      // The editorial workspace also opens when storage is unavailable.
+    }
 
     document.documentElement.dataset.theme = resolvedTheme;
     document.documentElement.classList.toggle("dark", resolvedTheme === "dark");

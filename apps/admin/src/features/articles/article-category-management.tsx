@@ -1,15 +1,16 @@
 import type { AdminArticleCategoryResponse } from "@adrian-zephyr-notes/contracts";
-import { Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
+import { FolderTree, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArticleArchiveHeading, ArticleArchiveLayout } from "./article-archive-layout";
 import { Button } from "../../components/ui/button";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
 import {
   ManagementBody,
   ManagementEmpty,
-  ManagementHeader,
   ManagementList,
   ManagementLoading,
+  ManagementPagination,
   ManagementSurface,
   ManagementToolbar,
 } from "../../components/ui/management-surface";
@@ -21,7 +22,6 @@ import {
   listAdminArticleCategories,
   updateAdminArticleCategory,
 } from "../../lib/admin-api";
-import { ArticleTaxonomyPagination } from "./article-taxonomy-pagination";
 
 const emptyDraft = { description: "", name: "", slug: "" };
 const PAGE_SIZE = 20;
@@ -141,8 +141,8 @@ function ArticleCategoryManagement() {
   }
 
   return (
-    <ManagementSurface>
-      <ManagementHeader
+    <ArticleArchiveLayout page="categories">
+      <ArticleArchiveHeading
         action={
           <Button
             ref={newButton}
@@ -156,116 +156,119 @@ function ArticleCategoryManagement() {
             新建分类
           </Button>
         }
-        description="用稳定的分类结构组织文章主题。"
+        title="分类目录"
+        subtitle="TOPICS & COLLECTIONS"
         meta={
-          <span className="text-xs text-muted-foreground">
+          <span className="font-display text-sm text-muted-foreground tabular-nums">
             {isLoading || readFailed ? "—" : pagination.totalItems} 个
           </span>
         }
       />
-      <ManagementBody className="grid gap-4">
-        {message ? (
-          <p
-            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {message}
-          </p>
-        ) : null}
-        {formOpen ? (
-          <div
-            className="grid gap-4 border-y border-border py-4"
-            role="group"
-            aria-label={editingId ? "编辑分类" : "新建分类"}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 text-sm font-medium">
-                <span>分类名称</span>
-                <Input
-                  ref={nameInput}
-                  maxLength={80}
-                  value={draft.name}
+      <ManagementSurface className="border-0 bg-transparent shadow-none">
+        <ManagementBody className="grid gap-4">
+          {message ? (
+            <p
+              className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
+              {message}
+            </p>
+          ) : null}
+          {formOpen ? (
+            <div
+              className="grid gap-5 border-y border-primary/30 bg-card/65 p-5 sm:p-6"
+              role="group"
+              aria-label={editingId ? "编辑分类" : "新建分类"}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-2 text-xs font-medium text-muted-foreground">
+                  <span>分类名称</span>
+                  <Input
+                    ref={nameInput}
+                    maxLength={80}
+                    value={draft.name}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, name: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="grid gap-2 text-xs font-medium text-muted-foreground">
+                  <span>分类 slug</span>
+                  <Input
+                    maxLength={80}
+                    placeholder="category-slug"
+                    value={draft.slug}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, slug: event.target.value }))
+                    }
+                  />
+                </label>
+              </div>
+              <label className="grid gap-2 text-xs font-medium text-muted-foreground">
+                <span>分类描述（可选）</span>
+                <Textarea
+                  maxLength={500}
+                  rows={3}
+                  value={draft.description}
                   onChange={(event) =>
-                    setDraft((current) => ({ ...current, name: event.target.value }))
+                    setDraft((current) => ({ ...current, description: event.target.value }))
                   }
                 />
               </label>
-              <label className="grid gap-2 text-sm font-medium">
-                <span>分类 slug</span>
-                <Input
-                  maxLength={80}
-                  placeholder="category-slug"
-                  value={draft.slug}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, slug: event.target.value }))
-                  }
-                />
-              </label>
+              <div className="flex justify-end gap-2">
+                <Button disabled={isSaving} variant="outline" onClick={closeForm}>
+                  取消
+                </Button>
+                <Button disabled={isSaving} onClick={() => void saveCategory()}>
+                  {isSaving ? <Loader2 className="animate-spin" /> : null}
+                  保存分类
+                </Button>
+              </div>
             </div>
-            <label className="grid gap-2 text-sm font-medium">
-              <span>分类描述（可选）</span>
-              <Textarea
-                maxLength={500}
-                rows={3}
-                value={draft.description}
-                onChange={(event) =>
-                  setDraft((current) => ({ ...current, description: event.target.value }))
-                }
+          ) : null}
+          <ManagementToolbar className="grid-cols-[minmax(0,1fr)_auto]">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label="搜索分类"
+                className="pl-9"
+                placeholder="搜索名称、slug 或描述"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void loadCategories(1, searchText.trim() || undefined);
+                }}
               />
-            </label>
-            <div className="flex justify-end gap-2">
-              <Button disabled={isSaving} variant="outline" onClick={closeForm}>
-                取消
-              </Button>
-              <Button disabled={isSaving} onClick={() => void saveCategory()}>
-                {isSaving ? <Loader2 className="animate-spin" /> : null}
-                保存分类
-              </Button>
             </div>
-          </div>
-        ) : null}
-        <ManagementToolbar className="grid-cols-[minmax(0,1fr)_auto]">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              aria-label="搜索分类"
-              className="pl-8"
-              placeholder="搜索名称、slug 或描述"
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void loadCategories(1, searchText.trim() || undefined);
-              }}
+            <Button
+              aria-label="刷新分类"
+              size="icon"
+              type="button"
+              variant="outline"
+              onClick={() => void loadCategories(pagination.page, searchText.trim() || undefined)}
+            >
+              <RefreshCw className={isLoading ? "animate-spin" : undefined} />
+            </Button>
+          </ManagementToolbar>
+          {readFailed ? null : (
+            <CategoryRows
+              categories={categories}
+              isLoading={isLoading}
+              onDelete={removeCategory}
+              onEdit={editCategory}
             />
-          </div>
-          <Button
-            aria-label="刷新分类"
-            size="icon"
-            type="button"
-            variant="outline"
-            onClick={() => void loadCategories(pagination.page, searchText.trim() || undefined)}
-          >
-            <RefreshCw className={isLoading ? "animate-spin" : undefined} />
-          </Button>
-        </ManagementToolbar>
-        {readFailed ? null : (
-          <CategoryRows
-            categories={categories}
-            isLoading={isLoading}
-            onDelete={removeCategory}
-            onEdit={editCategory}
-          />
-        )}
-        {!isLoading && !readFailed ? (
-          <ArticleTaxonomyPagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={(page) => void loadCategories(page, searchText.trim() || undefined)}
-          />
-        ) : null}
-      </ManagementBody>
-      {confirmationDialog}
-    </ManagementSurface>
+          )}
+          {!isLoading && !readFailed && pagination.totalPages > 1 ? (
+            <ManagementPagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={(page) => void loadCategories(page, searchText.trim() || undefined)}
+            />
+          ) : null}
+        </ManagementBody>
+        {confirmationDialog}
+      </ManagementSurface>
+    </ArticleArchiveLayout>
   );
 }
 
@@ -288,15 +291,25 @@ function CategoryRows({
       {categories.map((category) => (
         <div
           key={category.id}
-          className="grid gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_110px_auto] sm:items-center"
+          className="grid gap-4 py-5 transition-colors hover:bg-muted/25 motion-reduce:transition-none sm:grid-cols-[minmax(0,1fr)_110px_auto] sm:items-center"
         >
-          <div className="min-w-0">
-            <p className="font-medium">{category.name}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              {category.slug} · {category.description || "暂无描述"}
-            </p>
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center text-primary">
+              <FolderTree className="size-4" />
+            </span>
+            <div className="min-w-0">
+              <p className="font-display text-xl font-medium">{category.name}</p>
+              <p className="mt-1 font-mono text-[11px] wrap-break-word text-muted-foreground">
+                {category.slug}
+              </p>
+              <p className="mt-1 text-xs/5 wrap-break-word text-muted-foreground">
+                {category.description || "暂无描述"}
+              </p>
+            </div>
           </div>
-          <span className="text-sm text-muted-foreground">{category.articleCount} 篇文章</span>
+          <span className="text-xs text-muted-foreground tabular-nums">
+            {category.articleCount} 篇文章
+          </span>
           <div className="flex justify-end gap-1">
             <Button
               aria-label={`编辑${category.name}`}

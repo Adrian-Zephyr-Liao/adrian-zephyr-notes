@@ -34,7 +34,7 @@ function ArticleBody({
         </aside>
       ) : null}
       {post.aiSummary ? <ArticleAiSummaryCard summary={post.aiSummary} /> : null}
-      <div className="[&_.markdown-body]:text-base [&_.markdown-body]:leading-[1.95] [&_.markdown-body]:text-foreground min-[601px]:[&_.markdown-body]:text-[1.0625rem] min-[601px]:[&_.markdown-body]:leading-loose [&_.markdown-body_h2]:border-border [&_.markdown-body_h2]:pb-3 [&_.markdown-body_h2::before]:hidden">
+      <div className="article-markdown">
         <MarkdownRenderer content={post.markdown} />
       </div>
       <ArticleFooter post={post} />

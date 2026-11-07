@@ -10,18 +10,13 @@ import { Button } from "../../components/ui/button";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
 import {
-  ManagementBody,
   ManagementEmpty,
-  ManagementHeader,
-  ManagementList,
   ManagementLoading,
   ManagementPagination,
-  ManagementSurface,
-  ManagementToolbar,
 } from "../../components/ui/management-surface";
+import { ReaderAvatar, ReaderInbox, ReaderInboxItem, ReaderRelatedLink } from "./reader-inbox";
 import { Select } from "../../components/ui/select";
 import { listAdminArticleComments, updateAdminArticleComment } from "../../lib/admin-api";
-import { cn } from "../../lib/utils";
 import { useModerationList } from "../moderation/use-moderation-list";
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -55,6 +50,9 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
     updateError: "评论状态更新失败，请稍后重试。",
   });
   const [searchText, setSearchText] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selected =
+    comments.find((comment) => comment.id === (selectedId ?? query.commentId)) ?? comments[0];
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const isFocusedMode = Boolean(query.commentId);
@@ -74,6 +72,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
     }
 
     setSearchText("");
+    setSelectedId(null);
     setQuery({
       commentId: focusedCommentId,
       page: 1,
@@ -110,208 +109,209 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
   }
 
   return (
-    <ManagementSurface>
-      <ManagementHeader
-        description="在处理前先看文章、用户和回复上下文。"
-        meta={pagination ? <Badge variant="outline">{pagination.totalItems} 条</Badge> : null}
-        action={
+    <section
+      ref={resultsRef}
+      aria-label="审核结果"
+      aria-busy={isLoading}
+      tabIndex={-1}
+      className="min-w-0 outline-none focus-visible:ring-2 focus-visible:ring-ring"
+    >
+      {errorMessage ? (
+        <p
+          role="alert"
+          className="mb-5 border-l-2 border-destructive bg-destructive/5 px-4 py-3 text-sm/6 text-destructive"
+        >
+          {errorMessage}
+        </p>
+      ) : null}
+      {isFocusedMode ? (
+        <div
+          role="status"
+          className="mb-5 flex flex-wrap items-center justify-between gap-3 border-y border-border py-3 text-sm text-primary"
+        >
+          <span>已定位到指定评论。</span>
           <Button
-            type="button"
-            variant="outline"
-            onClick={() => setQuery((current) => ({ ...current }))}
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setSearchText("");
+              setQuery({ page: 1, pageSize: DEFAULT_PAGE_SIZE, status: "ALL" });
+            }}
           >
-            <RefreshCw className={cn(isLoading && "animate-spin")} />
-            刷新
+            查看全部评论
           </Button>
-        }
-      />
-      <ManagementBody>
-        {errorMessage ? (
-          <div
-            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {errorMessage}
-          </div>
-        ) : null}
-        {isFocusedMode ? (
-          <div
-            className="flex flex-col gap-2 rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary sm:flex-row sm:items-center sm:justify-between"
-            role="status"
-          >
-            <span>已定位到指定评论。</span>
+        </div>
+      ) : null}
+      <ReaderInbox
+        kind="comments"
+        loading={isLoading}
+        total={pagination?.totalItems}
+        toolbar={
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label="搜索评论内容"
+                className="pl-9"
+                placeholder="搜索评论、作者、文章"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") submitSearch();
+                }}
+              />
+            </div>
             <Button
-              size="sm"
+              aria-label="搜索评论"
               type="button"
-              variant="ghost"
-              onClick={() => {
-                setSearchText("");
-                setQuery({
-                  page: 1,
-                  pageSize: DEFAULT_PAGE_SIZE,
-                  status: "ALL",
-                });
-              }}
+              size="icon"
+              variant="outline"
+              onClick={submitSearch}
             >
-              查看全部评论
+              <Search />
+            </Button>
+            <Select
+              aria-label="评论状态"
+              value={query.status ?? "ALL"}
+              onChange={(event) =>
+                setQuery((current) => ({
+                  ...current,
+                  commentId: undefined,
+                  page: 1,
+                  status: event.target.value as AdminArticleCommentListQuery["status"],
+                }))
+              }
+            >
+              <option value="ALL">全部状态</option>
+              <option value="VISIBLE">可见</option>
+              <option value="HIDDEN">已隐藏</option>
+            </Select>
+            <Button
+              aria-label="刷新"
+              variant="ghost"
+              size="icon"
+              onClick={() => setQuery((current) => ({ ...current }))}
+            >
+              <RefreshCw
+                className={isLoading ? "animate-spin motion-reduce:animate-none" : undefined}
+              />
             </Button>
           </div>
-        ) : null}
-        <ManagementToolbar className="md:grid-cols-[minmax(0,1fr)_180px_auto]">
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              className="pl-8"
-              placeholder="搜索评论、作者、文章"
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  submitSearch();
-                }
-              }}
-            />
-          </div>
-          <Select
-            aria-label="评论状态"
-            value={query.status ?? "ALL"}
-            onChange={(event) =>
-              setQuery((current) => ({
-                ...current,
-                commentId: undefined,
-                page: 1,
-                status: event.target.value as AdminArticleCommentListQuery["status"],
-              }))
-            }
-          >
-            <option value="ALL">全部状态</option>
-            <option value="VISIBLE">可见</option>
-            <option value="HIDDEN">已隐藏</option>
-          </Select>
-          <Button aria-label="搜索评论" title="搜索评论" type="button" onClick={submitSearch}>
-            <Search />
-            <span className="md:sr-only">搜索</span>
-          </Button>
-        </ManagementToolbar>
-        <section ref={resultsRef} aria-label="审核结果" aria-busy={isLoading} tabIndex={-1}>
-          <ManagementList>
-            {isLoading ? <ManagementLoading label="正在加载评论..." /> : null}
-            {comments.map((comment) => (
-              <article
-                key={comment.id}
-                data-moderation-id={comment.id}
-                aria-current={comment.id === query.commentId ? "true" : undefined}
-                className={cn(
-                  "p-4 transition-colors hover:bg-background/28",
-                  comment.id === query.commentId &&
-                    "bg-primary/10 shadow-[inset_3px_0_0_color-mix(in_oklch,var(--primary)_65%,transparent)]",
-                )}
-              >
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
-                  <div className="min-w-0 space-y-3">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <StatusBadge status={comment.status} />
-                      <Badge variant="outline">{comment.article.title}</Badge>
-                      {comment.parent ? (
-                        <Badge variant="default">回复 @{comment.parent.author.login}</Badge>
-                      ) : null}
-                      {comment.replyCount > 0 ? (
-                        <Badge variant="secondary">{comment.replyCount} 条回复</Badge>
-                      ) : null}
-                    </div>
-                    <p className="text-base/7 whitespace-pre-wrap">{comment.body}</p>
-                    {comment.parent ? (
-                      <div className="rounded-lg bg-muted/35 p-3">
-                        <p className="text-xs text-muted-foreground">
-                          回复上下文 · @{comment.parent.author.login}
-                        </p>
-                        <p className="mt-1 line-clamp-2 text-sm">{comment.parent.body}</p>
-                      </div>
-                    ) : null}
-                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                      <span>{comment.likeCount} 赞</span>
-                      <span>{formatDateTime(comment.createdAt)}</span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-3 lg:items-end">
-                    <div className="flex items-center gap-2 lg:flex-row-reverse">
-                      {comment.author.avatarUrl ? (
-                        <img
-                          alt={comment.author.login}
-                          className="size-8 rounded-full ring-1 ring-border"
-                          src={comment.author.avatarUrl}
-                        />
-                      ) : (
-                        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                          {comment.author.login.slice(0, 1).toUpperCase()}
-                        </span>
-                      )}
-                      <div className="min-w-0 lg:text-right">
-                        <p className="truncate text-sm font-medium">
-                          {comment.author.name ?? comment.author.login}
-                        </p>
-                        <a
-                          className="text-xs text-primary hover:underline"
-                          href={comment.author.profileUrl}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          @{comment.author.login}
-                        </a>
-                      </div>
-                    </div>
-                    {comment.status === "VISIBLE" ? (
-                      <Button
-                        data-moderation-action="visibility"
-                        disabled={updatingCommentId !== null}
-                        type="button"
-                        variant="outline"
-                        onClick={() => void updateCommentStatus(comment, "HIDDEN")}
-                      >
-                        {updatingCommentId === comment.id ? (
-                          <Loader2 className="animate-spin" />
-                        ) : (
-                          <EyeOff />
-                        )}
-                        {updatingCommentId === comment.id ? "处理中" : "隐藏"}
-                      </Button>
-                    ) : (
-                      <Button
-                        data-moderation-action="visibility"
-                        disabled={updatingCommentId !== null}
-                        type="button"
-                        onClick={() => void updateCommentStatus(comment, "VISIBLE")}
-                      >
-                        {updatingCommentId === comment.id ? (
-                          <Loader2 className="animate-spin" />
-                        ) : (
-                          <Eye />
-                        )}
-                        {updatingCommentId === comment.id ? "处理中" : "恢复"}
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              </article>
-            ))}
-            {isReady && comments.length === 0 ? (
-              <ManagementEmpty label="没有符合条件的评论。" />
-            ) : null}
-          </ManagementList>
-          {pagination ? (
+        }
+        pagination={
+          pagination ? (
             <ManagementPagination
               page={pagination.page}
               totalPages={pagination.totalPages}
               onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
             />
-          ) : null}
-          <span role="status" className="sr-only">
-            {statusMessage}
-          </span>
-        </section>
-      </ManagementBody>
+          ) : null
+        }
+        detail={
+          selected ? (
+            <article data-moderation-id={selected.id} className="grid gap-6">
+              <header className="flex items-start gap-4">
+                <ReaderAvatar
+                  large
+                  name={selected.author.name ?? selected.author.login}
+                  src={selected.author.avatarUrl}
+                />
+                <div className="min-w-0">
+                  <h2 className="font-display text-2xl font-semibold wrap-anywhere">
+                    {selected.author.name ?? selected.author.login}
+                  </h2>
+                  <a
+                    className="mt-1 block text-xs text-muted-foreground hover:text-primary hover:underline"
+                    href={selected.author.profileUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    @{selected.author.login}
+                  </a>
+                  <p className="mt-2 text-xs/6 text-muted-foreground">
+                    {formatDateTime(selected.createdAt)} · 文章评论
+                  </p>
+                </div>
+              </header>
+              <ReaderRelatedLink
+                href={`/articles/${encodeURIComponent(selected.article.id)}/edit`}
+                label={`相关文章 · ${selected.article.title}`}
+              />
+              <p className="min-h-24 text-base/8 wrap-anywhere whitespace-pre-wrap">
+                {selected.body}
+              </p>
+              {selected.parent ? (
+                <section className="border-t border-border pt-5">
+                  <p className="mb-3 text-xs text-muted-foreground">
+                    回复上下文 · @{selected.parent.author.login}
+                  </p>
+                  <p className="border-l-2 border-primary/35 pl-5 text-sm/7 wrap-anywhere whitespace-pre-wrap">
+                    {selected.parent.body}
+                  </p>
+                </section>
+              ) : null}
+              <footer className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-5">
+                <div className="flex flex-wrap items-center gap-3">
+                  <StatusBadge status={selected.status} />
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {selected.likeCount} 赞 · {selected.replyCount} 条回复
+                  </span>
+                </div>
+                <Button
+                  data-moderation-action="visibility"
+                  disabled={updatingCommentId !== null}
+                  type="button"
+                  variant={selected.status === "VISIBLE" ? "outline" : "default"}
+                  onClick={() =>
+                    void updateCommentStatus(
+                      selected,
+                      selected.status === "VISIBLE" ? "HIDDEN" : "VISIBLE",
+                    )
+                  }
+                >
+                  {updatingCommentId === selected.id ? (
+                    <Loader2 className="animate-spin motion-reduce:animate-none" />
+                  ) : selected.status === "VISIBLE" ? (
+                    <EyeOff />
+                  ) : (
+                    <Eye />
+                  )}
+                  {updatingCommentId === selected.id
+                    ? "处理中"
+                    : selected.status === "VISIBLE"
+                      ? "隐藏"
+                      : "恢复"}
+                </Button>
+              </footer>
+            </article>
+          ) : (
+            <div className="grid min-h-72 place-items-center text-sm text-muted-foreground">
+              {isLoading ? "正在读取来信" : "选择一条来信，阅读完整内容与上下文。"}
+            </div>
+          )
+        }
+      >
+        {isLoading ? <ManagementLoading label="正在加载评论..." /> : null}
+        {comments.map((comment, index) => (
+          <ReaderInboxItem
+            key={comment.id}
+            active={selected?.id === comment.id}
+            author={comment.author.name ?? comment.author.login}
+            avatar={comment.author.avatarUrl}
+            body={comment.body}
+            context={`文章 · ${comment.article.title}`}
+            date={formatShortDate(comment.createdAt)}
+            index={index}
+            onSelect={() => setSelectedId(comment.id)}
+          />
+        ))}
+        {isReady && comments.length === 0 ? <ManagementEmpty label="没有符合条件的评论。" /> : null}
+      </ReaderInbox>
+      <span role="status" className="sr-only">
+        {statusMessage}
+      </span>
       {confirmationDialog}
-    </ManagementSurface>
+    </section>
   );
 }
 
@@ -321,6 +321,15 @@ function StatusBadge({ status }: { status: AdminArticleCommentStatus }) {
       {status === "VISIBLE" ? "可见" : "已隐藏"}
     </Badge>
   );
+}
+
+function formatShortDate(value: string) {
+  return new Intl.DateTimeFormat("zh-CN", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
 }
 
 function formatDateTime(value: string) {

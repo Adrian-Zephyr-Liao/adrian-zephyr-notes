@@ -19,10 +19,18 @@ function AdminAccount({
   return (
     <div className="flex min-w-0 items-center gap-2">
       {showIdentity ? (
-        <div className="hidden min-w-0 flex-1 sm:block">
-          <p className="truncate text-sm font-medium">{admin.name ?? admin.login}</p>
-          <p className="truncate text-xs text-muted-foreground">@{admin.login}</p>
-        </div>
+        <>
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-lg border border-border bg-card text-xs font-semibold text-primary"
+            aria-hidden="true"
+          >
+            {(admin.name ?? admin.login).slice(0, 2).toUpperCase()}
+          </span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">{admin.name ?? admin.login}</p>
+            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">@{admin.login}</p>
+          </div>
+        </>
       ) : null}
       <Button
         ref={buttonRef}

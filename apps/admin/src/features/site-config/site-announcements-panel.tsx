@@ -2,13 +2,14 @@ import type {
   AdminSiteAnnouncementResponse,
   UpdateAdminSiteAnnouncementRequest,
 } from "@adrian-zephyr-notes/contracts";
-import { Loader2, Save } from "lucide-react";
+import { Loader2, Megaphone, PencilLine, Power, Save } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
 import {
   ManagementBody,
+  ManagementEmpty,
   ManagementHeader,
   ManagementList,
   ManagementLoading,
@@ -52,12 +53,10 @@ function SiteAnnouncementsPanel({
       <ManagementBody>
         <ManagementList>
           {isLoading ? <ManagementLoading label="正在加载站点配置..." /> : null}
-          {!isLoading && announcements.length === 0 ? (
-            <p className="py-8 text-sm text-muted-foreground">暂无公告。</p>
-          ) : null}
+          {!isLoading && announcements.length === 0 ? <ManagementEmpty label="暂无公告。" /> : null}
           {!isLoading &&
             announcements.map((announcement) => (
-              <article className="px-1 py-5" key={announcement.id}>
+              <article className="py-6 first:pt-2" key={announcement.id}>
                 {editingAnnouncementId === announcement.id ? (
                   <AnnouncementEditor
                     draft={draft}
@@ -94,35 +93,51 @@ function AnnouncementSummary({
   saving: boolean;
 }) {
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h3 className="font-medium">{announcement.title}</h3>
-            <Badge variant={announcement.isEnabled ? "success" : "outline"}>
-              {announcement.isEnabled ? "启用" : "停用"}
-            </Badge>
+    <div className="grid gap-4 sm:grid-cols-[2.5rem_minmax(0,1fr)]">
+      <span
+        aria-hidden="true"
+        className="hidden size-10 items-center justify-center rounded-lg bg-secondary text-secondary-foreground sm:flex"
+      >
+        <Megaphone className="size-4" />
+      </span>
+      <div className="min-w-0 space-y-4">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <h3 className="font-medium">{announcement.title}</h3>
+              <Badge variant={announcement.isEnabled ? "success" : "outline"}>
+                {announcement.isEnabled ? "启用" : "停用"}
+              </Badge>
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{announcement.key}</p>
           </div>
-          <p className="mt-1 text-xs text-muted-foreground">{announcement.key}</p>
+          <div className="flex gap-2">
+            <Button
+              disabled={saving}
+              size="sm"
+              type="button"
+              variant="outline"
+              onClick={onStartEdit}
+            >
+              <PencilLine />
+              编辑
+            </Button>
+            <Button
+              disabled={saving}
+              size="sm"
+              type="button"
+              variant={announcement.isEnabled ? "destructive" : "default"}
+              onClick={onToggle}
+            >
+              {saving ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <Power />}
+              {announcement.isEnabled ? "停用" : "启用"}
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" type="button" variant="outline" onClick={onStartEdit}>
-            编辑
-          </Button>
-          <Button
-            disabled={saving}
-            size="sm"
-            type="button"
-            variant={announcement.isEnabled ? "destructive" : "default"}
-            onClick={onToggle}
-          >
-            {announcement.isEnabled ? "停用" : "启用"}
-          </Button>
+        <div className="border-l-2 border-primary/25 bg-muted/35 px-4 py-3 text-sm/6 wrap-anywhere">
+          <p>{announcement.status}</p>
+          <p className="mt-1 whitespace-pre-wrap text-muted-foreground">{announcement.output}</p>
         </div>
-      </div>
-      <div className="rounded-lg bg-muted/45 p-3 text-sm">
-        <p>{announcement.status}</p>
-        <p className="mt-1 text-muted-foreground">{announcement.output}</p>
       </div>
     </div>
   );
@@ -142,8 +157,8 @@ function AnnouncementEditor({
   saving: boolean;
 }) {
   return (
-    <div className="grid gap-3">
-      <div className="grid gap-3 md:grid-cols-2">
+    <div className="grid gap-5 rounded-lg bg-muted/30 p-4 sm:p-5">
+      <div className="grid gap-4 md:grid-cols-2">
         <Field label="标题">
           <Input
             value={draft.title ?? ""}
@@ -203,7 +218,7 @@ function AnnouncementEditor({
         />
         <label htmlFor="site-announcement-enabled">启用公告</label>
       </div>
-      <div className="flex justify-end gap-2">
+      <div className="flex flex-wrap justify-end gap-2 border-t border-border/70 pt-4">
         <Button type="button" variant="outline" onClick={onCancel}>
           取消
         </Button>

@@ -10,127 +10,134 @@ import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
-import {
-  ManagementBody,
-  ManagementHeader,
-  ManagementSurface,
-} from "../../components/ui/management-surface";
+import { ManagementBody } from "../../components/ui/management-surface";
 import { Textarea } from "../../components/ui/textarea";
 import { Field } from "./site-config-field";
+import { SiteConfigPreview } from "./site-config-preview";
 
 function SiteSettingsEditor({
   onChange,
   onSave,
   saving,
   settings,
+  section = "home",
 }: {
   onChange: (settings: UpdateAdminSiteSettingsRequest) => void;
   onSave: () => void;
   saving: boolean;
   settings: UpdateAdminSiteSettingsRequest;
+  section?: "home" | "navigation" | "social";
 }) {
   return (
-    <ManagementSurface>
-      <ManagementHeader
-        description="编辑首页文案、导航与社交链接。保存配置后应用到读者侧。"
-        title="展示设置"
-        action={
-          <Button disabled={saving} type="button" onClick={onSave}>
-            {saving ? <Loader2 className="animate-spin" /> : <Save />}
-            {saving ? "保存中" : "保存配置"}
-          </Button>
-        }
-      />
-      <ManagementBody className="grid gap-8">
-        <section className="grid gap-4 border-t border-border pt-6">
-          <h3 className="text-base font-semibold">首页</h3>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="眉标">
-              <Input
-                value={settings.home.eyebrow}
-                onChange={(event) =>
-                  onChange({ ...settings, home: { ...settings.home, eyebrow: event.target.value } })
-                }
-              />
-            </Field>
-            <Field label="标题">
-              <Input
-                value={settings.home.title}
-                onChange={(event) =>
-                  onChange({ ...settings, home: { ...settings.home, title: event.target.value } })
-                }
-              />
-            </Field>
+    <div className="grid min-w-0 gap-8 xl:grid-cols-[minmax(21rem,0.8fr)_minmax(0,1.4fr)] xl:gap-10">
+      <ManagementBody className="grid min-w-0 gap-0 space-y-0 p-0 sm:p-0">
+        <section className={section === "home" ? "grid gap-5 pb-8" : "hidden"}>
+          <div>
+            <span className="text-xs font-medium text-primary tabular-nums">01 / 首页</span>
+            <h3 className="mt-2 text-base font-semibold">首页内容</h3>
+            <p className="mt-2 text-xs/6 text-muted-foreground">
+              设置读者进入博客时看到的介绍与入口。
+            </p>
           </div>
-          <Field label="副标题">
-            <Textarea
-              rows={3}
-              value={settings.home.subtitle}
-              onChange={(event) =>
-                onChange({ ...settings, home: { ...settings.home, subtitle: event.target.value } })
-              }
-            />
-          </Field>
-          <div className="grid gap-3 md:grid-cols-2">
-            <Field label="主按钮文案">
-              <Input
-                value={settings.home.primaryActionLabel}
+          <div className="grid min-w-0 gap-5">
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="眉标">
+                <Input
+                  value={settings.home.eyebrow}
+                  onChange={(event) =>
+                    onChange({
+                      ...settings,
+                      home: { ...settings.home, eyebrow: event.target.value },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="标题">
+                <Input
+                  value={settings.home.title}
+                  onChange={(event) =>
+                    onChange({ ...settings, home: { ...settings.home, title: event.target.value } })
+                  }
+                />
+              </Field>
+            </div>
+            <Field label="副标题">
+              <Textarea
+                rows={3}
+                value={settings.home.subtitle}
                 onChange={(event) =>
                   onChange({
                     ...settings,
-                    home: { ...settings.home, primaryActionLabel: event.target.value },
+                    home: { ...settings.home, subtitle: event.target.value },
                   })
                 }
               />
             </Field>
-            <Field label="主按钮链接">
-              <Input
-                value={settings.home.primaryActionHref}
-                onChange={(event) =>
-                  onChange({
-                    ...settings,
-                    home: { ...settings.home, primaryActionHref: event.target.value },
-                  })
-                }
-              />
-            </Field>
-            <Field label="次按钮文案">
-              <Input
-                value={settings.home.secondaryActionLabel ?? ""}
-                onChange={(event) =>
-                  onChange({
-                    ...settings,
-                    home: { ...settings.home, secondaryActionLabel: event.target.value },
-                  })
-                }
-              />
-            </Field>
-            <Field label="次按钮链接">
-              <Input
-                value={settings.home.secondaryActionHref ?? ""}
-                onChange={(event) =>
-                  onChange({
-                    ...settings,
-                    home: { ...settings.home, secondaryActionHref: event.target.value },
-                  })
-                }
-              />
-            </Field>
+            <div className="grid gap-4 md:grid-cols-2">
+              <Field label="主按钮文案">
+                <Input
+                  value={settings.home.primaryActionLabel}
+                  onChange={(event) =>
+                    onChange({
+                      ...settings,
+                      home: { ...settings.home, primaryActionLabel: event.target.value },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="主按钮链接">
+                <Input
+                  value={settings.home.primaryActionHref}
+                  onChange={(event) =>
+                    onChange({
+                      ...settings,
+                      home: { ...settings.home, primaryActionHref: event.target.value },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="次按钮文案">
+                <Input
+                  value={settings.home.secondaryActionLabel ?? ""}
+                  onChange={(event) =>
+                    onChange({
+                      ...settings,
+                      home: { ...settings.home, secondaryActionLabel: event.target.value },
+                    })
+                  }
+                />
+              </Field>
+              <Field label="次按钮链接">
+                <Input
+                  value={settings.home.secondaryActionHref ?? ""}
+                  onChange={(event) =>
+                    onChange({
+                      ...settings,
+                      home: { ...settings.home, secondaryActionHref: event.target.value },
+                    })
+                  }
+                />
+              </Field>
+            </div>
           </div>
         </section>
-        <EditableLinkList
-          items={settings.navigationItems}
-          kind="navigation"
-          title="导航"
-          onChange={(navigationItems) => onChange({ ...settings, navigationItems })}
-        />
-        <EditableLinkList
-          items={settings.socialLinks}
-          kind="social"
-          title="社交链接"
-          onChange={(socialLinks) => onChange({ ...settings, socialLinks })}
-        />
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+        {section === "navigation" ? (
+          <EditableLinkList
+            items={settings.navigationItems}
+            kind="navigation"
+            title="导航"
+            onChange={(navigationItems) => onChange({ ...settings, navigationItems })}
+          />
+        ) : null}
+        {section === "social" ? (
+          <EditableLinkList
+            items={settings.socialLinks}
+            kind="social"
+            title="社交链接"
+            onChange={(socialLinks) => onChange({ ...settings, socialLinks })}
+          />
+        ) : null}
+        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border py-5">
           <p className="text-sm text-muted-foreground">将首页、导航与社交链接的修改一起保存。</p>
           <Button disabled={saving} type="button" onClick={onSave}>
             {saving ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <Save />}
@@ -138,7 +145,8 @@ function SiteSettingsEditor({
           </Button>
         </div>
       </ManagementBody>
-    </ManagementSurface>
+      <SiteConfigPreview settings={settings} />
+    </div>
   );
 }
 
@@ -243,15 +251,23 @@ function EditableLinkListFrame({
   title: string;
 }) {
   return (
-    <section className="grid gap-4 border-t border-border pt-6">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-base font-semibold">{title}</h3>
-        <Button size="sm" type="button" variant="outline" onClick={onAdd}>
+    <section className="grid gap-6 pb-8">
+      <div>
+        <span className="text-xs font-medium text-primary tabular-nums">
+          {title === "导航" ? "02 / 导航" : "03 / 社交"}
+        </span>
+        <h3 className="mt-2 text-base font-semibold">{title}</h3>
+        <p className="mt-2 text-xs/6 text-muted-foreground">
+          {title === "导航"
+            ? "管理顶部导航的名称、链接和展示顺序。"
+            : "添加读者可以找到你的外部主页。"}
+        </p>
+        <Button className="mt-4" size="sm" type="button" variant="outline" onClick={onAdd}>
           <Plus />
           {addLabel}
         </Button>
       </div>
-      <div className="grid gap-3">{children}</div>
+      <div className="min-w-0 divide-y divide-border/70">{children}</div>
     </section>
   );
 }
@@ -268,9 +284,9 @@ function EditableLinkItemFrame({
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
   return (
-    <div className="border-t border-border py-5">
-      <div className="grid gap-3 md:grid-cols-3">{children}</div>
-      <div className="mt-2 flex justify-end">
+    <div className="py-5 first:pt-0 last:pb-0">
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+      <div className="mt-4 flex justify-end">
         <Button
           size="sm"
           type="button"
@@ -329,8 +345,8 @@ function BaseLinkFields<TItem extends EditableBaseLink>({
           onChange={(event) => onPatch({ sortOrder: Number(event.target.value) } as Partial<TItem>)}
         />
       </Field>
-      <div className="flex items-end gap-4 pb-2">
-        <div className="flex items-center gap-2 text-sm">
+      <div className="flex flex-wrap items-end gap-5 pb-2">
+        <div className="flex items-center gap-2.5 text-sm">
           <Checkbox
             id={`${item.id}-external`}
             checked={item.isExternal}
@@ -338,7 +354,7 @@ function BaseLinkFields<TItem extends EditableBaseLink>({
           />
           <label htmlFor={`${item.id}-external`}>外链</label>
         </div>
-        <div className="flex items-center gap-2 text-sm">
+        <div className="flex items-center gap-2.5 text-sm">
           <Checkbox
             id={`${item.id}-enabled`}
             checked={item.isEnabled}

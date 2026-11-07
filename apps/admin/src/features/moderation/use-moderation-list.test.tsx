@@ -532,7 +532,8 @@ describe("guestbook-specific moderation", () => {
     api.listAdminGuestbookMessages.mockResolvedValue(page([item("first"), item("second")]));
     api.updateAdminGuestbookMessage.mockResolvedValue(item("second"));
     render(<GuestbookModeration />);
-    await screen.findByText("second");
+    fireEvent.click(await screen.findByRole("button", { name: /second/ }));
+    expect(screen.getByText("second")).not.toBeNull();
     api.listAdminGuestbookMessages.mockResolvedValueOnce(
       page([{ ...item("second"), isPinned: true }, item("first")]),
     );
@@ -541,7 +542,12 @@ describe("guestbook-specific moderation", () => {
         name: "置顶",
       }),
     );
-    await waitFor(() => expect(screen.getAllByRole("article")[0].textContent).toContain("second"));
+    await waitFor(() =>
+      expect(
+        within(screen.getByRole("group", { name: "来信列表" })).getAllByRole("button")[0]
+          .textContent,
+      ).toContain("second"),
+    );
     api.listAdminGuestbookMessages.mockResolvedValueOnce(page([item("first")]));
     fireEvent.click(
       within(screen.getByText("second").closest("article")!).getByRole("button", {

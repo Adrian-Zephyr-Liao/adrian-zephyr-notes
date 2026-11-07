@@ -3,11 +3,10 @@ import type {
   OAuthAuthorizationDecisionRequest,
   OAuthConsentResponse,
 } from "@adrian-zephyr-notes/contracts";
-import { Check, Loader2, ShieldCheck, Terminal } from "lucide-react";
+import { ArrowLeft, Check, Loader2, ShieldCheck, Terminal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { AdminThemeToggle } from "../../components/admin/admin-theme-toggle";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
 import { decideOAuthAuthorization, getOAuthConsent } from "./oauth-api";
 
@@ -110,19 +109,47 @@ function OAuthConsentPage({
   }
 
   return (
-    <main className="relative grid min-h-dvh place-items-center bg-background px-4 py-16 sm:px-6">
-      <div className="absolute top-4 right-4">
-        <AdminThemeToggle />
-      </div>
-      <Card className="w-full max-w-xl border-border bg-card">
-        <CardContent className="p-6 sm:p-8">
-          <div className="mb-7 flex items-center gap-3">
-            <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">
+    <main className="min-h-dvh bg-background p-6 text-foreground sm:px-10">
+      <header className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 border-b border-border pb-5">
+        <a
+          className="rounded-sm font-display text-2xl font-semibold tracking-tight outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+          href="/"
+        >
+          AZ Notes
+        </a>
+        <div className="flex items-center gap-5">
+          <span className="hidden font-display text-[11px] tracking-[0.18em] text-muted-foreground sm:inline">
+            PRIVATE WORKSPACE
+          </span>
+          <AdminThemeToggle />
+        </div>
+      </header>
+      <div className="mx-auto grid w-full max-w-5xl gap-9 py-10 sm:py-14 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16 lg:py-20">
+        <aside>
+          <a
+            className="inline-flex items-center gap-2 rounded-sm text-xs text-muted-foreground outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-ring"
+            href="/"
+          >
+            <ArrowLeft className="size-3.5" aria-hidden="true" /> 返回工作室
+          </a>
+          <p className="mt-10 font-display text-xs tracking-[0.16em] text-primary">
+            AZ NOTES / DEVICE ACCESS
+          </p>
+          <p className="mt-5 font-display text-3xl/relaxed font-semibold tracking-tight sm:text-4xl/relaxed">
+            确认一次连接。
+          </p>
+          <p className="mt-4 max-w-xs text-sm/7 text-muted-foreground">
+            核对你的设备、账号与授权范围，将命令行连接到内容工作台。
+          </p>
+        </aside>
+        <section className="min-w-0 border-y border-border bg-card/30 px-0 py-7 sm:px-6">
+          <div className="mb-7 flex items-center gap-4 border-b border-border pb-6">
+            <span className="grid size-10 shrink-0 place-items-center rounded-lg border border-primary/25 text-primary">
               <Terminal className="size-5" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-xs font-medium tracking-wide text-muted-foreground">AZ NOTES</p>
-              <h1 className="mt-1 text-xl font-semibold">授权博客命令行</h1>
+              <p className="text-[10px] font-medium tracking-[0.18em] text-primary">设备授权</p>
+              <h1 className="mt-1 font-display text-2xl font-semibold">授权博客命令行</h1>
             </div>
           </div>
 
@@ -156,7 +183,7 @@ function OAuthConsentPage({
                   <Input
                     autoCapitalize="characters"
                     autoComplete="off"
-                    className="font-mono tracking-wider"
+                    className="h-11 bg-card/60 font-mono tracking-wider"
                     disabled={attemptedRequest !== null}
                     id="oauth-user-code"
                     maxLength={16}
@@ -203,7 +230,7 @@ function OAuthConsentPage({
                     请确认终端中的授权码与此处一致，且这是你刚刚发起的登录请求。
                   </p>
                   <p
-                    className="mt-3 font-mono text-2xl font-semibold tracking-widest"
+                    className="mt-4 border-y border-border py-5 font-mono text-2xl font-semibold tracking-widest text-primary"
                     aria-label="待确认的授权码"
                   >
                     {consent.userCode}
@@ -222,7 +249,7 @@ function OAuthConsentPage({
                       ))}
                     </ul>
                   </div>
-                  <p className="mt-4 text-xs leading-5 text-muted-foreground">
+                  <p className="mt-4 text-xs/5 text-muted-foreground">
                     授权有效期为 8 小时。{permissionNotice}
                     你可以在 CLI 中退出登录以撤销授权。
                   </p>
@@ -230,13 +257,16 @@ function OAuthConsentPage({
               )}
 
               {errorMessage && (
-                <p className="mt-5 text-sm/6 text-destructive" role="alert">
+                <p
+                  className="mt-5 rounded-lg border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm/6 text-destructive"
+                  role="alert"
+                >
                   {errorMessage}
                 </p>
               )}
 
               {consent && (
-                <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                <div className="mt-7 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-end">
                   <Button
                     disabled={
                       pendingDecision !== null ||
@@ -274,8 +304,11 @@ function OAuthConsentPage({
               )}
             </>
           )}
-        </CardContent>
-      </Card>
+        </section>
+      </div>
+      <footer className="mx-auto w-full max-w-6xl border-t border-border pt-5 font-display text-xs tracking-wide text-muted-foreground">
+        AZ Notes Studio · Private workspace
+      </footer>
     </main>
   );
 }

@@ -12,7 +12,7 @@ import type { AdminSectionKey, AdminShellProps, AdminNavGroup } from "./types";
 export const adminSectionMeta: Record<AdminSectionKey, { description: string; title: string }> = {
   assistant: {
     description: "查询记录，核对结果，单独确认评论操作。",
-    title: "管理助手",
+    title: "把问题，交给编辑助手。",
   },
   articles: {
     description: "管理文章、分类、标签与发布进度。",
@@ -20,15 +20,15 @@ export const adminSectionMeta: Record<AdminSectionKey, { description: string; ti
   },
   audit: {
     description: "追踪后台写操作与治理记录。",
-    title: "审计日志",
+    title: "每一次改动，都有迹可循。",
   },
   comments: {
     description: "结合文章和回复上下文处理评论。",
-    title: "评论治理",
+    title: "读者来信",
   },
   guestbook: {
     description: "管理留言可见性、置顶和软删除。",
-    title: "留言板治理",
+    title: "读者来信",
   },
   overview: {
     description: "聚合内容进度、互动治理和系统动态。",
@@ -36,7 +36,7 @@ export const adminSectionMeta: Record<AdminSectionKey, { description: string; ti
   },
   site: {
     description: "维护首页、导航、公告和社交链接。",
-    title: "站点配置",
+    title: "让站点，像你自己。",
   },
 };
 

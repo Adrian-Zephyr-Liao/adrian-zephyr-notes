@@ -5,7 +5,7 @@ import type {
   AdminArticleListResponse,
 } from "@adrian-zephyr-notes/contracts";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleManagement } from "./article-management";
 
@@ -99,6 +99,52 @@ describe("article filter request ordering", () => {
       expect.objectContaining({ q: "新条件" }),
     );
   });
+});
+
+it("applies global search when the same article route receives a new query", async () => {
+  const view = render(<ArticleManagement searchQuery="first query" />);
+  await screen.findByText("初始文章");
+  expect(api.listAdminArticles).toHaveBeenLastCalledWith(
+    expect.objectContaining({ q: "first query" }),
+  );
+  const pending = deferred<AdminArticleListResponse>();
+  api.listAdminArticles.mockReturnValueOnce(pending.promise);
+  view.rerender(<ArticleManagement searchQuery="updated query" />);
+  expect((screen.getByRole("textbox", { name: "搜索文章" }) as HTMLInputElement).value).toBe(
+    "updated query",
+  );
+  expect(api.listAdminArticles).toHaveBeenLastCalledWith(
+    expect.objectContaining({ q: "updated query", page: 1 }),
+  );
+  await act(async () => pending.resolve(response("全局搜索结果")));
+  expect(screen.getByText("全局搜索结果")).not.toBeNull();
+});
+
+it("returns to a previous global query after local search updates the route", async () => {
+  function RoutedSearch() {
+    const [q, setQ] = useState("global A");
+    return (
+      <>
+        <button onClick={() => setQ("global A")}>搜索 global A</button>
+        <ArticleManagement searchQuery={q} onSearchSubmit={setQ} />
+      </>
+    );
+  }
+  render(<RoutedSearch />);
+  await screen.findByText("初始文章");
+  api.listAdminArticles.mockResolvedValueOnce(response("本地 B 结果"));
+  search("local B");
+  await screen.findByText("本地 B 结果");
+  expect(api.listAdminArticles).toHaveBeenLastCalledWith(expect.objectContaining({ q: "local B" }));
+  api.listAdminArticles.mockResolvedValueOnce(response("全局 A 结果"));
+  fireEvent.click(screen.getByRole("button", { name: "搜索 global A" }));
+  await screen.findByText("全局 A 结果");
+  expect(api.listAdminArticles).toHaveBeenLastCalledWith(
+    expect.objectContaining({ q: "global A" }),
+  );
+  expect((screen.getByRole("textbox", { name: "搜索文章" }) as HTMLInputElement).value).toBe(
+    "global A",
+  );
 });
 
 it("labels the server-filtered total as matching articles", async () => {

@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import type { ClipboardEvent, DragEvent, ReactNode } from "react";
 import { useRef, useState } from "react";
-import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
 import { Input } from "../../components/ui/input";
 import { Select } from "../../components/ui/select";
@@ -24,7 +23,11 @@ import { AdminApiError, uploadAdminArticleImage } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
 import { getArticleImageFileError } from "./article-image-file";
 import { insertArticleImageMarkdown, toArticleImageAltText } from "./article-image-markdown";
-import { ArticleImageUploadButton } from "./article-image-upload-button";
+import { ArticleMarkdownToolbar } from "./article-markdown-toolbar";
+import {
+  formatArticleMarkdownSelection,
+  type ArticleMarkdownFormat,
+} from "./article-markdown-formatting";
 
 type ArticleEditorViewMode = "edit" | "preview" | "split";
 
@@ -50,24 +53,27 @@ function ArticleViewModeTabs({
   onModeChange: (mode: ArticleEditorViewMode) => void;
 }) {
   const options: Array<{ icon: typeof Columns2; label: string; mode: ArticleEditorViewMode }> = [
-    { icon: Columns2, label: "分屏", mode: "split" },
     { icon: PencilLine, label: "编写", mode: "edit" },
+    { icon: Columns2, label: "分屏", mode: "split" },
     { icon: Eye, label: "预览", mode: "preview" },
   ];
 
   return (
-    <div className="flex rounded-lg border border-border bg-background/70 p-1">
+    <div className="flex gap-3" role="group" aria-label="编辑视图">
       {options.map((option) => (
-        <Button
+        <button
           key={option.mode}
-          size="sm"
           type="button"
-          variant={editorMode === option.mode ? "default" : "ghost"}
+          aria-pressed={editorMode === option.mode}
+          className={cn(
+            "inline-flex min-h-11 cursor-pointer items-center gap-2 border-b-2 border-transparent px-4 text-sm text-muted-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring motion-reduce:transition-none",
+            editorMode === option.mode && "border-primary text-foreground",
+          )}
           onClick={() => onModeChange(option.mode)}
         >
-          <option.icon />
+          <option.icon className="size-3.5" />
           {option.label}
-        </Button>
+        </button>
       ))}
     </div>
   );
@@ -96,8 +102,8 @@ function ArticleWritingSurface({
 
   if (editorMode === "split") {
     return (
-      <div className="flex h-full min-h-0 flex-col overflow-y-auto xl:grid xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:overflow-hidden">
-        <div className="shrink-0 border-b border-border/70 p-3 sm:p-4 xl:min-h-0 xl:overflow-y-auto xl:border-r xl:border-b-0">
+      <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto lg:grid lg:grid-cols-2 lg:gap-6 lg:overflow-hidden">
+        <div className="shrink-0 overflow-hidden rounded-sm border border-border bg-card lg:min-h-0 lg:overflow-y-auto">
           <ArticleEditorFields
             taxonomyOptions={taxonomyOptions}
             values={values}
@@ -105,7 +111,7 @@ function ArticleWritingSurface({
           />
         </div>
         <ArticlePreviewPane
-          className="h-auto shrink-0 overflow-visible xl:h-full xl:overflow-y-auto"
+          className="h-auto shrink-0 overflow-visible lg:h-full lg:overflow-y-auto"
           content={values.markdown}
         />
       </div>
@@ -113,7 +119,7 @@ function ArticleWritingSurface({
   }
 
   return (
-    <div className="h-full min-h-0 overflow-y-auto p-3 sm:p-4">
+    <div className="mx-auto h-full min-h-0 max-w-5xl overflow-y-auto rounded-sm border border-border bg-card">
       <ArticleEditorFields taxonomyOptions={taxonomyOptions} values={values} onChange={onChange} />
     </div>
   );
@@ -158,16 +164,18 @@ function ArticleEditorFields({
   values: ArticleEditorValues;
 }) {
   return (
-    <div className="flex min-h-0 flex-col gap-3 xl:min-h-full">
-      <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1fr)_160px_160px]">
-        <Field label="标题">
+    <div className="flex min-h-0 flex-col lg:min-h-full">
+      <div className="grid shrink-0 gap-4 p-4 pb-5 sm:grid-cols-2 sm:px-6 sm:pt-6">
+        <label className="grid gap-2 sm:col-span-2">
+          <span className="sr-only">标题</span>
           <Input
+            className="h-14 rounded-none border-0 border-b border-border bg-transparent px-0 font-display text-2xl font-medium shadow-none focus-visible:ring-0 sm:text-3xl md:text-3xl"
             maxLength={160}
-            placeholder="文章标题"
+            placeholder="为这篇文章起个标题"
             value={values.title}
             onChange={(event) => onChange({ ...values, title: event.target.value })}
           />
-        </Field>
+        </label>
         <Field label="文章来源">
           <Select
             value={values.origin}
@@ -186,7 +194,7 @@ function ArticleEditorFields({
             <option value="REPOSTED">转载</option>
           </Select>
         </Field>
-        <Field label="状态">
+        <Field label="保存后的状态">
           <Select
             value={values.status}
             onChange={(event) =>
@@ -199,8 +207,8 @@ function ArticleEditorFields({
           </Select>
         </Field>
       </div>
-      <PublishSettingsPanel taxonomyOptions={taxonomyOptions} values={values} onChange={onChange} />
       <MarkdownEditorField values={values} onChange={onChange} />
+      <PublishSettingsPanel taxonomyOptions={taxonomyOptions} values={values} onChange={onChange} />
     </div>
   );
 }
@@ -213,6 +221,7 @@ function MarkdownEditorField({
   values: ArticleEditorValues;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lineNumbersRef = useRef<HTMLDivElement>(null);
   const uploadInFlightRef = useRef(false);
   const valuesRef = useRef(values);
   const [isDraggingImage, setIsDraggingImage] = useState(false);
@@ -220,6 +229,21 @@ function MarkdownEditorField({
   const [imageUploadMessage, setImageUploadMessage] = useState<string | null>(null);
   const [imageUploadError, setImageUploadError] = useState<string | null>(null);
   valuesRef.current = values;
+
+  function applyFormat(format: ArticleMarkdownFormat) {
+    const currentValues = valuesRef.current;
+    const insertion = formatArticleMarkdownSelection({
+      markdown: currentValues.markdown,
+      selectionStart: textareaRef.current?.selectionStart ?? currentValues.markdown.length,
+      selectionEnd: textareaRef.current?.selectionEnd ?? currentValues.markdown.length,
+      format,
+    });
+    onChange({ ...currentValues, markdown: insertion.markdown });
+    requestAnimationFrame(() => {
+      textareaRef.current?.focus();
+      textareaRef.current?.setSelectionRange(insertion.selectionStart, insertion.selectionEnd);
+    });
+  }
 
   async function uploadImage(file: File) {
     if (uploadInFlightRef.current) {
@@ -296,43 +320,71 @@ function MarkdownEditorField({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 xl:min-h-72 xl:flex-1">
-      <div className="flex min-h-8 items-center justify-between gap-3">
-        <label className="text-xs font-medium text-muted-foreground" htmlFor="article-markdown">
-          Markdown 内容
-        </label>
-        <ArticleImageUploadButton
-          isUploading={isUploadingImage}
-          onImageSelected={(file) => void uploadImage(file)}
+    <div className="flex min-w-0 flex-col lg:min-h-72 lg:flex-1">
+      <label className="sr-only" htmlFor="article-markdown">
+        Markdown 内容
+      </label>
+      <ArticleMarkdownToolbar
+        isUploading={isUploadingImage}
+        onFormat={applyFormat}
+        onImageSelected={(file) => void uploadImage(file)}
+      />
+      <div className="relative h-[45dvh] min-h-64 lg:h-auto lg:min-h-48 lg:flex-1">
+        <div
+          ref={lineNumbersRef}
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 z-10 w-10 overflow-hidden border-r border-border/60 bg-muted/15 py-4 text-right"
+        >
+          <pre className="pr-2 font-mono text-[11px] leading-7 text-muted-foreground/70">
+            {Array.from(
+              { length: Math.max(1, values.markdown.split("\n").length) },
+              (_, index) => index + 1,
+            ).join("\n")}
+          </pre>
+        </div>
+        <Textarea
+          ref={textareaRef}
+          id="article-markdown"
+          aria-describedby="article-image-upload-status"
+          className={cn(
+            "absolute inset-0 h-full min-h-0 resize-none overflow-auto rounded-none border-0 bg-transparent py-4 pr-4 pl-14 font-mono text-[13px] leading-7 shadow-none focus-visible:ring-0 md:text-[13px]/7",
+            isDraggingImage && "border-primary bg-primary/5 ring-3 ring-primary/20",
+          )}
+          wrap="off"
+          onScroll={(event) => {
+            if (lineNumbersRef.current)
+              lineNumbersRef.current.scrollTop = event.currentTarget.scrollTop;
+          }}
+          onKeyDown={(event) => {
+            if (
+              !event.nativeEvent.isComposing &&
+              (event.metaKey || event.ctrlKey) &&
+              ["b", "i"].includes(event.key.toLowerCase())
+            ) {
+              event.preventDefault();
+              applyFormat(event.key.toLowerCase() === "b" ? "bold" : "italic");
+            }
+          }}
+          spellCheck={false}
+          value={values.markdown}
+          onDragEnter={(event) => {
+            if (event.dataTransfer.types.includes("Files")) {
+              event.preventDefault();
+              setIsDraggingImage(true);
+            }
+          }}
+          onDragLeave={() => setIsDraggingImage(false)}
+          onDragOver={(event) => {
+            if (event.dataTransfer.types.includes("Files")) {
+              event.preventDefault();
+            }
+          }}
+          onDrop={handleDrop}
+          onPaste={handlePaste}
+          onChange={(event) => onChange({ ...values, markdown: event.target.value })}
         />
       </div>
-      <Textarea
-        ref={textareaRef}
-        id="article-markdown"
-        aria-describedby="article-image-upload-status"
-        className={cn(
-          "h-[45dvh] min-h-64 flex-none resize-none overflow-auto font-mono leading-7 xl:h-auto xl:min-h-48 xl:flex-1",
-          isDraggingImage && "border-primary bg-primary/5 ring-3 ring-primary/20",
-        )}
-        spellCheck={false}
-        value={values.markdown}
-        onDragEnter={(event) => {
-          if (event.dataTransfer.types.includes("Files")) {
-            event.preventDefault();
-            setIsDraggingImage(true);
-          }
-        }}
-        onDragLeave={() => setIsDraggingImage(false)}
-        onDragOver={(event) => {
-          if (event.dataTransfer.types.includes("Files")) {
-            event.preventDefault();
-          }
-        }}
-        onDrop={handleDrop}
-        onPaste={handlePaste}
-        onChange={(event) => onChange({ ...values, markdown: event.target.value })}
-      />
-      <div id="article-image-upload-status" className="min-h-5 text-xs" aria-live="polite">
+      <div id="article-image-upload-status" className="min-h-5 px-4 text-xs" aria-live="polite">
         {imageUploadError ? (
           <p className="text-destructive" role="alert">
             {imageUploadError}
@@ -364,8 +416,8 @@ function PublishSettingsPanel({
   );
 
   return (
-    <details className="group shrink-0 rounded-xl border border-border/70 bg-muted/20">
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm font-medium text-foreground transition-[background-color,box-shadow] duration-150 ease-(--ease-out-ui) outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/45 motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
+    <details className="group shrink-0 border-t border-border bg-background/30">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-foreground transition-[background-color,box-shadow] duration-150 ease-(--ease-out-ui) outline-none hover:bg-muted/40 focus-visible:ring-3 focus-visible:ring-ring/45 motion-reduce:transition-none [&::-webkit-details-marker]:hidden">
         <span className="inline-flex min-w-0 items-center gap-2">
           <SlidersHorizontal className="size-4 text-primary" />
           <span>发布设置</span>
@@ -375,7 +427,7 @@ function PublishSettingsPanel({
         </span>
         <ChevronDown className="size-4 text-muted-foreground transition-transform duration-150 ease-(--ease-out-ui) group-open:rotate-180 motion-reduce:transition-none motion-reduce:group-open:rotate-0" />
       </summary>
-      <div className="grid gap-3 border-t border-border/70 p-3">
+      <div className="grid gap-4 border-t border-border p-4">
         {values.origin === "REPOSTED" ? (
           <div className="grid gap-3 border-b border-border/70 pb-3">
             <div className="grid gap-3 lg:grid-cols-2">
@@ -444,7 +496,7 @@ function PublishSettingsPanel({
             <span>已选 {values.tagSlugs.length} / 5</span>
           </div>
           <div className="relative">
-            <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               aria-label="搜索标签"
               className="pl-8"
@@ -462,7 +514,7 @@ function PublishSettingsPanel({
                 <div
                   key={tag.slug}
                   className={cn(
-                    "inline-flex cursor-pointer items-center gap-2 rounded-lg border border-border bg-background/70 px-3 py-1.5 text-sm",
+                    "inline-flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-xs transition-colors hover:border-primary/40 motion-reduce:transition-none",
                     checked && "border-primary/40 bg-primary/10 text-primary",
                   )}
                 >
@@ -499,17 +551,38 @@ function PublishSettingsPanel({
 
 function ArticlePreviewPane({ content, className }: { content: string; className?: string }) {
   return (
-    <div className={cn("h-full overflow-y-auto bg-background/55 p-5 sm:p-8", className)}>
+    <section
+      aria-label="文章正文预览"
+      className={cn(
+        "article-markdown h-full overflow-y-auto rounded-sm bg-background px-5 py-6 sm:p-7",
+        className,
+      )}
+    >
       <div className="mx-auto max-w-[70ch]">
+        <div className="mb-7 flex items-center justify-between gap-3 border-b border-border pb-3 font-sans text-xs text-muted-foreground">
+          <span className="inline-flex items-center gap-2">
+            <Eye className="size-3.5" />
+            正文预览
+          </span>
+          <span>与博客正文保持一致</span>
+        </div>
         <MarkdownPreview content={content || "暂无内容"} />
       </div>
-    </div>
+    </section>
   );
 }
 
-function Field({ children, label }: { children: ReactNode; label: string }) {
+function Field({
+  children,
+  label,
+  className,
+}: {
+  children: ReactNode;
+  label: string;
+  className?: string;
+}) {
   return (
-    <label className="grid gap-1.5">
+    <label className={cn("grid gap-2", className)}>
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       {children}
     </label>

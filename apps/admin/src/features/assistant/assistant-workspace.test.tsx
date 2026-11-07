@@ -7,7 +7,7 @@ import type {
   AssistantTurnResponse,
 } from "@adrian-zephyr-notes/contracts";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { StrictMode } from "react";
+import { StrictMode, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AssistantStreamInput, AssistantStreamResult } from "./assistant-stream";
 import { AssistantWorkspace } from "./assistant-workspace";
@@ -31,6 +31,9 @@ const transport = vi.hoisted(() => ({
 }));
 vi.mock("./assistant-api", () => api);
 vi.mock("./assistant-stream", () => transport);
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
+}));
 
 beforeEach(() => {
   vi.resetAllMocks();

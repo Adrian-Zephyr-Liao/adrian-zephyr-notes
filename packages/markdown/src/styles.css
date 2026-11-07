@@ -14,6 +14,55 @@
 }
 
 @layer components {
+  /* Article reading and authoring share typography and their own palette, so workspace
+     chrome can change without changing the published document. */
+  .article-markdown,
+  .markdown-image-dialog {
+    --radius: 0.75rem;
+    --background: #faf7ef;
+    --foreground: #263e3d;
+    --card: #f3f0e7;
+    --primary: #26735f;
+    --muted: #eeeae0;
+    --muted-foreground: #67716b;
+    --border: #d4dacf;
+    --ring: var(--primary);
+    font-family: "寒蝉全圆体", Arial, Helvetica, ui-sans-serif, system-ui, sans-serif;
+  }
+
+  .dark .article-markdown,
+  .dark .markdown-image-dialog {
+    --background: #0e1c24;
+    --foreground: #fff3dc;
+    --card: #15262d;
+    --primary: #8edac5;
+    --muted: #1b2c33;
+    --muted-foreground: #b4bfbe;
+    --border: #3c5157;
+  }
+
+  .article-markdown .markdown-body {
+    color: var(--foreground);
+    font-size: 1rem;
+    line-height: 1.95;
+  }
+
+  .article-markdown .markdown-body h2 {
+    border-color: var(--border);
+    padding-bottom: 0.75rem;
+  }
+
+  .article-markdown .markdown-body h2::before {
+    display: none;
+  }
+
+  @media (min-width: 601px) {
+    .article-markdown .markdown-body {
+      font-size: 1.0625rem;
+      line-height: 2;
+    }
+  }
+
   .markdown-body {
     @apply max-w-none min-w-0 text-[1rem] leading-8 wrap-anywhere text-foreground/88;
     overflow-wrap: anywhere;

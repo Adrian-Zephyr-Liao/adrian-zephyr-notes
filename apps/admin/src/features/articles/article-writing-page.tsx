@@ -11,7 +11,6 @@ import {
   type ArticleEditorViewMode,
 } from "./article-editor";
 import { createArticleLocalDraftKey } from "./article-local-draft";
-import { formatArticleEditorDateTime } from "./article-editor-model";
 import { useAdminLogout } from "../auth/use-admin-logout";
 import { useArticleWriting } from "./use-article-writing";
 
@@ -59,60 +58,66 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
     reloadArticle,
   } = useArticleWriting({ adminLogin: admin.login, articleId });
   const pageTitle = isCreating ? "新建文章" : values.title.trim() || article?.title || "编辑文章";
+  const statusLabel = { DRAFT: "草稿", PUBLISHED: "已发布", ARCHIVED: "归档" }[values.status];
 
   return (
-    <main className="flex h-dvh min-h-0 flex-col bg-background text-foreground">
-      <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-background p-3 sm:px-5 lg:flex">
-        <div className="flex min-w-0 items-center gap-3 lg:flex-1">
+    <main className="flex h-dvh min-h-0 flex-col bg-background px-4 text-foreground sm:px-7 xl:px-12">
+      <header className="flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-3 border-b border-border py-4 sm:py-5">
+        <div className="flex min-w-0 items-center gap-4 sm:gap-6">
+          <h1 className="shrink-0 font-display text-2xl font-semibold tracking-tight sm:text-3xl">
+            AZ Notes <span className="font-normal text-primary">/ 校样间</span>
+          </h1>
+          <span className="hidden border-r border-border pr-6 font-display text-[10px] tracking-[0.18em] text-muted-foreground xl:block">
+            THE PROOF ROOM
+          </span>
           <Button
             aria-label="返回文章管理"
-            size="icon"
+            size="sm"
             type="button"
             variant="ghost"
             onClick={() => void navigate({ to: "/articles" })}
           >
             <ArrowLeft />
+            <span className="hidden sm:inline">内容档案</span>
           </Button>
-          <div className="min-w-0">
-            <h1 className="truncate text-base font-semibold sm:text-lg">{pageTitle}</h1>
-            <p className="truncate text-xs text-muted-foreground">
-              {article
-                ? `${article.slug} · ${article.wordCount} 字 · 约 ${article.readingMinutes} 分钟 · ${formatArticleEditorDateTime(article.updatedAt)}`
-                : "草稿会在首次保存后进入文章管理"}
-            </p>
-          </div>
+          <span
+            className="hidden truncate text-xs text-muted-foreground lg:block"
+            title={pageTitle}
+          >
+            {statusLabel}
+          </span>
         </div>
-        <div className="col-span-2 flex shrink-0 items-center gap-2 lg:order-2">
+        <div className="flex shrink-0 items-center gap-2">
           {!isOnline ? (
-            <span className="hidden items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground sm:inline-flex">
+            <span className="hidden items-center gap-1 text-xs text-muted-foreground sm:inline-flex">
               <CloudOff className="size-3.5" />
               离线
             </span>
           ) : null}
-          <div className="hidden md:block">
-            <ArticleViewModeTabs editorMode={editorMode} onModeChange={setEditorMode} />
-          </div>
           <Button
             disabled={isSaving || isLoading || isDeleted || (!isCreating && !article)}
             type="button"
+            aria-describedby="article-save-behavior"
             onClick={() => void saveArticle()}
           >
-            {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
+            {isSaving ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <Save />}
             {isSaving ? "保存中" : "保存"}
           </Button>
           {article ? (
             <Button
               disabled={isSaving}
+              aria-label="删除"
               type="button"
-              variant="destructive"
+              variant="ghost"
+              className="text-destructive hover:bg-destructive/10 hover:text-destructive"
               onClick={() => void removeArticle()}
             >
               <Trash2 />
-              删除
+              <span className="hidden sm:inline">删除</span>
+              <span className="sr-only sm:hidden">删除</span>
             </Button>
           ) : null}
-        </div>
-        <div className="col-start-2 row-start-1 flex items-center gap-1 lg:order-3">
+          <span className="mx-1 h-6 w-px bg-border" aria-hidden="true" />
           <AdminThemeToggle />
           <AdminAccount
             admin={admin}
@@ -123,11 +128,14 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
           />
         </div>
       </header>
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-muted/25 px-3 py-2 md:hidden">
+      <div className="mb-4 flex shrink-0 items-center justify-between gap-3 border-b border-border pt-1 sm:mb-5">
         <ArticleViewModeTabs editorMode={editorMode} onModeChange={setEditorMode} />
+        <p className="hidden truncate text-xs text-muted-foreground lg:block" title={pageTitle}>
+          {pageTitle}
+        </p>
       </div>
       {errorMessage || cloudDraftMessage || localDraftMessage || savedMessage ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-x-4 gap-y-1 border-b border-border/70 px-4 py-2 text-sm">
+        <div className="mb-3 flex shrink-0 flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3 text-xs">
           {errorMessage ? (
             <p className="text-destructive" role="alert">
               {errorMessage}
@@ -168,7 +176,7 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
           ) : null}
         </div>
       ) : null}
-      <section className="min-h-0 flex-1 overflow-hidden">
+      <section className="relative min-h-0 flex-1 overflow-hidden">
         {isDeleted ? (
           <div className="grid h-full place-content-center gap-4 p-6 text-center" role="status">
             <p>文章已删除</p>
@@ -190,6 +198,13 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
           />
         )}
       </section>
+      <footer className="mt-4 flex shrink-0 flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-border py-3 text-[11px] text-muted-foreground">
+        <span className="font-display text-xs tabular-nums">
+          正文 {values.markdown.length.toLocaleString("zh-CN")} 字符
+        </span>
+        <span id="article-save-behavior">保存时将设为：{statusLabel}</span>
+        <span className="hidden sm:inline">⌘ / Ctrl + B 加粗 · ⌘ / Ctrl + I 斜体</span>
+      </footer>
       {confirmationDialog}
       {logout.feedback}
     </main>

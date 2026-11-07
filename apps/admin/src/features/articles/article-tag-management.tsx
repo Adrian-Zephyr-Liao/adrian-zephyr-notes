@@ -1,20 +1,20 @@
 import type { AdminArticleTagResponse } from "@adrian-zephyr-notes/contracts";
-import { Combine, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
+import { Tag, Combine, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { ArticleArchiveHeading, ArticleArchiveLayout } from "./article-archive-layout";
 import { Button } from "../../components/ui/button";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
 import {
   ManagementBody,
   ManagementEmpty,
-  ManagementHeader,
   ManagementList,
   ManagementLoading,
+  ManagementPagination,
   ManagementSurface,
   ManagementToolbar,
 } from "../../components/ui/management-surface";
 import { Select } from "../../components/ui/select";
-import { ArticleTaxonomyPagination } from "./article-taxonomy-pagination";
 import {
   AdminApiError,
   createAdminArticleTag,
@@ -156,8 +156,8 @@ function ArticleTagManagement() {
   }
 
   return (
-    <ManagementSurface>
-      <ManagementHeader
+    <ArticleArchiveLayout page="tags">
+      <ArticleArchiveHeading
         action={
           <Button
             ref={newButton}
@@ -171,188 +171,203 @@ function ArticleTagManagement() {
             新建标签
           </Button>
         }
-        description="维护可复用标签，并合并重复条目。"
+        title="标签索引"
+        subtitle="CROSS REFERENCES"
         meta={
-          <span className="text-xs text-muted-foreground">
+          <span className="font-display text-sm text-muted-foreground tabular-nums">
             {isLoading || readFailed ? "—" : pagination.totalItems} 个
           </span>
         }
       />
-      <ManagementBody className="grid gap-4">
-        {message ? (
-          <p
-            className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {message}
-          </p>
-        ) : null}
-        {formOpen ? (
-          <div
-            className="grid gap-4 border-y border-border py-4"
-            role="group"
-            aria-label={editingId ? "编辑标签" : "新建标签"}
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <label className="grid gap-2 text-sm font-medium">
-                <span>标签名称</span>
-                <Input
-                  ref={nameInput}
-                  maxLength={80}
-                  value={draft.name}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, name: event.target.value }))
-                  }
-                />
-              </label>
-              <label className="grid gap-2 text-sm font-medium">
-                <span>标签 slug</span>
-                <Input
-                  maxLength={80}
-                  placeholder="tag-slug"
-                  value={draft.slug}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, slug: event.target.value }))
-                  }
-                />
-              </label>
-            </div>
-            <div className="flex justify-end gap-2">
-              <Button disabled={isSaving} variant="outline" onClick={closeForm}>
-                取消
-              </Button>
-              <Button disabled={isSaving} onClick={() => void save()}>
-                {isSaving ? <Loader2 className="animate-spin" /> : null}
-                保存标签
-              </Button>
-            </div>
-          </div>
-        ) : null}
-        {mergeSource ? (
-          <div className="grid gap-3 rounded-lg bg-primary/8 p-3 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
-            <div>
-              <p className="text-xs text-muted-foreground">源标签</p>
-              <p className="font-medium">
-                {mergeSource.name} · {mergeSource.articleCount} 篇文章
-              </p>
-            </div>
-            <label className="grid gap-1">
-              <span className="text-xs text-muted-foreground">目标标签</span>
-              <Select value={targetTagId} onChange={(event) => setTargetTagId(event.target.value)}>
-                <option value="">请选择</option>
-                {tags
-                  .filter((tag) => tag.id !== mergeSource.id)
-                  .map((tag) => (
-                    <option key={tag.id} value={tag.id}>
-                      {tag.name} ({tag.articleCount})
-                    </option>
-                  ))}
-              </Select>
-            </label>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setMergeSource(null);
-                  setTargetTagId("");
-                }}
-              >
-                取消
-              </Button>
-              <Button disabled={isSaving || !targetTagId} onClick={() => void merge()}>
-                <Combine />
-                确认合并
-              </Button>
-            </div>
-          </div>
-        ) : null}
-        <ManagementToolbar className="grid-cols-[minmax(0,1fr)_auto]">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
-            <Input
-              aria-label="搜索标签"
-              className="pl-8"
-              placeholder="搜索名称或 slug"
-              value={searchText}
-              onChange={(event) => setSearchText(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void loadTags(1, searchText.trim() || undefined);
-              }}
-            />
-          </div>
-          <Button
-            aria-label="刷新标签"
-            size="icon"
-            variant="outline"
-            onClick={() => void loadTags(pagination.page, searchText.trim() || undefined)}
-          >
-            <RefreshCw className={isLoading ? "animate-spin" : undefined} />
-          </Button>
-        </ManagementToolbar>
-        {readFailed ? null : isLoading ? (
-          <ManagementLoading label="正在加载标签..." />
-        ) : tags.length === 0 ? (
-          <ManagementEmpty label="暂无文章标签。" />
-        ) : (
-          <ManagementList>
-            {tags.map((tag) => (
-              <div
-                key={tag.id}
-                className="grid gap-2 p-3 sm:grid-cols-[minmax(0,1fr)_110px_auto] sm:items-center"
-              >
-                <div>
-                  <p className="font-medium">{tag.name}</p>
-                  <p className="text-xs text-muted-foreground">{tag.slug}</p>
-                </div>
-                <span className="text-sm text-muted-foreground">{tag.articleCount} 篇文章</span>
-                <div className="flex justify-end gap-1">
-                  <Button
-                    aria-label={`编辑${tag.name}`}
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      openForm();
-                      setEditingId(tag.id);
-                      setDraft({ name: tag.name, slug: tag.slug });
-                    }}
-                  >
-                    <Pencil />
-                  </Button>
-                  <Button
-                    aria-label={`合并${tag.name}`}
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => {
-                      setMergeSource(tag);
-                      setTargetTagId("");
-                    }}
-                  >
-                    <Combine />
-                  </Button>
-                  <Button
-                    aria-label={`删除${tag.name}`}
-                    disabled={tag.articleCount > 0}
-                    size="icon"
-                    variant="ghost"
-                    onClick={() => void remove(tag)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
+      <ManagementSurface className="border-0 bg-transparent shadow-none">
+        <ManagementBody className="grid gap-4">
+          {message ? (
+            <p
+              className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
+              {message}
+            </p>
+          ) : null}
+          {formOpen ? (
+            <div
+              className="grid gap-5 border-y border-primary/30 bg-card/65 p-5 sm:p-6"
+              role="group"
+              aria-label={editingId ? "编辑标签" : "新建标签"}
+            >
+              <div className="grid gap-4 sm:grid-cols-2">
+                <label className="grid gap-2 text-xs font-medium text-muted-foreground">
+                  <span>标签名称</span>
+                  <Input
+                    ref={nameInput}
+                    maxLength={80}
+                    value={draft.name}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, name: event.target.value }))
+                    }
+                  />
+                </label>
+                <label className="grid gap-2 text-xs font-medium text-muted-foreground">
+                  <span>标签 slug</span>
+                  <Input
+                    maxLength={80}
+                    placeholder="tag-slug"
+                    value={draft.slug}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, slug: event.target.value }))
+                    }
+                  />
+                </label>
               </div>
-            ))}
-          </ManagementList>
-        )}
-        {!isLoading && !readFailed ? (
-          <ArticleTaxonomyPagination
-            page={pagination.page}
-            totalPages={pagination.totalPages}
-            onPageChange={(page) => void loadTags(page, searchText.trim() || undefined)}
-          />
-        ) : null}
-      </ManagementBody>
-      {confirmationDialog}
-    </ManagementSurface>
+              <div className="flex justify-end gap-2">
+                <Button disabled={isSaving} variant="outline" onClick={closeForm}>
+                  取消
+                </Button>
+                <Button disabled={isSaving} onClick={() => void save()}>
+                  {isSaving ? <Loader2 className="animate-spin" /> : null}
+                  保存标签
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          {mergeSource ? (
+            <div className="grid gap-4 border-y border-primary/30 bg-primary/5 p-5 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
+              <div>
+                <p className="text-xs text-muted-foreground">源标签</p>
+                <p className="font-medium">
+                  {mergeSource.name} · {mergeSource.articleCount} 篇文章
+                </p>
+              </div>
+              <label className="grid gap-1">
+                <span className="text-xs text-muted-foreground">目标标签</span>
+                <Select
+                  value={targetTagId}
+                  onChange={(event) => setTargetTagId(event.target.value)}
+                >
+                  <option value="">请选择</option>
+                  {tags
+                    .filter((tag) => tag.id !== mergeSource.id)
+                    .map((tag) => (
+                      <option key={tag.id} value={tag.id}>
+                        {tag.name} ({tag.articleCount})
+                      </option>
+                    ))}
+                </Select>
+              </label>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setMergeSource(null);
+                    setTargetTagId("");
+                  }}
+                >
+                  取消
+                </Button>
+                <Button disabled={isSaving || !targetTagId} onClick={() => void merge()}>
+                  <Combine />
+                  确认合并
+                </Button>
+              </div>
+            </div>
+          ) : null}
+          <ManagementToolbar className="grid-cols-[minmax(0,1fr)_auto]">
+            <div className="relative min-w-0 flex-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                aria-label="搜索标签"
+                className="pl-9"
+                placeholder="搜索名称或 slug"
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") void loadTags(1, searchText.trim() || undefined);
+                }}
+              />
+            </div>
+            <Button
+              aria-label="刷新标签"
+              size="icon"
+              variant="outline"
+              onClick={() => void loadTags(pagination.page, searchText.trim() || undefined)}
+            >
+              <RefreshCw className={isLoading ? "animate-spin" : undefined} />
+            </Button>
+          </ManagementToolbar>
+          {readFailed ? null : isLoading ? (
+            <ManagementLoading label="正在加载标签..." />
+          ) : tags.length === 0 ? (
+            <ManagementEmpty label="暂无文章标签。" />
+          ) : (
+            <ManagementList>
+              {tags.map((tag) => (
+                <div
+                  key={tag.id}
+                  className="grid gap-4 py-5 transition-colors hover:bg-muted/25 motion-reduce:transition-none sm:grid-cols-[minmax(0,1fr)_110px_auto] sm:items-center"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="grid size-10 shrink-0 place-items-center text-primary">
+                      <Tag className="size-4" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="font-display text-xl font-medium">{tag.name}</p>
+                      <p className="mt-1 font-mono text-[11px] wrap-break-word text-muted-foreground">
+                        {tag.slug}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums">
+                    {tag.articleCount} 篇文章
+                  </span>
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      aria-label={`编辑${tag.name}`}
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        openForm();
+                        setEditingId(tag.id);
+                        setDraft({ name: tag.name, slug: tag.slug });
+                      }}
+                    >
+                      <Pencil />
+                    </Button>
+                    <Button
+                      aria-label={`合并${tag.name}`}
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        setMergeSource(tag);
+                        setTargetTagId("");
+                      }}
+                    >
+                      <Combine />
+                    </Button>
+                    <Button
+                      aria-label={`删除${tag.name}`}
+                      disabled={tag.articleCount > 0}
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => void remove(tag)}
+                    >
+                      <Trash2 />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </ManagementList>
+          )}
+          {!isLoading && !readFailed && pagination.totalPages > 1 ? (
+            <ManagementPagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={(page) => void loadTags(page, searchText.trim() || undefined)}
+            />
+          ) : null}
+        </ManagementBody>
+        {confirmationDialog}
+      </ManagementSurface>
+    </ArticleArchiveLayout>
   );
 }
 

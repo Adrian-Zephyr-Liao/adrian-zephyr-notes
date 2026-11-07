@@ -23,8 +23,8 @@ function AssistantResult({ result }: { result: AssistantToolResult }) {
   }
   const { data, pagination, queriedAt } = result.data;
   return (
-    <section className="min-w-0 border-l-2 border-border/70 pl-4 wrap-anywhere">
-      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/45 pb-3">
+    <section className="min-w-0 rounded-xl border border-border bg-surface-inset/40 p-4 wrap-anywhere">
+      <header className="flex flex-wrap items-center justify-between gap-2 border-b border-border/70 pb-3">
         <h3 className="text-sm font-semibold">
           {result.kind === "audit_logs" ? "审计记录" : "评论搜索结果"}
         </h3>

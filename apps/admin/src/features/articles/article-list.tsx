@@ -2,7 +2,6 @@ import type {
   AdminArticleListItemResponse,
   AdminArticleStatus,
   AdminArticleAiSummaryStatus,
-  ArticleOrigin,
 } from "@adrian-zephyr-notes/contracts";
 import { Link } from "@tanstack/react-router";
 import { FileText, Image as ImageIcon, PencilLine } from "lucide-react";
@@ -15,19 +14,21 @@ function ArticleList({
   isLoading,
   failed,
   onRetry,
+  startIndex = 0,
 }: {
   articles: AdminArticleListItemResponse[];
   isLoading: boolean;
   failed: boolean;
   onRetry: () => void;
+  startIndex?: number;
 }) {
   if (isLoading)
     return (
-      <div className="grid gap-2 py-3" role="status" aria-busy="true" aria-label="正在加载文章">
+      <div className="grid gap-3 py-5" role="status" aria-busy="true" aria-label="正在加载文章">
         {Array.from({ length: 4 }, (_, index) => (
           <div
             key={index}
-            className="h-24 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
+            className="h-28 animate-pulse rounded-lg bg-muted/65 motion-reduce:animate-none"
           />
         ))}
       </div>
@@ -43,65 +44,93 @@ function ArticleList({
     );
   if (!articles.length)
     return (
-      <div className="grid min-h-48 place-items-center py-10 text-center text-sm text-muted-foreground">
+      <div className="grid min-h-72 place-items-center px-5 py-14 text-center text-sm text-muted-foreground">
         <div className="grid justify-items-center gap-3">
-          <FileText className="size-5" />
+          <span className="grid size-12 place-items-center rounded-xl bg-muted">
+            <FileText className="size-5" />
+          </span>
           <p>没有符合条件的文章</p>
         </div>
       </div>
     );
   return (
     <div>
-      <div className="hidden grid-cols-[minmax(0,1fr)_5rem_6rem_2.75rem] gap-4 border-b border-border px-1 py-3 text-xs text-muted-foreground lg:grid">
-        <span>文章</span>
-        <span>发布状态</span>
-        <span>AI 摘要</span>
-        <span className="text-right">操作</span>
+      <div className="hidden grid-cols-[2rem_minmax(0,1fr)_6rem_8rem_4.5rem_6rem_2.5rem] items-center gap-4 border-b border-border py-4 text-xs text-muted-foreground xl:grid">
+        <span>序</span>
+        <span>标题与摘要</span>
+        <span>分类</span>
+        <span>标签</span>
+        <span>状态</span>
+        <span>更新日期</span>
+        <span className="sr-only">操作</span>
       </div>
       <div className="divide-y divide-border">
-        {articles.map((article) => (
+        {articles.map((article, index) => (
           <article
             key={article.id}
-            className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.75rem] items-center gap-3 py-5 lg:grid-cols-[minmax(0,1fr)_5rem_6rem_2.75rem] lg:gap-4"
+            className="grid min-w-0 grid-cols-[minmax(0,1fr)_2.5rem] items-center gap-3 py-4 transition-colors hover:bg-muted/25 motion-reduce:transition-none xl:grid-cols-[2rem_minmax(0,1fr)_6rem_8rem_4.5rem_6rem_2.5rem] xl:gap-4"
           >
-            <div className="flex min-w-0 items-start gap-3 sm:gap-4">
+            <span className="hidden self-start pt-1 font-display text-xs text-muted-foreground tabular-nums xl:block">
+              {String(startIndex + index + 1).padStart(2, "0")}
+            </span>
+            <div className="flex min-w-0 items-start gap-4">
               <ArticleListCover
                 key={article.coverImageUrl ?? "empty"}
                 src={article.coverImageUrl}
               />
               <div className="min-w-0 flex-1">
-                <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <OriginBadge origin={article.origin} />
-                  <span className="lg:hidden">
-                    <StatusBadge status={article.status} />
-                  </span>
-                </div>
-                <h2 className="line-clamp-2 text-base leading-6 font-semibold">
+                <h2 className="line-clamp-2 font-display text-lg/snug font-medium">
                   <Link
-                    className="rounded-sm transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    className="transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     to="/articles/$articleId/edit"
                     params={{ articleId: article.id }}
                   >
                     {article.title}
                   </Link>
                 </h2>
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                <p className="mt-1.5 line-clamp-2 text-xs/5 text-muted-foreground">
                   {article.description || "尚未填写简介"}
                 </p>
-                <p className="mt-2 truncate text-xs text-muted-foreground">
-                  {new Date(article.updatedAt).toLocaleDateString("zh-CN")} · {article.slug}
-                </p>
-                <span className="mt-2 block lg:hidden">
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
+                  <span>{article.origin === "REPOSTED" ? "转载" : "原创"}</span>
+                  <span aria-hidden="true">·</span>
                   <SummaryBadge status={article.aiSummaryStatus} />
-                </span>
+                  <span className="xl:hidden">· {article.category?.name ?? "未分类"}</span>
+                  <span className="xl:hidden">
+                    · {new Date(article.updatedAt).toLocaleDateString("zh-CN")}
+                  </span>
+                  <span className="xl:hidden">
+                    <StatusBadge status={article.status} />
+                  </span>
+                </div>
               </div>
             </div>
-            <span className="hidden lg:block">
+            <span className="hidden font-display text-sm text-muted-foreground xl:block">
+              {article.category?.name ?? "未分类"}
+            </span>
+            <div className="hidden flex-wrap gap-1.5 xl:flex">
+              {article.tags.length ? (
+                article.tags.slice(0, 3).map((tag) => (
+                  <span
+                    key={tag.slug}
+                    className="bg-muted px-2 py-1 text-[11px] text-muted-foreground"
+                  >
+                    {tag.name}
+                  </span>
+                ))
+              ) : (
+                <span className="text-xs text-muted-foreground">—</span>
+              )}
+            </div>
+            <span className="hidden xl:block">
               <StatusBadge status={article.status} />
             </span>
-            <span className="hidden lg:block">
-              <SummaryBadge status={article.aiSummaryStatus} />
-            </span>
+            <time
+              dateTime={article.updatedAt}
+              className="hidden font-display text-xs text-muted-foreground tabular-nums xl:block"
+            >
+              {formatArchiveDate(article.updatedAt)}
+            </time>
             <Button asChild size="icon" variant="ghost">
               <Link
                 aria-label={`编辑 ${article.title}`}
@@ -125,7 +154,7 @@ function ArticleListCover({ src }: { src: string | null }) {
       <span
         role="img"
         aria-label={failed ? "封面不可用" : "暂无封面"}
-        className="grid h-12 w-16 shrink-0 content-center justify-items-center gap-1 rounded-md bg-muted text-muted-foreground sm:h-14 sm:w-20"
+        className="grid h-16 w-20 shrink-0 content-center justify-items-center gap-1 rounded-sm bg-muted text-muted-foreground sm:h-18 sm:w-26"
       >
         <ImageIcon className="size-5" aria-hidden="true" />
         <span aria-hidden="true" className="text-[10px]">
@@ -135,7 +164,7 @@ function ArticleListCover({ src }: { src: string | null }) {
     );
   return (
     <img
-      className="h-12 w-16 shrink-0 rounded-md bg-muted object-cover sm:h-14 sm:w-20"
+      className="h-16 w-20 shrink-0 rounded-sm bg-muted object-cover sm:h-18 sm:w-26"
       src={src}
       alt=""
       loading="lazy"
@@ -151,12 +180,13 @@ function SummaryBadge({ status }: { status: AdminArticleAiSummaryStatus }) {
   const meta = summaryStatusMeta[status];
   return <Badge variant={meta.variant}>{meta.label}</Badge>;
 }
-function OriginBadge({ origin }: { origin: ArticleOrigin }) {
-  return (
-    <Badge variant={origin === "REPOSTED" ? "warning" : "outline"}>
-      {origin === "REPOSTED" ? "转载" : "原创"}
-    </Badge>
-  );
+function formatArchiveDate(value: string) {
+  return new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    timeZone: "Asia/Shanghai",
+  }).format(new Date(value));
 }
 const articleStatusMeta: Record<
   AdminArticleStatus,
@@ -164,7 +194,7 @@ const articleStatusMeta: Record<
 > = {
   ARCHIVED: { label: "归档", variant: "outline" },
   DRAFT: { label: "草稿", variant: "warning" },
-  PUBLISHED: { label: "发布", variant: "success" },
+  PUBLISHED: { label: "已发布", variant: "success" },
 };
 const summaryStatusMeta: Record<
   AdminArticleAiSummaryStatus,

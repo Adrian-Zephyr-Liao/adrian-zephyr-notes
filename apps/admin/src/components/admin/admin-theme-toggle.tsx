@@ -10,7 +10,7 @@ function readTheme() {
   } catch {
     // The theme remains usable when browser storage is unavailable.
   }
-  return document.documentElement.dataset.theme === "light" ? "light" : "dark";
+  return document.documentElement.dataset.theme === "dark" ? "dark" : "light";
 }
 function subscribe(onChange: () => void) {
   window.addEventListener(themeEvent, onChange);
@@ -21,7 +21,7 @@ function subscribe(onChange: () => void) {
   };
 }
 function AdminThemeToggle() {
-  const theme = useSyncExternalStore(subscribe, readTheme, () => "dark");
+  const theme = useSyncExternalStore(subscribe, readTheme, () => "light");
   return (
     <Button
       aria-label="切换主题"

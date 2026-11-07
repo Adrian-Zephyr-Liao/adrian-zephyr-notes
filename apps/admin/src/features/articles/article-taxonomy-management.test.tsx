@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ArticleCategoryManagement } from "./article-category-management";
 import { ArticleTagManagement } from "./article-tag-management";
@@ -17,6 +18,9 @@ const api = vi.hoisted(() => ({
   mergeAdminArticleTag: vi.fn(),
 }));
 vi.mock("../../lib/admin-api", () => ({ ...api, AdminApiError: class extends Error {} }));
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
+}));
 beforeEach(() => {
   vi.resetAllMocks();
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) =>
