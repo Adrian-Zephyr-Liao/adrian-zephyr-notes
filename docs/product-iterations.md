@@ -96,6 +96,40 @@ Acceptance:
   persistence-failure tests do not represent failed tests.
 - Actual production-build preview: `http://127.0.0.1:4318`; QA-002, UX-002 and
   PM-002 independently assigned. Acceptance and production publication pending.
+- PM's original eight assertions pass on the candidate and still fail on the
+  original baseline; only actual import/environment resolution was adapted.
+- UX-002 found MOD-F1: confirming moderation and replacing the list loses
+  keyboard focus to BODY. Publication paused; DEV-002 assigned to the same
+  owner/worktree. Restore a surviving row's available action or a stable result
+  region after operation-caused focus loss, without stealing deliberate focus
+  from a search/filter/new screen. QA and design must recheck the final fix.
+- Draft review: PR #3, branch `codex/product-iterations-20261107`.
+  First prebuilt candidate `279e639` is not approved for production.
+- MOD-F1 fixed in development `61eab728`, integrated as `70ab885` with identical
+  admin code. Leader reviewed focus ownership and dialog-close sequencing.
+- Final integrated checks: `vp check` passed with no warnings/errors, `vp test`
+  passed 99 files / 548 tests, admin production build passed.
+- QA-003 independently passed 94 browser scenarios. UX-003 passed 26, including
+  immediate responses during a deliberately prolonged dialog exit animation.
+  PM-002 passed the original eight regression assertions and 12 browser cases.
+  All writes were intercepted in memory; no real moderation or authentication
+  success is claimed. Real unauthenticated moderation endpoints returned 401.
+
+### Release constraint
+
+Production preflight was stopped by Tailscale SSH requiring additional identity
+verification. Existing browser access was attempted: browser-control requests
+timed out; native Chrome opened the official verification flow but it remained
+blank, with no usable sign-in controls. No authentication/network protection was
+changed or bypassed. The pending read-only SSH request was terminated. No release
+upload, route switch or production mutation occurred in this round.
+
+Code acceptance is complete; production publication is pending restored SSH
+access. Preserve the old admin `azn-admin-62f72c73d9a0-1793995929` for rollback
+when publishing resumes. Re-capture a fresh production baseline and build the
+exact final approved revision; do not publish the superseded `279e639` candidate.
+Continue independent development while this external release constraint remains.
+
 - Evidence root:
   `/Users/liaowenrun/.codex/visualizations/2026/11/07/01a1b1a3-9a22-7af0-8847-123cea344932/iteration-01`.
 
@@ -112,8 +146,10 @@ Acceptance:
 - P3: Design observed four Markdown table regions with the same accessible
   name in the real OSS/CDN long article. Mobile light/dark axe reports
   `landmark-unique`; evidence: `/tmp/azn-ux-001/table-landmarks.json`.
-- Large discussion page indices are a source-based hypothesis, not yet an
-  accepted bug. Real database tests are optional locally and absent from CI;
+- Large discussion page indices were not reproduced as a bug: PM-003 issued
+  exactly one GET per list at `page=9007199254740991&pageSize=1`; both returned
+  200 and empty collections. No repeated scan or pagination change selected.
+  Real database tests are optional locally and absent from CI;
   no claim that fixture-browser tests cover persistence or authentication.
 
 Investigation evidence lives in `/tmp/azn-pm-001`, `/tmp/azn-qa-001` and
