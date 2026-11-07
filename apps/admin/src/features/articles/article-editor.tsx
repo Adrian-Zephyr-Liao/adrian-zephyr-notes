@@ -158,7 +158,7 @@ function ArticleEditorFields({
   values: ArticleEditorValues;
 }) {
   return (
-    <div className="flex min-h-0 flex-col gap-3 xl:h-full">
+    <div className="flex min-h-0 flex-col gap-3 xl:min-h-full">
       <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1fr)_160px_160px]">
         <Field label="标题">
           <Input
@@ -296,7 +296,7 @@ function MarkdownEditorField({
   }
 
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 xl:min-h-0 xl:flex-1">
+    <div className="flex min-w-0 flex-col gap-1.5 xl:min-h-72 xl:flex-1">
       <div className="flex min-h-8 items-center justify-between gap-3">
         <label className="text-xs font-medium text-muted-foreground" htmlFor="article-markdown">
           Markdown 内容
@@ -311,7 +311,7 @@ function MarkdownEditorField({
         id="article-markdown"
         aria-describedby="article-image-upload-status"
         className={cn(
-          "h-[45dvh] min-h-64 flex-none resize-none overflow-auto font-mono leading-7 xl:h-auto xl:min-h-0 xl:flex-1",
+          "h-[45dvh] min-h-64 flex-none resize-none overflow-auto font-mono leading-7 xl:h-auto xl:min-h-48 xl:flex-1",
           isDraggingImage && "border-primary bg-primary/5 ring-3 ring-primary/20",
         )}
         spellCheck={false}

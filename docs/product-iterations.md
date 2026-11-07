@@ -475,3 +475,25 @@ and light contrast blocked acceptance. Incorrect harness URLs/selectors were
 retained as failed validation evidence and excluded after corrected rechecks.
 A new immutable candidate is required to accept the fixes; old green evidence
 is not a substitute for that targeted browser recheck.
+
+Recheck candidate `94627369ff473b946bef8662a16c358b7547f5e2` passed PM-003,
+CI `42330146741`, all previous light contrast/mobile layout/statistics/config
+checks, and source gates (579 tests). It is still rejected for publication:
+QA and design independently found the same remaining F1-family defect at
+1366x600: expanded publication settings compress edit-mode textarea content to
+zero height. QA's 81 passed scenarios do not cancel its two added geometry
+failures. Source/JSON/screenshots and reports are retained under `qa`/`ux-003`.
+
+ADM-DEV-008 fixes only three desktop layout classes: natural minimum-full-height
+fields, a 288px minimum Markdown area and a 192px minimum textarea. The existing
+outer scroll area carries expanded properties. Mobile layout, business state
+and handlers are unchanged. Developer lint/typecheck and 17 writing tests passed;
+real minimum visible height still requires the next immutable candidate.
+
+The 9462736 three-service package was prepared and SHA256/image IDs/platform/
+revision verified at `iteration-03/prebuilt-final` (240 MiB archive); it is now
+explicitly rejected pending replacement and MUST NOT be published. The latest
+read-only production SSH check timed out; the native identity flow is still
+unavailable with the Mac locked. No upload, restart, policy change or access
+bypass occurred. Keep existing packages as evidence; select only a subsequently
+accepted release for the next publication attempt.
