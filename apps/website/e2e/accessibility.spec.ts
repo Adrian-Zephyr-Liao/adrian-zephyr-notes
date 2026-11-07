@@ -8,6 +8,20 @@ for (const theme of ["light", "dark"]) {
       await page.goto(path);
       await expect(page.locator("html")).toHaveClass(new RegExp(theme));
       await expect(page.getByRole("main").getByRole("heading", { level: 1 })).toBeVisible();
+      if (path === "/posts/note-1") {
+        const tables = page.locator('.markdown-table-wrap[role="region"]');
+        await expect(tables).toHaveCount(4);
+        const names = await tables.evaluateAll((elements) =>
+          elements.map((element) => element.getAttribute("aria-label") ?? ""),
+        );
+        expect(new Set(names).size).toBe(4);
+        names.forEach((name, index) => {
+          expect(name).toContain(`表格 ${index + 1}：`);
+          expect(name).toContain("阶段、验证方法、结果");
+          expect(name).toContain(index < 2 ? "留下思考" : "复核结果");
+          expect(Array.from(name).length).toBeLessThanOrEqual(90);
+        });
+      }
       const result = await new AxeBuilder({ page }).analyze();
       expect(
         result.violations.map(({ id, nodes }) => ({
@@ -42,11 +56,15 @@ test("reading navigation highlights the active heading and wide tables support k
   await expect(current).toHaveCSS("border-left-color", primary);
   await expect(current).toHaveCSS("color", primary);
 
-  const table = page.getByRole("region", { name: "表格，可横向滚动" });
-  await table.focus();
-  await expect(table).toBeFocused();
-  if (isMobile) {
-    await page.keyboard.press("ArrowRight");
-    await expect.poll(() => table.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+  const tables = page.getByRole("region", { name: /^表格 \d+：.*可横向滚动$/ });
+  await expect(tables).toHaveCount(4);
+  for (const table of await tables.all()) {
+    await expect(table).toHaveAttribute("tabindex", "0");
+    await table.focus();
+    await expect(table).toBeFocused();
+    if (isMobile) {
+      await page.keyboard.press("ArrowRight");
+      await expect.poll(() => table.evaluate((element) => element.scrollLeft)).toBeGreaterThan(0);
+    }
   }
 });
