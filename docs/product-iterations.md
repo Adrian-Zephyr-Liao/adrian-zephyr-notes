@@ -114,6 +114,15 @@ Acceptance:
   PM-002 passed the original eight regression assertions and 12 browser cases.
   All writes were intercepted in memory; no real moderation or authentication
   success is claimed. Real unauthenticated moderation endpoints returned 401.
+- CI run `42322330274` failed the pre-existing mobile carousel test before any
+  touch input: a node from Next's still-streaming content detached while the test
+  awaited scroll stability. QA-004 independently confirmed loading/hidden stream
+  segments in the trace and no script error; no runtime swipe defect reproduced.
+  The test now proves Next/Previous controls work before raw touch dispatch;
+  the original swipe and no-navigation assertions remain. Four bounded local
+  repetitions pass; formatting/lint pass. Full website production build and
+  browser suite pass (20 cases; two existing desktop-inapplicable mobile cases
+  skipped). QA-004 reviewed the change independently. Updated CI pending.
 
 ### Release constraint
 
