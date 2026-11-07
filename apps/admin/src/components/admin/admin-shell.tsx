@@ -1,3 +1,5 @@
+import { useRef } from "react";
+import { useAdminLogout } from "../../features/auth/use-admin-logout";
 import { Link } from "@tanstack/react-router";
 import {
   Sidebar,
@@ -14,6 +16,9 @@ import { adminSectionMeta, articlePageMeta } from "./data";
 import type { AdminShellProps } from "./types";
 
 function AdminShell({ admin, articlePage, children, onLogout, section }: AdminShellProps) {
+  const desktopLogout = useRef<HTMLButtonElement>(null);
+  const mobileLogout = useRef<HTMLButtonElement>(null);
+  const logout = useAdminLogout(onLogout, [desktopLogout, mobileLogout]);
   const sectionMeta =
     section === "articles" && articlePage
       ? articlePageMeta[articlePage]
@@ -42,7 +47,12 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
             <AdminNavigation {...navigation} />
           </div>
           <SidebarFooter>
-            <AdminAccount admin={admin} onLogout={onLogout} />
+            <AdminAccount
+              admin={admin}
+              buttonRef={desktopLogout}
+              onLogout={logout.requestLogout}
+              pending={logout.pending}
+            />
           </SidebarFooter>
         </Sidebar>
         <SidebarInset className={section === "assistant" ? "flex min-h-0 flex-col" : undefined}>
@@ -55,7 +65,13 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
             </div>
             <div className="flex shrink-0 items-center gap-1">
               <AdminThemeToggle />
-              <AdminAccount admin={admin} onLogout={onLogout} showIdentity={false} />
+              <AdminAccount
+                admin={admin}
+                buttonRef={mobileLogout}
+                onLogout={logout.requestLogout}
+                pending={logout.pending}
+                showIdentity={false}
+              />
             </div>
           </header>
           <div
@@ -92,6 +108,7 @@ function AdminShell({ admin, articlePage, children, onLogout, section }: AdminSh
           </div>
         </SidebarInset>
       </SidebarProvider>
+      {logout.feedback}
     </main>
   );
 }
