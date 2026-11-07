@@ -6,6 +6,7 @@ import type {
   AuthUserResponse,
 } from "@adrian-zephyr-notes/contracts";
 
+import { useDiscussionDraft } from "../discussion-draft";
 import { isApiRequestError } from "@/lib/api-client";
 import {
   createArticleComment,
@@ -26,8 +27,6 @@ function useArticleComments(slug: string) {
   const [comments, setComments] = useState<ArticleCommentResponse[]>([]);
   const [user, setUser] = useState<AuthUserResponse | null>(null);
   const [pagination, setPagination] = useState<ArticleCommentsResponse["pagination"] | null>(null);
-  const [body, setBody] = useState("");
-  const [replyTarget, setReplyTarget] = useState<ArticleCommentResponse | null>(null);
   const [expandedCommentIds, setExpandedCommentIds] = useState<ReadonlySet<string>>(
     () => new Set(),
   );
@@ -44,6 +43,12 @@ function useArticleComments(slug: string) {
     () => `/api/auth/github/start?returnTo=${encodeURIComponent(`/posts/${slug}`)}`,
     [slug],
   );
+
+  const draft = useDiscussionDraft(`article:${slug}`, loginUrl);
+  const body = draft.body;
+  const replyTarget = findLoadedComment(comments, draft.replyId);
+  const unresolvedReply = Boolean(draft.replyId && !replyTarget);
+  const submissionPending = useRef(false);
 
   const loadInitialComments = useCallback(
     async (version: number) => {
@@ -69,11 +74,10 @@ function useArticleComments(slug: string) {
     setComments([]);
     setPagination(null);
     setUser(null);
-    setBody("");
-    setReplyTarget(null);
     setExpandedCommentIds(new Set());
     setLikingCommentIds(new Set());
     setErrorMessage(null);
+    submissionPending.current = false;
     setIsSubmitting(false);
     setIsLoadingMore(false);
     void loadInitialComments(version);
@@ -89,20 +93,21 @@ function useArticleComments(slug: string) {
     return loadInitialComments(requestVersion.current);
   }
 
-  useEffect(() => {
-    if (replyTarget) {
-      textareaRef.current?.focus();
-    }
-  }, [replyTarget]);
-
   async function submitComment() {
     const trimmedBody = body.trim();
 
-    if (!trimmedBody || isSubmitting || initialLoadState !== "ready") {
+    if (
+      !trimmedBody ||
+      submissionPending.current ||
+      unresolvedReply ||
+      initialLoadState !== "ready"
+    ) {
       return;
     }
 
     const version = requestVersion.current;
+    const submittedDraft = draft.capture();
+    submissionPending.current = true;
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -112,6 +117,7 @@ function useArticleComments(slug: string) {
         parentCommentId: replyTarget?.id ?? null,
         slug,
       });
+      draft.clearSubmitted(submittedDraft);
       if (requestVersion.current !== version) return;
       const expansionTargetId = comment.parentCommentId
         ? findReplyExpansionTargetId(comments, comment.parentCommentId)
@@ -133,22 +139,23 @@ function useArticleComments(slug: string) {
             }
           : current,
       );
-      setBody("");
-      setReplyTarget(null);
     } catch (error) {
       if (requestVersion.current !== version) return;
       if (isApiRequestError(error) && error.status === 401) {
-        window.location.href = loginUrl;
+        draft.login();
         return;
       }
 
       setErrorMessage(
         isApiRequestError(error) && error.status >= 400 && error.status < 500
           ? "评论未发布，请检查内容或稍后重试。"
-          : "发布结果尚未确认，请刷新页面核对评论后再试。",
+          : "发布结果尚未确认，请先核对已有评论后再试。",
       );
     } finally {
-      if (requestVersion.current === version) setIsSubmitting(false);
+      if (requestVersion.current === version) {
+        submissionPending.current = false;
+        setIsSubmitting(false);
+      }
     }
   }
 
@@ -164,18 +171,18 @@ function useArticleComments(slug: string) {
 
   function replyToComment(target: ArticleCommentResponse) {
     if (isSubmitting) return;
+    draft.update({ replyId: target.id });
     if (!user) {
-      window.location.href = loginUrl;
+      draft.login();
       return;
     }
-
-    setReplyTarget(target);
+    textareaRef.current?.focus();
     setErrorMessage(null);
   }
 
   async function toggleLike(target: ArticleCommentResponse) {
     if (!user) {
-      window.location.href = loginUrl;
+      draft.login();
       return;
     }
 
@@ -206,7 +213,8 @@ function useArticleComments(slug: string) {
     } catch (error) {
       if (requestVersion.current !== version) return;
       if (isApiRequestError(error) && error.status === 401) {
-        window.location.href = loginUrl;
+        setComments((current) => applyCommentLikeState(current, previousLikeState));
+        draft.login();
         return;
       }
 
@@ -260,6 +268,8 @@ function useArticleComments(slug: string) {
 
   return {
     body,
+    draft,
+    unresolvedReply,
     canLoadMore: pagination ? pagination.page < pagination.totalPages : false,
     commentThreads: createArticleCommentThreads(comments),
     comments,
@@ -277,16 +287,28 @@ function useArticleComments(slug: string) {
     pagination,
     replyTarget,
     replyToComment,
-    setBody,
+    setBody: (value: string) => draft.update({ body: value }),
     submitComment,
     textareaRef,
     toggleLike,
     toggleReplyExpansion,
     user,
     cancelReply: () => {
-      if (!isSubmitting) setReplyTarget(null);
+      if (!isSubmitting) draft.update({ replyId: null });
     },
   };
 }
 
+function findLoadedComment(
+  comments: ArticleCommentResponse[],
+  id: string | null,
+): ArticleCommentResponse | null {
+  if (!id) return null;
+  for (const comment of comments) {
+    if (comment.id === id) return comment;
+    const child = findLoadedComment(comment.replies, id);
+    if (child) return child;
+  }
+  return null;
+}
 export { useArticleComments };

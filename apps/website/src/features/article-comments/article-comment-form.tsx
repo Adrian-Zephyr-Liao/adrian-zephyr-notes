@@ -7,6 +7,7 @@ import { AuthorAvatar } from "./article-comment-avatar";
 
 function ArticleCommentForm({
   body,
+  unresolvedReply,
   errorMessage,
   isSubmitting,
   isReadReady,
@@ -18,6 +19,7 @@ function ArticleCommentForm({
   user,
 }: {
   body: string;
+  unresolvedReply: boolean;
   errorMessage: string | null;
   isSubmitting: boolean;
   isReadReady: boolean;
@@ -38,6 +40,20 @@ function ArticleCommentForm({
       <label className="sr-only" htmlFor="article-comment">
         评论内容
       </label>
+      {unresolvedReply ? (
+        <div role="alert" className="grid gap-2 text-sm text-destructive">
+          <p>暂时未找到原回复对象，请加载更多评论或重新选择回复；正文已保留。</p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onCancelReply}
+            disabled={isSubmitting}
+          >
+            作为新评论
+          </Button>
+        </div>
+      ) : null}
       {replyTarget ? (
         <div className="grid gap-2 rounded-xl bg-muted/45 px-3 py-2 text-xs text-muted-foreground sm:flex sm:items-center sm:justify-between dark:bg-white/6">
           <div className="min-w-0">
@@ -74,14 +90,16 @@ function ArticleCommentForm({
           minLength={1}
           maxLength={1000}
           placeholder={user ? (replyTarget ? "回复一下..." : "说点什么...") : "登录后可以发表评论"}
-          disabled={!user || !isReadReady || isSubmitting}
+          disabled={!isReadReady || isSubmitting}
           className="min-h-20 w-full min-w-0 resize-y rounded-xl border border-border bg-transparent px-3.5 py-3 text-base leading-6 text-foreground outline-none placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
         />
         <Button
           type="submit"
           size="icon-sm"
           className="self-end"
-          disabled={!user || !isReadReady || body.trim().length === 0 || isSubmitting}
+          disabled={
+            !user || !isReadReady || unresolvedReply || body.trim().length === 0 || isSubmitting
+          }
           aria-label={replyTarget ? "发布回复" : "发布评论"}
         >
           <Send className="size-4" />

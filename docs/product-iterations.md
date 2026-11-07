@@ -123,6 +123,9 @@ Acceptance:
   repetitions pass; formatting/lint pass. Full website production build and
   browser suite pass (20 cases; two existing desktop-inapplicable mobile cases
   skipped). QA-004 reviewed the change independently. Updated CI pending.
+- Updated CI `42323259322` passed all quality/build/browser gates. PR #3 merged
+  as `49b291f0a4b27bbe325457924b2ca248bafe92e8`; code is integrated, with production
+  publication still constrained below.
 
 ### Release constraint
 
@@ -167,9 +170,166 @@ real network calls. CLI authorization is expired (`AUTH_EXPIRED`); authenticated
 production moderation checks are limited to an existing browser session if
 available. No new credentials or privileges are requested.
 
-### Recovery
+## 2026-11-07 — round 2, DRAFT-001
 
-Read this record and current Git status before proceeding. Retrieve the four
-chats above, select at most 1–3 evidence-backed issues, assign implementation,
-independently verify, then release the exact tested version using the existing
-prebuilt workflow. A release command success alone does not count as acceptance.
+Goal: preserve unsent discussion text through a same-tab login round trip and
+explain an unsuccessful login. PM's actual hook/remount reproductions and QA's
+real cancellation callback are the baseline evidence. No cloud drafts, automatic
+posting, cross-device syncing or change to authentication requirements.
+
+Acceptance:
+
+- Persist before login navigation; restore exact body and guestbook nickname
+  after success, cancellation or failure. Isolate article drafts by slug.
+- Revalidate a stored reply ID against loaded comments. Unresolved replies keep
+  their text and require explicit selection or conversion to a new comment.
+- Clear only after a confirmed publication; rejected/unknown results preserve
+  text. Late responses cannot clear another article's or newer draft.
+- Storage failure retains the editor and prevents a lossy login redirect.
+  Offer copy/retry and explicit continuation after copying.
+- `auth=failed` displays a clear login-not-completed message and retry path.
+  Reuse existing forms, Tailwind, focus conventions and request adapters.
+
+DEV-003 assigned to the existing Development chat in a new isolated worktree:
+`/Users/liaowenrun/.codex/worktrees/discussion-drafts/adrian-zephyr-notes`,
+baseline `70ab885`, branch `codex/discussion-drafts-20261107`.
+Allowed: website comments/guestbook workflows, necessary real shared draft code,
+adjacent tests and minimal route/reading prop plumbing. No dependencies, lockfile,
+contracts, backend, admin or Markdown changes. Leader owns this record.
+QA, design and PM prepare independent evidence outside the checkout. Real OAuth
+success and real production writes remain outside fixture validation.
+
+Candidate `fc2228e` integrated as `811b0c6`. Leader reviewed storage validation,
+revision-based clearing, reply resolution, login navigation and both consumers.
+Unlogged readers can edit recovered text; publication still requires login.
+Integrated formatting/lint/type checks and website production build passed.
+Full tests found a draft test submitting after restore before the read became
+ready, and a deployment-shell test timing out during parallel compilation.
+Deployment tests passed 8/8 in isolation without changing assertions/timeouts;
+DEV-004 fixes the draft test's actual readiness precondition.
+
+UX-004 reproduced DRAFT-F1: POST confirmed, storage removal failed, and reload
+restored posted content with an incorrect "unpublished" claim. Publication is
+blocked pending a revision-safe clearing fallback and conservative recovery
+wording. Leader also requested an actual-hook reproduction for empty forms whose
+login was blocked by unavailable storage. QA/UX must recheck the final candidate;
+preserve all original failure evidence.
+
+Final correction candidate `3e7be632` integrated as `2b3f8d2`: empty forms can
+log in without touching unreadable storage; exact submitted revisions use an
+empty-record fallback if removal fails; restored content asks the reader to
+verify publication rather than claiming it was never published. Rechecked by
+Leader. Sequential integrated `vp check`, all 564 tests and website build passed.
+QA-007, UX-005 and PM-007 are independently rechecking the corrected build.
+PM-007 passed six incremental cases; UX-005 passed 16 actual browser states,
+including both cleanup failures and inaccessible storage, after verifying the
+served chunk bytes match the frozen build. QA-007 independently passed 49 browser
+cases and confirmed resource identity stayed fixed; no remaining scoped blocker.
+PR #5 passed CI `42325084983` and merged as
+`14ea4f3e905fa34b006455de7a379336e7b4f596`. This is code acceptance, not production.
+Shared draft types were moved to local `types.ts` per website conventions;
+only type imports changed, with website type checking afterward.
+
+### Independent address boundary — ADDR-001
+
+Leader owns the previously reproduced invalid article-address 500 in a separate
+`article-address-boundary` worktree, baseline `10adf5c`. Allowed changes: article
+slug validation error, public detail error mapping and adjacent/compiled HTTP
+regressions. No model, query, dependency, database or other feature changes.
+
+Candidate `3d0a799b753ebb0690bfd9e49f812d7a7829701d` changes three files. A compiled
+HTTP regression first failed with expected-404/actual-500, then all six HTTP cases
+passed after the fix. Server build, `vp check` and 548 unit tests passed. QA-005
+and PM-005 independently assigned; no production verification claimed.
+
+Development independently reviewed the three-file address diff: no blocker;
+domain error remains HTTP-independent and real repository failures still escape.
+PM-005 independently passed 11 actual compiled-HTTP cases, including valid
+synthetic content, trim compatibility, and ordinary errors spoofing validation
+error text/name that correctly remain 500. No UI/production acceptance claimed.
+
+QA-005 independently rebuilt the actual controller/use-case in a temporary
+directory and passed 20 HTTP boundary cases, plus the six existing HTTP tests.
+Source/build hashes matched, invalid addresses made zero repository/summary
+calls, and valid content plus real failure paths retained their behavior.
+No actual Next UI, production database or model call was exercised.
+PR #4 passed CI `42324488037` and merged as
+`811875c3837e5e9de514f058ed6bc6a4f8e9c1cd`. Production remains unchanged by this work.
+
+Accept invalid slugs as `404 / ARTICLE_NOT_FOUND` before repository or summary
+execution, keep legitimate missing articles as 404, and preserve actual repository
+failures as 500. The website should then use its existing not-found path. PM and
+QA will independently verify the compiled controller and real use case with
+controlled repository/summary boundaries. Production release still requires
+restored SSH and the documented single-instance API maintenance procedure.
+
+### Selected accessibility follow-up — TABLE-001
+
+Reuse UX-001's duplicate table region-name evidence. An isolated
+`markdown-table-names` worktree starts at `49b291f`; DEV-005 is assigned to the
+existing Development chat on `codex/markdown-table-names-20261107`, following the
+DRAFT correction freeze. Follow-up scope: shared Markdown table names
+and adjacent regression coverage, retaining styling, keyboard focus and horizontal
+scrolling. Names must be meaningful and unique even with repeated headers; no
+opaque IDs, source-line names, article/CDN mutations or new dependency. This is
+the third bounded round-2 item, not an open-ended redesign.
+
+Candidate `1f799718` integrated as `5be5101`. Leader reviewed the single GFM AST
+pass, meaningful bounded context, document-local ordinal, three render modes and
+unchanged scrolling markup/styles. PM-008 verified repeat-render/view stability;
+UX-006 passed four complete axe scans and 16 focus/scroll checks on desktop/375px
+and both themes. QA-008 independently passed its desktop/mobile matrix, nine
+targeted existing tests and 11 additional server/document/stream cases. No scoped
+blocker remains. PR #6 passed CI `42325911351` and merged as
+`61523ae9dcf55602ae803dec78ba5b1ddca6f44f`.
+
+Final integrated source checks: `vp check` clean; 100 files / 568 tests passed;
+server, website and admin production builds passed; compiled HTTP six cases
+passed; full desktop/mobile website browser suite passed 20 cases with the two
+existing desktop-inapplicable mobile cases skipped. Tests use isolated fixtures,
+not production persistence, successful OAuth or actual assistive hardware.
+
+The earlier isolated 500-to-404 HTTP proof and a real Next browser check against
+a controlled 404 backend verify both boundaries separately. They do not constitute
+a deployed end-to-end check.
+
+## Final checkpoint and recovery
+
+Both rounds are code-accepted and merged. Production publication is blocked,
+not complete. Final read-only public probes returned 200 for the website, admin
+and site configuration; the known invalid-slug endpoint still returned 500,
+consistent with the fix not having been deployed. No business writes were used.
+
+The approved application release is `bec1825383b565c213329c1fa2fc14b5f9125d28`.
+Its complete tree matches merge `61523ae` before this documentation checkpoint.
+The three `linux/amd64` images (`server website admin`), source bundle and verified
+SHA256 manifest are ready at:
+
+`/Users/liaowenrun/.codex/visualizations/2026/11/07/01a1b1a3-9a22-7af0-8847-123cea344932/iteration-02/prebuilt-final`
+
+The compressed image archive is approximately 230 MiB. `release-pending.json`
+beside it records the exact revision and the absence of any upload/deployment.
+The older `279e639` candidate is superseded and must not be published.
+
+Resume in the canonical checkout:
+`/Users/liaowenrun/Desktop/Code/github.com/Adrian-Zephyr-Liao/adrian-zephyr-notes`.
+Read Git status, this record, the four role chats and the evidence receipts.
+Three completed managed worktrees were archived with recoverable snapshots.
+The TABLE worktree is protected as this chat's primary checkout; retain it and
+synchronize its source with integrated main rather than bypassing that protection.
+All owned previews/fixtures (4324/4325/4334/4335) were stopped after acceptance.
+
+Next actionable task: restore the existing SSH identity-verification flow, then
+capture a fresh production baseline and use the existing prebuilt publisher.
+The API requires the documented bounded single-instance maintenance restart;
+verify active Assistant work and compatibility first. Frontends use healthy
+candidates and a Caddy switch. No database migration is introduced by these rounds.
+Retain the currently serving images and protected host configuration; verify
+actual revisions, routes, health, resource state and affected paths after release.
+Use the documented rollback on a release regression. Do not turn a successful
+upload or deploy command into a production-acceptance claim.
+
+CLI authentication and actual GitHub OAuth success remain unverified/expired;
+fixture results do not substitute for them. No unattended recovery or scheduled
+iteration was installed. Code investigation is closed for this window; do not
+manufacture more changes while publication awaits an external access condition.
