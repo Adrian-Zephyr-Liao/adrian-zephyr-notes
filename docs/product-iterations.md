@@ -655,3 +655,122 @@ Production is still unchanged: normal SSH requires Tailscale identity check,
 and the latest native attempt still reports the Mac locked. A concise asynchronous
 unlock request was sent while independent work continued; no answer or access
 change is assumed. Do not bypass the lock/check or claim a production release.
+
+## 2026-11-07 — production publication
+
+The user confirmed the Mac was unlocked. Normal SSH through the existing
+`zephyr-ecs` identity then succeeded; no access policy, account privileges or CI
+deployment configuration changed. The earlier lock-related recovery instructions
+are superseded by this observed publication.
+
+PROD-REVIEW-001 (existing developer, read-only release/rollback review) found no
+additional source blocker. Leader freshly observed zero RUNNING/CANCELLING
+Assistant turns, 35/35 completed migrations with none pending or unresolved,
+about 7.2 GiB free storage and sufficient available memory. The accepted source
+introduces no Prisma schema or migration changes. API maintenance used the
+existing bounded single-instance restart; no second API instance was started.
+
+Accepted application `97109921dbe56ad7413203387b14f855f6282c3a` and its
+documentation-only release `4e542cb081b5245e7a864ecc7fecfd54bb05f591` have
+identical application code. Merged main
+`1cc3bb85d4ea008d0a64242d78b58dbefeddfe3f` has the exact release tree. PRs
+#7 and #8 are merged; release CI `42334112306` and main CI `42334431272`
+succeeded. The CI production job stayed skipped; publication used the existing
+authenticated workstation procedure, not an assumed CI deployment.
+
+Leader published the checksum-verified `iteration-04/prebuilt-accepted` package
+once with `scripts/publish-release.sh`, selecting server, website and admin.
+The command completed successfully. At 04:04:54 UTC, source HEAD, deployment
+marker and all three actual running OCI revisions were exactly `4e542cb`.
+Their image IDs independently matched the accepted manifest:
+
+| Service | Image ID                                                                  |
+| ------- | ------------------------------------------------------------------------- |
+| server  | `sha256:9c0e4d9fd02e47c24893f6898ca6cc2be1ceb75149a167446d654336edf03037` |
+| website | `sha256:e27f0f444ea9f1d95927d66499f513d8eb5c569eaa2011c0fbd35cd3dd8f00d0` |
+| admin   | `sha256:2d760b2ef092bcf1b7dc7108e15d89d4ee739cd36a1bb0ca2cac6351456c2577` |
+
+All three services were healthy with zero restarts and no OOM. Caddy's live
+configuration routes to `azn-website-4e542cb081b5-1794024189:3002` and
+`azn-admin-4e542cb081b5-1794024236:80`, retaining `server:3001` for the API.
+The ERP route hash and host Compose override checksum were unchanged. ERP,
+Caddy and both databases retained their exact container identities, start times,
+restart counts and OOM states. The pre-existing ERP API restart count remained
+five; it did not increase during this release. Leader's public reads returned
+200 for home, archives, admin and ERP entrypoints.
+
+Monitor snapshots cover upload, Docker image extraction and frontend handover.
+They show no new OOM or unrelated restart; available memory recovered to about
+886 MiB after the switch. These are sampled observations, not a claim of a
+continuous memory peak measurement.
+
+Rollback evidence retains old frontend containers
+`azn-admin-62f72c73d9a0-1793995929` and
+`azn-website-f60504b4d0c4-1793994259`, stopped with exit codes 0 and 143
+respectively, and API image
+`sha256:45210ba361498c390f70eb945bf42f626ec67566094761afe677a144b4fafd5e`.
+Private recovery files are saved at
+`/srv/adrian-zephyr-notes/.git/releases/4e542cb081b5245e7a864ecc7fecfd54bb05f591/recovery.4865k46x`.
+`Caddyfile.rollback` reconstructs the two old upstreams from the published
+configuration; its SHA-256 exactly equals the pre-release Caddyfile checksum,
+and Caddy adaptation succeeds with the original ERP route hash. This is a
+configuration check, not a rollback rehearsal. `Caddyfile.published` and
+`server.rollback.yml` retain the current configuration and old API image
+override. Start and verify the retained frontends before restoring their routes;
+use the override with the existing Compose environment for the previous API.
+The script's
+automatic rollback only covers the in-progress service; Git HEAD and previously
+completed services are not implicitly reverted. No migration reversal is claimed.
+
+Evidence root:
+`/Users/liaowenrun/.codex/visualizations/2026/11/07/01a1b1a3-9a22-7af0-8847-123cea344932/production-release`.
+It contains `before.json`, `preflight.json`, `publish.log`, resource snapshots,
+`after.json`, `leader-version-and-protection-check.json`,
+`routes-and-rollback.json`, `rollback-recovery-files.json`,
+`server-startup-summary.json` and `leader-public-health.json`. The API startup
+explicitly reported no pending migrations and successful application startup;
+its captured log summary contains zero ERROR-level lines and zero OOM mentions.
+
+PROD-QA-002 and PROD-UX-002 are assigned to the existing QA and design chats
+for independent real-production read-only acceptance. PM's final scope review
+confirms coverage of the public/admin redesign, 6/6 existing CDN cover
+associations and Tailwind/feature architecture. Authenticated writes, OAuth and
+logout failure recovery remain isolated-fixture acceptance, not destructive
+production tests. Publication output does not substitute for these separate
+browser checks.
+
+### Independent production acceptance
+
+PROD-QA-002 passed 11 actual anonymous browser pages (eight desktop, three
+mobile), with zero page errors or horizontal overflow. Safe public APIs and
+assets returned successfully. The same invalid-slug request changed from the
+saved pre-release 500 response to 404 with `ARTICLE_NOT_FOUND`. The actual
+production admin index and eight key JS/CSS files, including the logout
+coordinator and writing chunk, matched bytes extracted from the accepted image.
+An initial request using a Mac-only preview chunk name returned 404; it was not
+referenced by production. That diagnostic remains recorded separately from the
+passing formal-image comparison; no actual failed page resource was suppressed.
+
+PROD-UX-002 independently passed home/archives at desktop/mobile sizes in both
+themes, actual navigation, cover-stack controls, archive timeline/cover views,
+mobile-menu close/focus and theme switching. All six DOM image sources decoded
+to the exact article-associated CDN URLs and loaded. Root and protected article
+admin entries correctly displayed the new anonymous gate in both sizes/themes.
+Leader reviewed actual production home, mobile archive and admin-gate screenshots
+as well as the underlying version and byte-comparison evidence.
+
+The independent reports are `qa/after/PROD-QA-002-report.md` and
+`ux/PROD-UX-002-report.md`. Browser guards prevented article-detail prefetches,
+all non-read methods and admin business-data access; no real login, logout,
+moderation, publishing or model-generating detail request was executed. Expected
+blocked-prefetch console messages are distinguished from application failures.
+All role-owned browser contexts are closed; no polling or unattended continuation
+was installed. Production acceptance passes within this explicit read-only scope.
+
+The role checks found no new reproducible, worthwhile product issue. Existing
+source gates remain `vp check`, 102 files / 588 tests, relevant builds and the
+successful release/main CI runs above; this final record changes documentation
+only. Keep the exact release package and prior serving images for recovery.
+The next iteration requires a newly evidenced problem, rather than another
+full scan or speculative rewrite. No background work is claimed after this
+execution window.
