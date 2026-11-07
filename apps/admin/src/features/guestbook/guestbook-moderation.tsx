@@ -4,7 +4,7 @@ import type {
   AdminGuestbookMessageStatus,
 } from "@adrian-zephyr-notes/contracts";
 import { Eye, EyeOff, Pin, PinOff, RefreshCw, Search, Trash2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
@@ -22,79 +22,60 @@ import {
 import { Select } from "../../components/ui/select";
 import { listAdminGuestbookMessages, updateAdminGuestbookMessage } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
+import { useModerationList } from "../moderation/use-moderation-list";
 
 const DEFAULT_PAGE_SIZE = 10;
 
 function GuestbookModeration() {
-  const [messages, setMessages] = useState<AdminGuestbookMessageListItemResponse[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalItems: 0,
-    totalPages: 0,
-  });
-  const [query, setQuery] = useState<AdminGuestbookMessagesQuery>({
-    page: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    status: "ALL",
+  const {
+    query,
+    setQuery,
+    items: messages,
+    pagination,
+    isLoading,
+    isReady,
+    errorMessage,
+    updatingId: updatingMessageId,
+    mutate,
+    resultsRef,
+    statusMessage,
+  } = useModerationList<AdminGuestbookMessagesQuery, AdminGuestbookMessageListItemResponse>({
+    initialQuery: {
+      page: 1,
+      pageSize: DEFAULT_PAGE_SIZE,
+      status: "ALL",
+    },
+    list: listAdminGuestbookMessages,
+    loadError: "留言列表加载失败，请检查服务端或管理员权限配置。",
+    updateError: "留言状态更新失败，请稍后重试。",
   });
   const [searchText, setSearchText] = useState("");
-  const [updatingMessageId, setUpdatingMessageId] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { confirm, confirmationDialog } = useConfirmationDialog();
-
-  useEffect(() => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    void listAdminGuestbookMessages(query)
-      .then((response) => {
-        setMessages(response.data);
-        setPagination(response.pagination);
-      })
-      .catch(() => setErrorMessage("留言列表加载失败，请检查服务端或管理员权限配置。"))
-      .finally(() => setIsLoading(false));
-  }, [query]);
 
   async function updateMessage(
     message: AdminGuestbookMessageListItemResponse,
     input: { isPinned?: boolean; status?: AdminGuestbookMessageStatus },
   ) {
-    if (input.status === "DELETED") {
-      const confirmed = await confirm({
-        confirmLabel: "删除留言",
-        description: "删除后读者侧不再展示，但仍可在已删除状态中恢复。",
-        title: "确认删除留言",
-        variant: "destructive",
-      });
-
-      if (!confirmed) {
-        return;
-      }
-    }
-
-    if (input.status === "HIDDEN") {
-      const confirmed = await confirm({
-        confirmLabel: "隐藏留言",
-        description: "隐藏后读者侧将不再展示这条留言。",
-        title: "确认隐藏留言",
-      });
-
-      if (!confirmed) {
-        return;
-      }
-    }
-
-    setUpdatingMessageId(message.id);
-
-    try {
-      const updated = await updateAdminGuestbookMessage(message.id, input);
-      setMessages((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-    } catch {
-      setErrorMessage("留言状态更新失败，请稍后重试。");
-    } finally {
-      setUpdatingMessageId(null);
-    }
+    await mutate(
+      message.id,
+      () => updateAdminGuestbookMessage(message.id, input),
+      input.status === "DELETED"
+        ? () =>
+            confirm({
+              confirmLabel: "删除留言",
+              description: "删除后读者侧不再展示，但仍可在已删除状态中恢复。",
+              title: "确认删除留言",
+              variant: "destructive",
+            })
+        : input.status === "HIDDEN"
+          ? () =>
+              confirm({
+                confirmLabel: "隐藏留言",
+                description: "隐藏后读者侧将不再展示这条留言。",
+                title: "确认隐藏留言",
+              })
+          : undefined,
+    );
   }
 
   function submitSearch() {
@@ -109,7 +90,7 @@ function GuestbookModeration() {
     <ManagementSurface>
       <ManagementHeader
         description="处理留言可见性、置顶和软删除。"
-        meta={<Badge variant="outline">{pagination.totalItems} 条</Badge>}
+        meta={pagination ? <Badge variant="outline">{pagination.totalItems} 条</Badge> : null}
         title="留言板治理"
         action={
           <Button
@@ -166,88 +147,108 @@ function GuestbookModeration() {
             <span className="md:sr-only">搜索</span>
           </Button>
         </ManagementToolbar>
-        <ManagementList>
-          {isLoading ? <ManagementLoading label="正在加载留言..." /> : null}
-          {messages.map((message) => (
-            <article className="p-4 transition-colors hover:bg-background/28" key={message.id}>
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_230px]">
-                <div className="min-w-0 space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {message.isPinned ? <Badge variant="warning">置顶</Badge> : null}
-                    <StatusBadge status={message.status} />
-                    <Badge variant="outline">{message.likeCount} 赞</Badge>
+        <section ref={resultsRef} aria-label="审核结果" aria-busy={isLoading} tabIndex={-1}>
+          <ManagementList>
+            {isLoading ? <ManagementLoading label="正在加载留言..." /> : null}
+            {messages.map((message) => (
+              <article
+                className="p-4 transition-colors hover:bg-background/28"
+                key={message.id}
+                data-moderation-id={message.id}
+              >
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_230px]">
+                  <div className="min-w-0 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {message.isPinned ? <Badge variant="warning">置顶</Badge> : null}
+                      <StatusBadge status={message.status} />
+                      <Badge variant="outline">{message.likeCount} 赞</Badge>
+                    </div>
+                    <p className="text-sm/6 whitespace-pre-wrap">{message.body}</p>
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                      <span>{formatDateTime(message.createdAt)}</span>
+                      <span>
+                        {message.guestFingerprint
+                          ? `指纹 ${message.guestFingerprint.slice(0, 18)}...`
+                          : "登录用户"}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-sm/6 whitespace-pre-wrap">{message.body}</p>
-                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    <span>{formatDateTime(message.createdAt)}</span>
-                    <span>
-                      {message.guestFingerprint
-                        ? `指纹 ${message.guestFingerprint.slice(0, 18)}...`
-                        : "登录用户"}
-                    </span>
-                  </div>
-                </div>
-                <div className="flex flex-col gap-3 lg:items-end">
-                  <GuestbookAuthor message={message} />
-                  <div className="flex flex-wrap gap-2 lg:justify-end">
-                    <Button
-                      disabled={updatingMessageId === message.id}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                      onClick={() => void updateMessage(message, { isPinned: !message.isPinned })}
-                    >
-                      {message.isPinned ? <PinOff /> : <Pin />}
-                      {message.isPinned ? "取消置顶" : "置顶"}
-                    </Button>
-                    {message.status === "VISIBLE" ? (
+                  <div className="flex flex-col gap-3 lg:items-end">
+                    <GuestbookAuthor message={message} />
+                    <div className="flex flex-wrap gap-2 lg:justify-end">
+                      {updatingMessageId === message.id ? (
+                        <span role="status" className="text-sm text-muted-foreground">
+                          处理中
+                        </span>
+                      ) : null}
                       <Button
-                        disabled={updatingMessageId === message.id}
+                        disabled={updatingMessageId !== null}
                         size="sm"
                         type="button"
                         variant="outline"
-                        onClick={() => void updateMessage(message, { status: "HIDDEN" })}
+                        data-moderation-action="pin"
+                        onClick={() => void updateMessage(message, { isPinned: !message.isPinned })}
                       >
-                        <EyeOff />
-                        隐藏
+                        {message.isPinned ? <PinOff /> : <Pin />}
+                        {message.isPinned ? "取消置顶" : "置顶"}
                       </Button>
-                    ) : (
-                      <Button
-                        disabled={updatingMessageId === message.id}
-                        size="sm"
-                        type="button"
-                        onClick={() => void updateMessage(message, { status: "VISIBLE" })}
-                      >
-                        <Eye />
-                        恢复
-                      </Button>
-                    )}
-                    {message.status !== "DELETED" ? (
-                      <Button
-                        disabled={updatingMessageId === message.id}
-                        size="sm"
-                        type="button"
-                        variant="destructive"
-                        onClick={() => void updateMessage(message, { status: "DELETED" })}
-                      >
-                        <Trash2 />
-                        删除
-                      </Button>
-                    ) : null}
+                      {message.status === "VISIBLE" ? (
+                        <Button
+                          disabled={updatingMessageId !== null}
+                          size="sm"
+                          type="button"
+                          variant="outline"
+                          data-moderation-action="visibility"
+                          onClick={() => void updateMessage(message, { status: "HIDDEN" })}
+                        >
+                          <EyeOff />
+                          隐藏
+                        </Button>
+                      ) : (
+                        <Button
+                          disabled={updatingMessageId !== null}
+                          size="sm"
+                          type="button"
+                          data-moderation-action="visibility"
+                          onClick={() => void updateMessage(message, { status: "VISIBLE" })}
+                        >
+                          <Eye />
+                          恢复
+                        </Button>
+                      )}
+                      {message.status !== "DELETED" ? (
+                        <Button
+                          disabled={updatingMessageId !== null}
+                          size="sm"
+                          type="button"
+                          variant="destructive"
+                          data-moderation-action="delete"
+                          onClick={() => void updateMessage(message, { status: "DELETED" })}
+                        >
+                          <Trash2 />
+                          删除
+                        </Button>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </article>
-          ))}
-          {!isLoading && messages.length === 0 ? (
-            <ManagementEmpty label="没有符合条件的留言。" />
+              </article>
+            ))}
+            {isReady && messages.length === 0 ? (
+              <ManagementEmpty label="没有符合条件的留言。" />
+            ) : null}
+          </ManagementList>
+          {pagination ? (
+            <ManagementPagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
+            />
           ) : null}
-        </ManagementList>
-        <ManagementPagination
-          page={pagination.page}
-          totalPages={pagination.totalPages}
-          onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
-        />
+          <span role="status" className="sr-only">
+            {statusMessage}
+          </span>
+        </section>
       </ManagementBody>
       {confirmationDialog}
     </ManagementSurface>

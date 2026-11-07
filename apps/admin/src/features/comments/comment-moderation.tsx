@@ -22,6 +22,7 @@ import {
 import { Select } from "../../components/ui/select";
 import { listAdminArticleComments, updateAdminArticleComment } from "../../lib/admin-api";
 import { cn } from "../../lib/utils";
+import { useModerationList } from "../moderation/use-moderation-list";
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -30,38 +31,33 @@ type CommentModerationProps = {
 };
 
 function CommentModeration({ focusedCommentId = null }: CommentModerationProps) {
-  const [comments, setComments] = useState<AdminArticleCommentListItemResponse[]>([]);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    totalItems: 0,
-    totalPages: 0,
-  });
-  const [query, setQuery] = useState<AdminArticleCommentListQuery>({
-    commentId: focusedCommentId ?? undefined,
-    page: 1,
-    pageSize: DEFAULT_PAGE_SIZE,
-    status: "ALL",
+  const {
+    query,
+    setQuery,
+    items: comments,
+    pagination,
+    isLoading,
+    isReady,
+    errorMessage,
+    updatingId: updatingCommentId,
+    mutate,
+    resultsRef,
+    statusMessage,
+  } = useModerationList<AdminArticleCommentListQuery, AdminArticleCommentListItemResponse>({
+    initialQuery: {
+      commentId: focusedCommentId ?? undefined,
+      page: 1,
+      pageSize: DEFAULT_PAGE_SIZE,
+      status: "ALL",
+    },
+    list: listAdminArticleComments,
+    loadError: "评论列表加载失败，请检查服务端或管理员权限配置。",
+    updateError: "评论状态更新失败，请稍后重试。",
   });
   const [searchText, setSearchText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [updatingCommentId, setUpdatingCommentId] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
   const isFocusedMode = Boolean(query.commentId);
-
-  useEffect(() => {
-    setIsLoading(true);
-    setErrorMessage(null);
-    void listAdminArticleComments(query)
-      .then((response) => {
-        setComments(response.data);
-        setPagination(response.pagination);
-      })
-      .catch(() => setErrorMessage("评论列表加载失败，请检查服务端或管理员权限配置。"))
-      .finally(() => setIsLoading(false));
-  }, [query]);
 
   useEffect(() => {
     if (!focusedCommentId) {
@@ -84,34 +80,24 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
       pageSize: DEFAULT_PAGE_SIZE,
       status: "ALL",
     });
-  }, [focusedCommentId]);
+  }, [focusedCommentId, setQuery]);
 
   async function updateCommentStatus(
     comment: AdminArticleCommentListItemResponse,
     status: AdminArticleCommentStatus,
   ) {
-    if (status === "HIDDEN") {
-      const confirmed = await confirm({
-        confirmLabel: "隐藏评论",
-        description: "隐藏后读者侧将不再展示这条评论。",
-        title: "确认隐藏评论",
-      });
-
-      if (!confirmed) {
-        return;
-      }
-    }
-
-    setUpdatingCommentId(comment.id);
-
-    try {
-      const updated = await updateAdminArticleComment(comment.id, { status });
-      setComments((current) => current.map((item) => (item.id === updated.id ? updated : item)));
-    } catch {
-      setErrorMessage("评论状态更新失败，请稍后重试。");
-    } finally {
-      setUpdatingCommentId(null);
-    }
+    await mutate(
+      comment.id,
+      () => updateAdminArticleComment(comment.id, { status }),
+      status === "HIDDEN"
+        ? () =>
+            confirm({
+              confirmLabel: "隐藏评论",
+              description: "隐藏后读者侧将不再展示这条评论。",
+              title: "确认隐藏评论",
+            })
+        : undefined,
+    );
   }
 
   function submitSearch() {
@@ -127,7 +113,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
     <ManagementSurface>
       <ManagementHeader
         description="在处理前先看文章、用户和回复上下文。"
-        meta={<Badge variant="outline">{pagination.totalItems} 条</Badge>}
+        meta={pagination ? <Badge variant="outline">{pagination.totalItems} 条</Badge> : null}
         title="评论治理"
         action={
           <Button
@@ -207,112 +193,122 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
             <span className="md:sr-only">搜索</span>
           </Button>
         </ManagementToolbar>
-        <ManagementList>
-          {isLoading ? <ManagementLoading label="正在加载评论..." /> : null}
-          {comments.map((comment) => (
-            <article
-              key={comment.id}
-              aria-current={comment.id === query.commentId ? "true" : undefined}
-              className={cn(
-                "p-4 transition-colors hover:bg-background/28",
-                comment.id === query.commentId &&
-                  "bg-primary/10 shadow-[inset_3px_0_0_color-mix(in_oklch,var(--primary)_65%,transparent)]",
-              )}
-            >
-              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
-                <div className="min-w-0 space-y-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <StatusBadge status={comment.status} />
-                    <Badge variant="outline">{comment.article.title}</Badge>
+        <section ref={resultsRef} aria-label="审核结果" aria-busy={isLoading} tabIndex={-1}>
+          <ManagementList>
+            {isLoading ? <ManagementLoading label="正在加载评论..." /> : null}
+            {comments.map((comment) => (
+              <article
+                key={comment.id}
+                data-moderation-id={comment.id}
+                aria-current={comment.id === query.commentId ? "true" : undefined}
+                className={cn(
+                  "p-4 transition-colors hover:bg-background/28",
+                  comment.id === query.commentId &&
+                    "bg-primary/10 shadow-[inset_3px_0_0_color-mix(in_oklch,var(--primary)_65%,transparent)]",
+                )}
+              >
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+                  <div className="min-w-0 space-y-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <StatusBadge status={comment.status} />
+                      <Badge variant="outline">{comment.article.title}</Badge>
+                      {comment.parent ? (
+                        <Badge variant="default">回复 @{comment.parent.author.login}</Badge>
+                      ) : null}
+                      {comment.replyCount > 0 ? (
+                        <Badge variant="secondary">{comment.replyCount} 条回复</Badge>
+                      ) : null}
+                    </div>
+                    <p className="text-sm/6 whitespace-pre-wrap">{comment.body}</p>
                     {comment.parent ? (
-                      <Badge variant="default">回复 @{comment.parent.author.login}</Badge>
+                      <div className="rounded-lg bg-muted/35 p-3">
+                        <p className="text-xs text-muted-foreground">
+                          回复上下文 · @{comment.parent.author.login}
+                        </p>
+                        <p className="mt-1 line-clamp-2 text-sm">{comment.parent.body}</p>
+                      </div>
                     ) : null}
-                    {comment.replyCount > 0 ? (
-                      <Badge variant="secondary">{comment.replyCount} 条回复</Badge>
-                    ) : null}
-                  </div>
-                  <p className="text-sm/6 whitespace-pre-wrap">{comment.body}</p>
-                  {comment.parent ? (
-                    <div className="rounded-lg bg-muted/35 p-3">
-                      <p className="text-xs text-muted-foreground">
-                        回复上下文 · @{comment.parent.author.login}
-                      </p>
-                      <p className="mt-1 line-clamp-2 text-sm">{comment.parent.body}</p>
+                    <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                      <span>{comment.likeCount} 赞</span>
+                      <span>{formatDateTime(comment.createdAt)}</span>
                     </div>
-                  ) : null}
-                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                    <span>{comment.likeCount} 赞</span>
-                    <span>{formatDateTime(comment.createdAt)}</span>
                   </div>
-                </div>
-                <div className="flex flex-col gap-3 lg:items-end">
-                  <div className="flex items-center gap-2 lg:flex-row-reverse">
-                    {comment.author.avatarUrl ? (
-                      <img
-                        alt={comment.author.login}
-                        className="size-9 rounded-full ring-1 ring-border"
-                        src={comment.author.avatarUrl}
-                      />
-                    ) : (
-                      <span className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold">
-                        {comment.author.login.slice(0, 1).toUpperCase()}
-                      </span>
-                    )}
-                    <div className="min-w-0 lg:text-right">
-                      <p className="truncate text-sm font-medium">
-                        {comment.author.name ?? comment.author.login}
-                      </p>
-                      <a
-                        className="text-xs text-primary hover:underline"
-                        href={comment.author.profileUrl}
-                        rel="noreferrer"
-                        target="_blank"
+                  <div className="flex flex-col gap-3 lg:items-end">
+                    <div className="flex items-center gap-2 lg:flex-row-reverse">
+                      {comment.author.avatarUrl ? (
+                        <img
+                          alt={comment.author.login}
+                          className="size-9 rounded-full ring-1 ring-border"
+                          src={comment.author.avatarUrl}
+                        />
+                      ) : (
+                        <span className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                          {comment.author.login.slice(0, 1).toUpperCase()}
+                        </span>
+                      )}
+                      <div className="min-w-0 lg:text-right">
+                        <p className="truncate text-sm font-medium">
+                          {comment.author.name ?? comment.author.login}
+                        </p>
+                        <a
+                          className="text-xs text-primary hover:underline"
+                          href={comment.author.profileUrl}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          @{comment.author.login}
+                        </a>
+                      </div>
+                    </div>
+                    {comment.status === "VISIBLE" ? (
+                      <Button
+                        data-moderation-action="visibility"
+                        disabled={updatingCommentId !== null}
+                        type="button"
+                        variant="outline"
+                        onClick={() => void updateCommentStatus(comment, "HIDDEN")}
                       >
-                        @{comment.author.login}
-                      </a>
-                    </div>
+                        {updatingCommentId === comment.id ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <EyeOff />
+                        )}
+                        {updatingCommentId === comment.id ? "处理中" : "隐藏"}
+                      </Button>
+                    ) : (
+                      <Button
+                        data-moderation-action="visibility"
+                        disabled={updatingCommentId !== null}
+                        type="button"
+                        onClick={() => void updateCommentStatus(comment, "VISIBLE")}
+                      >
+                        {updatingCommentId === comment.id ? (
+                          <Loader2 className="animate-spin" />
+                        ) : (
+                          <Eye />
+                        )}
+                        {updatingCommentId === comment.id ? "处理中" : "恢复"}
+                      </Button>
+                    )}
                   </div>
-                  {comment.status === "VISIBLE" ? (
-                    <Button
-                      disabled={updatingCommentId === comment.id}
-                      type="button"
-                      variant="outline"
-                      onClick={() => void updateCommentStatus(comment, "HIDDEN")}
-                    >
-                      {updatingCommentId === comment.id ? (
-                        <Loader2 className="animate-spin" />
-                      ) : (
-                        <EyeOff />
-                      )}
-                      隐藏
-                    </Button>
-                  ) : (
-                    <Button
-                      disabled={updatingCommentId === comment.id}
-                      type="button"
-                      onClick={() => void updateCommentStatus(comment, "VISIBLE")}
-                    >
-                      {updatingCommentId === comment.id ? (
-                        <Loader2 className="animate-spin" />
-                      ) : (
-                        <Eye />
-                      )}
-                      恢复
-                    </Button>
-                  )}
                 </div>
-              </div>
-            </article>
-          ))}
-          {!isLoading && comments.length === 0 ? (
-            <ManagementEmpty label="没有符合条件的评论。" />
+              </article>
+            ))}
+            {isReady && comments.length === 0 ? (
+              <ManagementEmpty label="没有符合条件的评论。" />
+            ) : null}
+          </ManagementList>
+          {pagination ? (
+            <ManagementPagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
+            />
           ) : null}
-        </ManagementList>
-        <ManagementPagination
-          page={pagination.page}
-          totalPages={pagination.totalPages}
-          onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
-        />
+          <span role="status" className="sr-only">
+            {statusMessage}
+          </span>
+        </section>
       </ManagementBody>
       {confirmationDialog}
     </ManagementSurface>

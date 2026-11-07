@@ -80,6 +80,12 @@ test("touch swiping the cover turns a page without opening the article", async (
   await page.goto("/");
   const carousel = page.getByRole("region", { name: "翻阅新近文章" });
   const card = carousel.locator("article:not([inert]) a");
+  // A streamed page can be visible before its interactive tree is ready. Use
+  // observable controls to establish readiness before sending raw touch input.
+  await carousel.getByRole("button", { name: "下一篇封面" }).click();
+  await expect(card).toHaveAttribute("href", "/posts/note-2");
+  await carousel.getByRole("button", { name: "上一篇封面" }).click();
+  await expect(card).toHaveAttribute("href", "/posts/note-1");
   await card.scrollIntoViewIfNeeded();
   const box = await card.boundingBox();
   expect(box).not.toBeNull();
