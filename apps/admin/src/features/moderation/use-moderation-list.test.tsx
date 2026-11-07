@@ -345,6 +345,126 @@ for (const config of [
       expect(screen.queryByRole("alert")).toBeNull();
     });
 
+    const confirmFromKeyboard = async () => {
+      const trigger = screen.getByRole("button", { name: "隐藏" });
+      trigger.focus();
+      fireEvent.click(trigger);
+      const dialog = await screen.findByRole("alertdialog");
+      const action = within(dialog).getByRole("button", { name: config.confirmation });
+      action.focus();
+      fireEvent.click(action);
+      await waitFor(() => expect(screen.queryByRole("alertdialog")).toBeNull());
+    };
+
+    it("focus: restores the remaining row's available action after the confirmed read", async () => {
+      await mount();
+      const read = deferred();
+      config.list.mockReturnValueOnce(read.promise);
+      await confirmFromKeyboard();
+      await act(async () => read.resolve(page([item("initial", "HIDDEN")])));
+      const action = screen.getByRole("button", { name: "恢复" });
+      await waitFor(() => expect(document.activeElement).toBe(action));
+      expect(screen.getByRole("status").textContent).toContain("审核结果已更新");
+    });
+
+    it("focus: waits for a closing dialog before restoring a fast read's focus", async () => {
+      await mount();
+      const read = deferred();
+      config.list.mockReturnValueOnce(read.promise);
+      await confirmFromKeyboard();
+      // JSDOM has no CSS exit animation: retain its focused dialog explicitly.
+      const closing = document.createElement("div");
+      closing.setAttribute("role", "alertdialog");
+      const action = document.createElement("button");
+      closing.append(action);
+      document.body.append(closing);
+      action.focus();
+      try {
+        await act(async () => read.resolve(page([item("initial", "HIDDEN")])));
+        expect(document.activeElement).toBe(action);
+        closing.remove();
+        await waitFor(() =>
+          expect(document.activeElement).toBe(screen.getByRole("button", { name: "恢复" })),
+        );
+      } finally {
+        closing.remove();
+      }
+    });
+
+    it.each(["removed", "read-failed"])(
+      "focus: uses the stable result region when the row is %s",
+      async (outcome) => {
+        await mount();
+        const read = deferred();
+        config.list.mockReturnValueOnce(read.promise);
+        await confirmFromKeyboard();
+        await act(async () =>
+          outcome === "removed" ? read.resolve(page([])) : read.reject(new Error("offline")),
+        );
+        const region = screen.getByRole("region", { name: "审核结果" });
+        await waitFor(() => expect(document.activeElement).toBe(region));
+        expect(region.tabIndex).toBe(-1);
+        if (outcome === "read-failed")
+          expect(screen.getByRole("alert").textContent).toContain("操作已成功");
+      },
+    );
+
+    it("focus: cancellation returns to the original action", async () => {
+      await mount();
+      const trigger = screen.getByRole("button", { name: "隐藏" });
+      trigger.focus();
+      fireEvent.click(trigger);
+      const dialog = await screen.findByRole("alertdialog");
+      const cancel = within(dialog).getByRole("button", { name: "取消" });
+      cancel.focus();
+      fireEvent.click(cancel);
+      await waitFor(() => expect(document.activeElement).toBe(trigger));
+      expect(config.update).not.toHaveBeenCalled();
+    });
+
+    it("focus: never steals focus after the user moves to search, even if it later blurs", async () => {
+      await mount();
+      const read = deferred();
+      config.list.mockReturnValueOnce(read.promise);
+      await confirmFromKeyboard();
+      const input = screen.getByPlaceholderText(config.search);
+      input.focus();
+      input.blur();
+      await act(async () => read.resolve(page([item("initial", "HIDDEN")])));
+      expect(document.activeElement).toBe(document.body);
+    });
+
+    it("focus: a late read cannot take focus from a newer query", async () => {
+      await mount();
+      const read = deferred();
+      config.list.mockReturnValueOnce(read.promise);
+      await confirmFromKeyboard();
+      config.list.mockResolvedValueOnce(page([item("new-query", "HIDDEN")]));
+      search("new query");
+      await screen.findByText("new-query");
+      await act(async () => read.resolve(page([item("initial", "HIDDEN")])));
+      expect(document.activeElement).toBe(document.body);
+      expect(screen.queryByText("initial")).toBeNull();
+    });
+
+    it("focus: completing a write after leaving the page does not move outside focus", async () => {
+      const view = render(<config.Component />);
+      await screen.findByText("initial");
+      const read = deferred();
+      config.list.mockReturnValueOnce(read.promise);
+      await confirmFromKeyboard();
+      view.unmount();
+      const outside = document.createElement("button");
+      document.body.append(outside);
+      outside.focus();
+      try {
+        await act(async () => read.resolve(page([item("initial", "HIDDEN")])));
+        expect(document.activeElement).toBe(outside);
+      } finally {
+        outside.remove();
+      }
+    });
+
     it("ignores a read failure after the page unmounts", async () => {
       const read = deferred();
       config.list.mockReturnValueOnce(read.promise);

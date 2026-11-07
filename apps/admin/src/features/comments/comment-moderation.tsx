@@ -41,6 +41,8 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
     errorMessage,
     updatingId: updatingCommentId,
     mutate,
+    resultsRef,
+    statusMessage,
   } = useModerationList<AdminArticleCommentListQuery, AdminArticleCommentListItemResponse>({
     initialQuery: {
       commentId: focusedCommentId ?? undefined,
@@ -191,12 +193,13 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
             <span className="md:sr-only">搜索</span>
           </Button>
         </ManagementToolbar>
-        <section aria-label="审核结果" aria-busy={isLoading}>
+        <section ref={resultsRef} aria-label="审核结果" aria-busy={isLoading} tabIndex={-1}>
           <ManagementList>
             {isLoading ? <ManagementLoading label="正在加载评论..." /> : null}
             {comments.map((comment) => (
               <article
                 key={comment.id}
+                data-moderation-id={comment.id}
                 aria-current={comment.id === query.commentId ? "true" : undefined}
                 className={cn(
                   "p-4 transition-colors hover:bg-background/28",
@@ -259,6 +262,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
                     </div>
                     {comment.status === "VISIBLE" ? (
                       <Button
+                        data-moderation-action="visibility"
                         disabled={updatingCommentId !== null}
                         type="button"
                         variant="outline"
@@ -273,6 +277,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
                       </Button>
                     ) : (
                       <Button
+                        data-moderation-action="visibility"
                         disabled={updatingCommentId !== null}
                         type="button"
                         onClick={() => void updateCommentStatus(comment, "VISIBLE")}
@@ -300,6 +305,9 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
               onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
             />
           ) : null}
+          <span role="status" className="sr-only">
+            {statusMessage}
+          </span>
         </section>
       </ManagementBody>
       {confirmationDialog}

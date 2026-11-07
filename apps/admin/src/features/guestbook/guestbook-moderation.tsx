@@ -37,6 +37,8 @@ function GuestbookModeration() {
     errorMessage,
     updatingId: updatingMessageId,
     mutate,
+    resultsRef,
+    statusMessage,
   } = useModerationList<AdminGuestbookMessagesQuery, AdminGuestbookMessageListItemResponse>({
     initialQuery: {
       page: 1,
@@ -145,11 +147,15 @@ function GuestbookModeration() {
             <span className="md:sr-only">搜索</span>
           </Button>
         </ManagementToolbar>
-        <section aria-label="审核结果" aria-busy={isLoading}>
+        <section ref={resultsRef} aria-label="审核结果" aria-busy={isLoading} tabIndex={-1}>
           <ManagementList>
             {isLoading ? <ManagementLoading label="正在加载留言..." /> : null}
             {messages.map((message) => (
-              <article className="p-4 transition-colors hover:bg-background/28" key={message.id}>
+              <article
+                className="p-4 transition-colors hover:bg-background/28"
+                key={message.id}
+                data-moderation-id={message.id}
+              >
                 <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_230px]">
                   <div className="min-w-0 space-y-3">
                     <div className="flex flex-wrap items-center gap-2">
@@ -180,6 +186,7 @@ function GuestbookModeration() {
                         size="sm"
                         type="button"
                         variant="outline"
+                        data-moderation-action="pin"
                         onClick={() => void updateMessage(message, { isPinned: !message.isPinned })}
                       >
                         {message.isPinned ? <PinOff /> : <Pin />}
@@ -191,6 +198,7 @@ function GuestbookModeration() {
                           size="sm"
                           type="button"
                           variant="outline"
+                          data-moderation-action="visibility"
                           onClick={() => void updateMessage(message, { status: "HIDDEN" })}
                         >
                           <EyeOff />
@@ -201,6 +209,7 @@ function GuestbookModeration() {
                           disabled={updatingMessageId !== null}
                           size="sm"
                           type="button"
+                          data-moderation-action="visibility"
                           onClick={() => void updateMessage(message, { status: "VISIBLE" })}
                         >
                           <Eye />
@@ -213,6 +222,7 @@ function GuestbookModeration() {
                           size="sm"
                           type="button"
                           variant="destructive"
+                          data-moderation-action="delete"
                           onClick={() => void updateMessage(message, { status: "DELETED" })}
                         >
                           <Trash2 />
@@ -235,6 +245,9 @@ function GuestbookModeration() {
               onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
             />
           ) : null}
+          <span role="status" className="sr-only">
+            {statusMessage}
+          </span>
         </section>
       </ManagementBody>
       {confirmationDialog}
