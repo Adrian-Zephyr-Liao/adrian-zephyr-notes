@@ -223,7 +223,10 @@ Leader. Sequential integrated `vp check`, all 564 tests and website build passed
 QA-007, UX-005 and PM-007 are independently rechecking the corrected build.
 PM-007 passed six incremental cases; UX-005 passed 16 actual browser states,
 including both cleanup failures and inaccessible storage, after verifying the
-served chunk bytes match the frozen build. QA-007 final report remains pending.
+served chunk bytes match the frozen build. QA-007 independently passed 49 browser
+cases and confirmed resource identity stayed fixed; no remaining scoped blocker.
+PR #5 passed CI `42325084983` and merged as
+`14ea4f3e905fa34b006455de7a379336e7b4f596`. This is code acceptance, not production.
 Shared draft types were moved to local `types.ts` per website conventions;
 only type imports changed, with website type checking afterward.
 
@@ -271,10 +274,26 @@ scrolling. Names must be meaningful and unique even with repeated headers; no
 opaque IDs, source-line names, article/CDN mutations or new dependency. This is
 the third bounded round-2 item, not an open-ended redesign.
 
+Candidate `1f799718` integrated as `5be5101`. Leader reviewed the single GFM AST
+pass, meaningful bounded context, document-local ordinal, three render modes and
+unchanged scrolling markup/styles. PM-008 verified repeat-render/view stability;
+UX-006 passed four complete axe scans and 16 focus/scroll checks on desktop/375px
+and both themes. QA-008 is finishing its independent report.
+
+Final integrated source checks: `vp check` clean; 100 files / 568 tests passed;
+server, website and admin production builds passed; compiled HTTP six cases
+passed; full desktop/mobile website browser suite passed 20 cases with the two
+existing desktop-inapplicable mobile cases skipped. Tests use isolated fixtures,
+not production persistence, successful OAuth or actual assistive hardware.
+
+The earlier isolated 500-to-404 HTTP proof and a real Next browser check against
+a controlled 404 backend verify both boundaries separately. They do not constitute
+a deployed end-to-end check.
+
 ## Recovery
 
 Read this record and current Git status before proceeding. Retrieve the four
 chats above. Round 1 is code-accepted and awaits SSH recovery/publication; round
-2 implementation is underway. Do not claim either round production-accepted
+2 is in final code acceptance. Do not claim either round production-accepted
 without restored access, the exact tested prebuilt revision and live verification.
 Continue independent work while an external release constraint remains.
