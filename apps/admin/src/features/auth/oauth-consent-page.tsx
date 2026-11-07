@@ -5,6 +5,7 @@ import type {
 } from "@adrian-zephyr-notes/contracts";
 import { Check, Loader2, ShieldCheck, Terminal } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { AdminThemeToggle } from "../../components/admin/admin-theme-toggle";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { Input } from "../../components/ui/input";
@@ -109,8 +110,11 @@ function OAuthConsentPage({
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-(--gradient-soft) px-4 py-10 sm:px-6">
-      <Card className="w-full max-w-xl border-white/55 bg-(--glass-surface-strong) shadow-(--shadow-glass-strong) dark:border-white/10">
+    <main className="relative grid min-h-dvh place-items-center bg-background px-4 py-16 sm:px-6">
+      <div className="absolute top-4 right-4">
+        <AdminThemeToggle />
+      </div>
+      <Card className="w-full max-w-xl border-border bg-card">
         <CardContent className="p-6 sm:p-8">
           <div className="mb-7 flex items-center gap-3">
             <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-primary/12 text-primary">

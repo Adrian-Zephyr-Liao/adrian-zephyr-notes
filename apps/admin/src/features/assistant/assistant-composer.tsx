@@ -33,7 +33,7 @@ function AssistantComposer({
 
   return (
     <form
-      className="mx-auto w-full max-w-3xl shrink-0 space-y-3 rounded-lg border border-border/60 bg-background/35 p-3 focus-within:border-ring/60 sm:p-4"
+      className="mx-auto w-full max-w-3xl shrink-0 space-y-3 rounded-lg border border-border/60 bg-background p-3 focus-within:border-ring/60 sm:p-4"
       onSubmit={submit}
     >
       <div className="flex items-center justify-between gap-3">
@@ -46,7 +46,7 @@ function AssistantComposer({
       </div>
       <Textarea
         aria-describedby="assistant-input-help assistant-input-length"
-        className="max-h-32 min-h-16 resize-none rounded-none border-0 bg-transparent p-0 shadow-none backdrop-blur-none focus-visible:bg-transparent focus-visible:ring-0"
+        className="max-h-40 min-h-24 resize-none rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:bg-transparent focus-visible:ring-0"
         disabled={disabled}
         id="assistant-input"
         maxLength={inputLimit}

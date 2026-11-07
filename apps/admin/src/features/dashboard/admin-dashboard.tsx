@@ -7,7 +7,6 @@ import {
   ArrowRight,
   CircleAlert,
   FilePenLine,
-  FileText,
   MessageCircle,
   RefreshCw,
   Settings2,
@@ -17,7 +16,6 @@ import type { LucideIcon } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
-import { Card, CardContent } from "../../components/ui/card";
 import {
   listAdminArticleComments,
   listAdminArticles,
@@ -39,11 +37,9 @@ function AdminDashboard() {
   const [snapshot, setSnapshot] = useState<DashboardSnapshot | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
   const loadDashboard = useCallback(async () => {
     setIsLoading(true);
     setErrorMessage(null);
-
     try {
       const [articles, drafts, hiddenComments, removedGuestbook, logs] = await Promise.all([
         listAdminArticles({ page: 1, pageSize: 5, status: "ALL" }),
@@ -52,7 +48,6 @@ function AdminDashboard() {
         listAdminGuestbookMessages({ page: 1, pageSize: 1, status: "DELETED" }),
         listAdminOperationLogs({ action: "ALL", page: 1, pageSize: 5 }),
       ]);
-
       setSnapshot({
         draftCount: drafts.pagination.totalItems,
         hiddenCommentCount: hiddenComments.pagination.totalItems,
@@ -67,54 +62,25 @@ function AdminDashboard() {
       setIsLoading(false);
     }
   }, []);
-
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
 
   const metrics = [
-    {
-      icon: FileText,
-      label: "全部文章",
-      tone: "primary",
-      value: snapshot?.totalArticles ?? 0,
-    },
-    {
-      icon: FilePenLine,
-      label: "待完成草稿",
-      tone: "warm",
-      value: snapshot?.draftCount ?? 0,
-    },
-    {
-      icon: MessageCircle,
-      label: "已隐藏评论",
-      tone: "success",
-      value: snapshot?.hiddenCommentCount ?? 0,
-    },
-    {
-      icon: CircleAlert,
-      label: "已移除留言",
-      tone: "neutral",
-      value: snapshot?.removedGuestbookCount ?? 0,
-    },
-  ] satisfies DashboardMetric[];
+    { label: "全部文章", value: snapshot?.totalArticles },
+    { label: "待完成草稿", value: snapshot?.draftCount },
+    { label: "已隐藏评论", value: snapshot?.hiddenCommentCount },
+    { label: "已移除留言", value: snapshot?.removedGuestbookCount },
+  ];
 
   return (
-    <div className="space-y-5">
-      <section className="flex flex-col gap-4 rounded-lg bg-(--glass-surface) p-5 shadow-(--shadow-glass) backdrop-blur-2xl sm:flex-row sm:items-center sm:justify-between">
-        <div className="min-w-0">
-          <p className="text-xs font-medium text-primary">今日工作焦点</p>
-          <h2 className="mt-1 text-lg font-semibold tracking-normal">
-            先处理待确认事项，再继续内容创作
-          </h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            汇总内容进度和互动治理，减少在模块之间来回查找。
-          </p>
-        </div>
-        <div className="flex shrink-0 flex-wrap gap-2">
+    <div className="grid gap-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted-foreground">继续创作，或核对最近的互动与改动。</p>
+        <div className="flex gap-2">
           <Button disabled={isLoading} variant="outline" onClick={() => void loadDashboard()}>
-            <RefreshCw className={cn(isLoading && "animate-spin")} />
-            刷新
+            <RefreshCw className={cn(isLoading && "animate-spin motion-reduce:animate-none")} />
+            {isLoading ? "刷新中" : "刷新"}
           </Button>
           <Button asChild>
             <Link to="/articles/new">
@@ -123,125 +89,127 @@ function AdminDashboard() {
             </Link>
           </Button>
         </div>
-      </section>
-
+      </div>
       {errorMessage ? (
-        <div
-          className="rounded-lg bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        <p
           role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         >
-          {errorMessage}
-        </div>
+          {errorMessage} 使用上方“刷新”重新读取。
+        </p>
       ) : null}
-
-      <section aria-label="运营指标" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-        {metrics.map((metric) => (
-          <DashboardMetricCard isLoading={isLoading} key={metric.label} {...metric} />
-        ))}
+      <section aria-label="运营指标" aria-busy={isLoading} className="border-y border-border py-5">
+        <dl className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4">
+          {metrics.map(({ label, value }) => (
+            <div key={label}>
+              <dt className="text-xs text-muted-foreground">{label}</dt>
+              <dd className="mt-2 text-2xl font-semibold tabular-nums">
+                {isLoading || errorMessage ? "—" : (value ?? "—")}
+              </dd>
+            </div>
+          ))}
+        </dl>
       </section>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
-        <section className="rounded-lg bg-(--glass-surface) shadow-(--shadow-glass) backdrop-blur-2xl">
-          <SectionHeader
-            actionLabel="查看全部"
-            actionTo="/articles"
-            description="最近更新的内容与发布状态"
-            title="内容进度"
-          />
-          <div className="px-3 pb-3">
-            {isLoading ? (
-              <DashboardRowsSkeleton />
-            ) : snapshot?.recentArticles.length ? (
-              <div className="divide-y divide-border/45">
-                {snapshot.recentArticles.map((article) => (
-                  <article
-                    className="grid gap-3 px-2 py-3.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
-                    key={article.id}
-                  >
-                    <div className="min-w-0">
-                      <div className="flex min-w-0 items-center gap-2">
+      {!errorMessage ? (
+        <>
+          <div className="grid gap-8 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
+            <section className="min-w-0">
+              <SectionHeader
+                title="最近内容"
+                description="从最近更新的文章继续编辑"
+                actionLabel="查看全部"
+                actionTo="/articles"
+              />
+              {isLoading ? (
+                <DashboardRowsSkeleton />
+              ) : snapshot?.recentArticles.length ? (
+                <div className="divide-y divide-border border-y border-border">
+                  {snapshot.recentArticles.map((article) => (
+                    <article
+                      key={article.id}
+                      className="grid gap-3 py-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                    >
+                      <div className="min-w-0">
                         <Link
-                          className="truncate text-sm font-medium transition-colors hover:text-primary focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:outline-none"
+                          className="rounded-sm text-base/7 font-medium wrap-break-word hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
                           params={{ articleId: article.id }}
                           to="/articles/$articleId/edit"
                         >
                           {article.title}
                         </Link>
-                        <ArticleStatusBadge status={article.status} />
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <ArticleStatusBadge status={article.status} />
+                          <span>
+                            {article.category?.name ?? "未分类"} · {article.wordCount} 字 ·{" "}
+                            {article.commentCount} 条评论
+                          </span>
+                        </div>
                       </div>
-                      <p className="mt-1 truncate text-xs text-muted-foreground">
-                        {article.category?.name ?? "未分类"} · {article.wordCount} 字 ·{" "}
-                        {article.commentCount} 条评论
-                      </p>
-                    </div>
-                    <time className="text-xs text-muted-foreground" dateTime={article.updatedAt}>
-                      {formatRelativeDate(article.updatedAt)}
-                    </time>
-                  </article>
-                ))}
+                      <time dateTime={article.updatedAt} className="text-xs text-muted-foreground">
+                        {formatRelativeDate(article.updatedAt)}
+                      </time>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState label="还没有文章，先创建第一篇内容。" />
+              )}
+            </section>
+            <aside className="min-w-0">
+              <SectionHeader title="需要复核" description="按实际状态回看草稿和互动" />
+              <div className="divide-y divide-border border-y border-border">
+                <AttentionItem
+                  count={snapshot?.draftCount}
+                  icon={FilePenLine}
+                  label="草稿等待完成"
+                  loading={isLoading}
+                  to="/articles"
+                />
+                <AttentionItem
+                  count={snapshot?.hiddenCommentCount}
+                  icon={MessageCircle}
+                  label="已隐藏评论待复核"
+                  loading={isLoading}
+                  to="/comments"
+                />
+                <AttentionItem
+                  count={snapshot?.removedGuestbookCount}
+                  icon={CircleAlert}
+                  label="软删除留言可恢复"
+                  loading={isLoading}
+                  to="/guestbook"
+                />
               </div>
-            ) : (
-              <EmptyState label="还没有文章，先创建第一篇内容。" />
-            )}
+              <nav aria-label="工作台快捷入口" className="mt-6 grid gap-1">
+                <QuickLink icon={MessageCircle} label="处理评论" to="/comments" />
+                <QuickLink icon={Settings2} label="调整站点配置" to="/site" />
+                <QuickLink icon={ShieldCheck} label="查看审计记录" to="/audit" />
+              </nav>
+            </aside>
           </div>
-        </section>
-
-        <section className="rounded-lg bg-(--glass-surface) shadow-(--shadow-glass) backdrop-blur-2xl">
-          <SectionHeader description="需要留意或周期复核的项目" title="待办与风险" />
-          <div className="grid gap-2 px-4 pb-4">
-            <AttentionItem
-              count={snapshot?.draftCount ?? 0}
-              icon={FilePenLine}
-              label="草稿等待完成"
-              loading={isLoading}
-              tone="warm"
-              to="/articles"
+          <section className="min-w-0">
+            <SectionHeader
+              title="最近动态"
+              description="最近发生的后台写操作"
+              actionLabel="完整日志"
+              actionTo="/audit"
             />
-            <AttentionItem
-              count={snapshot?.hiddenCommentCount ?? 0}
-              icon={MessageCircle}
-              label="已隐藏评论待复核"
-              loading={isLoading}
-              tone="neutral"
-              to="/comments"
-            />
-            <AttentionItem
-              count={snapshot?.removedGuestbookCount ?? 0}
-              icon={CircleAlert}
-              label="软删除留言可恢复"
-              loading={isLoading}
-              tone="neutral"
-              to="/guestbook"
-            />
-          </div>
-        </section>
-      </div>
-
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="rounded-lg bg-(--glass-surface) shadow-(--shadow-glass) backdrop-blur-2xl">
-          <SectionHeader
-            actionLabel="完整日志"
-            actionTo="/audit"
-            description="最近发生的后台写操作"
-            title="最近动态"
-          />
-          <div className="px-3 pb-3">
             {isLoading ? (
               <DashboardRowsSkeleton rows={3} />
             ) : snapshot?.recentLogs.length ? (
-              <div className="divide-y divide-border/45">
+              <div className="divide-y divide-border border-y border-border">
                 {snapshot.recentLogs.map((log) => (
                   <div
-                    className="grid gap-2 px-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                     key={log.id}
+                    className="grid gap-2 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">
+                      <p className="text-sm/6 wrap-break-word">
                         {formatDashboardActivitySummary(log, snapshot.recentArticles)}
                       </p>
                       <p className="mt-1 text-xs text-muted-foreground">@{log.actorLogin}</p>
                     </div>
-                    <time className="text-xs text-muted-foreground" dateTime={log.createdAt}>
+                    <time dateTime={log.createdAt} className="text-xs text-muted-foreground">
                       {formatRelativeDate(log.createdAt)}
                     </time>
                   </div>
@@ -250,69 +218,10 @@ function AdminDashboard() {
             ) : (
               <EmptyState label="暂无后台操作记录。" />
             )}
-          </div>
-        </section>
-
-        <section className="rounded-lg bg-(--glass-surface) p-4 shadow-(--shadow-glass) backdrop-blur-2xl">
-          <h2 className="text-sm font-semibold">快捷入口</h2>
-          <div className="mt-3 grid gap-2">
-            <QuickLink icon={MessageCircle} label="处理评论" to="/comments" />
-            <QuickLink icon={Settings2} label="调整站点配置" to="/site" />
-            <QuickLink icon={ShieldCheck} label="查看审计记录" to="/audit" />
-          </div>
-        </section>
-      </div>
+          </section>
+        </>
+      ) : null}
     </div>
-  );
-}
-
-type DashboardMetric = {
-  icon: LucideIcon;
-  label: string;
-  tone: keyof typeof metricToneStyles;
-  value: number;
-};
-
-const metricToneStyles = {
-  neutral: "bg-foreground/6 text-foreground",
-  primary: "bg-primary/14 text-primary",
-  success: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300",
-  warm: "bg-rose-500/10 text-rose-700 dark:text-rose-300",
-};
-
-function DashboardMetricCard({
-  icon: Icon,
-  isLoading,
-  label,
-  tone,
-  value,
-}: DashboardMetric & {
-  isLoading: boolean;
-}) {
-  return (
-    <Card>
-      <CardContent className="flex items-center gap-3 p-3.5">
-        <span
-          className={cn(
-            "grid size-10 shrink-0 place-items-center rounded-lg",
-            metricToneStyles[tone],
-          )}
-        >
-          <Icon className="size-4" />
-        </span>
-        <div className="min-w-0">
-          <p className="text-xs text-muted-foreground">{label}</p>
-          <p
-            className={cn(
-              "mt-0.5 text-2xl font-semibold tabular-nums",
-              isLoading && "animate-pulse text-muted-foreground",
-            )}
-          >
-            {isLoading ? "--" : value}
-          </p>
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 
@@ -328,10 +237,10 @@ function SectionHeader({
   title: string;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 px-5 py-4">
+    <div className="mb-4 flex items-start justify-between gap-3">
       <div>
-        <h2 className="text-sm font-semibold">{title}</h2>
-        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        <h2 className="text-lg font-semibold">{title}</h2>
+        <p className="mt-1 text-xs leading-5 text-muted-foreground">{description}</p>
       </div>
       {actionLabel && actionTo ? (
         <Button asChild size="sm" variant="ghost">
@@ -350,29 +259,23 @@ function AttentionItem({
   icon: Icon,
   label,
   loading,
-  tone,
   to,
 }: {
-  count: number;
+  count?: number;
   icon: LucideIcon;
   label: string;
   loading: boolean;
-  tone: keyof typeof metricToneStyles;
   to: "/articles" | "/comments" | "/guestbook";
 }) {
   return (
     <Link
-      className="group flex min-h-12 items-center gap-3 rounded-lg bg-background/24 px-3 py-2.5 transition-colors hover:bg-background/45 focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:outline-none"
       to={to}
+      className="group flex min-h-16 items-center gap-3 rounded-sm py-3 text-sm transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
     >
-      <span
-        className={cn("grid size-8 shrink-0 place-items-center rounded-md", metricToneStyles[tone])}
-      >
-        <Icon className="size-3.5" />
-      </span>
-      <span className="min-w-0 flex-1 truncate text-sm">{label}</span>
-      <span className="text-sm font-semibold tabular-nums">{loading ? "--" : count}</span>
-      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <Icon className="size-4 shrink-0 text-muted-foreground" />
+      <span className="min-w-0 flex-1 wrap-break-word">{label}</span>
+      <span className="font-semibold tabular-nums">{loading ? "—" : (count ?? "—")}</span>
+      <ArrowRight className="size-4 shrink-0" />
     </Link>
   );
 }
@@ -388,39 +291,33 @@ function QuickLink({
 }) {
   return (
     <Link
-      className="group flex min-h-11 items-center gap-3 rounded-lg bg-background/24 px-3 text-sm transition-colors hover:bg-background/45 focus-visible:ring-2 focus-visible:ring-ring/45 focus-visible:outline-none"
       to={to}
+      className="flex min-h-11 items-center gap-3 rounded-lg px-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
     >
-      <Icon className="size-4 text-muted-foreground group-hover:text-primary" />
-      <span className="flex-1">{label}</span>
-      <ArrowRight className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+      <Icon className="size-4 shrink-0" />
+      <span>{label}</span>
     </Link>
   );
 }
 
 function DashboardRowsSkeleton({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="grid gap-2 py-1" aria-label="正在加载工作台数据" aria-busy="true">
-      {Array.from({ length: rows }).map((_, index) => (
-        <div className="h-14 animate-pulse rounded-lg bg-muted/40" key={index} />
+    <div role="status" aria-label="正在加载工作台数据" aria-busy="true" className="grid gap-3 py-2">
+      {Array.from({ length: rows }, (_, index) => (
+        <div
+          key={index}
+          className="h-16 animate-pulse rounded-lg bg-muted motion-reduce:animate-none"
+        />
       ))}
     </div>
   );
 }
-
 function EmptyState({ label }: { label: string }) {
-  return <div className="py-10 text-center text-sm text-muted-foreground">{label}</div>;
+  return <p className="py-10 text-sm text-muted-foreground">{label}</p>;
 }
-
 function ArticleStatusBadge({ status }: { status: AdminArticleListItemResponse["status"] }) {
-  if (status === "PUBLISHED") {
-    return <Badge variant="success">已发布</Badge>;
-  }
-
-  if (status === "ARCHIVED") {
-    return <Badge variant="outline">已归档</Badge>;
-  }
-
+  if (status === "PUBLISHED") return <Badge variant="success">已发布</Badge>;
+  if (status === "ARCHIVED") return <Badge variant="outline">已归档</Badge>;
   return <Badge variant="warning">草稿</Badge>;
 }
 

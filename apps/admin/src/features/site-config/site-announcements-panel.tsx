@@ -2,7 +2,7 @@ import type {
   AdminSiteAnnouncementResponse,
   UpdateAdminSiteAnnouncementRequest,
 } from "@adrian-zephyr-notes/contracts";
-import { Loader2, RefreshCw, Save } from "lucide-react";
+import { Loader2, Save } from "lucide-react";
 import { Badge } from "../../components/ui/badge";
 import { Button } from "../../components/ui/button";
 import { Checkbox } from "../../components/ui/checkbox";
@@ -24,7 +24,6 @@ type SiteAnnouncementsPanelProps = {
   isLoading: boolean;
   onCancelEdit: () => void;
   onChangeDraft: (draft: UpdateAdminSiteAnnouncementRequest) => void;
-  onRefresh: () => void;
   onSave: (announcement: AdminSiteAnnouncementResponse) => void;
   onStartEdit: (announcement: AdminSiteAnnouncementResponse) => void;
   onToggle: (announcement: AdminSiteAnnouncementResponse) => void;
@@ -38,7 +37,6 @@ function SiteAnnouncementsPanel({
   isLoading,
   onCancelEdit,
   onChangeDraft,
-  onRefresh,
   onSave,
   onStartEdit,
   onToggle,
@@ -48,38 +46,36 @@ function SiteAnnouncementsPanel({
     <ManagementSurface>
       <ManagementHeader
         description="控制读者侧公告轮播内容。"
-        meta={<Badge variant="outline">{announcements.length} 条</Badge>}
+        meta={!isLoading ? <Badge variant="outline">{announcements.length} 条</Badge> : null}
         title="公告"
-        action={
-          <Button type="button" variant="outline" onClick={onRefresh}>
-            <RefreshCw className={isLoading ? "animate-spin" : undefined} />
-            刷新
-          </Button>
-        }
       />
       <ManagementBody>
         <ManagementList>
           {isLoading ? <ManagementLoading label="正在加载站点配置..." /> : null}
-          {announcements.map((announcement) => (
-            <article className="p-4 transition-colors hover:bg-background/28" key={announcement.id}>
-              {editingAnnouncementId === announcement.id ? (
-                <AnnouncementEditor
-                  draft={draft}
-                  saving={savingAnnouncementId === announcement.id}
-                  onCancel={onCancelEdit}
-                  onChange={onChangeDraft}
-                  onSave={() => onSave(announcement)}
-                />
-              ) : (
-                <AnnouncementSummary
-                  announcement={announcement}
-                  saving={savingAnnouncementId === announcement.id}
-                  onStartEdit={() => onStartEdit(announcement)}
-                  onToggle={() => onToggle(announcement)}
-                />
-              )}
-            </article>
-          ))}
+          {!isLoading && announcements.length === 0 ? (
+            <p className="py-8 text-sm text-muted-foreground">暂无公告。</p>
+          ) : null}
+          {!isLoading &&
+            announcements.map((announcement) => (
+              <article className="px-1 py-5" key={announcement.id}>
+                {editingAnnouncementId === announcement.id ? (
+                  <AnnouncementEditor
+                    draft={draft}
+                    saving={savingAnnouncementId === announcement.id}
+                    onCancel={onCancelEdit}
+                    onChange={onChangeDraft}
+                    onSave={() => onSave(announcement)}
+                  />
+                ) : (
+                  <AnnouncementSummary
+                    announcement={announcement}
+                    saving={savingAnnouncementId === announcement.id}
+                    onStartEdit={() => onStartEdit(announcement)}
+                    onToggle={() => onToggle(announcement)}
+                  />
+                )}
+              </article>
+            ))}
         </ManagementList>
       </ManagementBody>
     </ManagementSurface>

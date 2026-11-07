@@ -1,9 +1,10 @@
 import type { AdminUserResponse } from "@adrian-zephyr-notes/contracts";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowLeft, Cloud, CloudOff, HardDrive, Loader2, LogOut, Save, Trash2 } from "lucide-react";
+import { ArrowLeft, Cloud, CloudOff, HardDrive, Loader2, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../components/ui/button";
-import { logoutAdmin } from "../../lib/admin-api";
+import { AdminAccount } from "../../components/admin/admin-account";
+import { AdminThemeToggle } from "../../components/admin/admin-theme-toggle";
 import {
   ArticleViewModeTabs,
   ArticleWritingSurface,
@@ -58,14 +59,14 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
 
   return (
     <main className="flex h-dvh min-h-0 flex-col bg-background text-foreground">
-      <header className="flex min-h-16 shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-background/95 p-3 backdrop-blur-xl sm:px-5">
-        <div className="flex min-w-0 items-center gap-3">
+      <header className="grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-background p-3 sm:px-5 lg:flex">
+        <div className="flex min-w-0 items-center gap-3 lg:flex-1">
           <Button
             aria-label="返回文章管理"
             size="icon"
             type="button"
             variant="ghost"
-            onClick={() => void navigate({ to: "/" })}
+            onClick={() => void navigate({ to: "/articles" })}
           >
             <ArrowLeft />
           </Button>
@@ -78,7 +79,7 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
             </p>
           </div>
         </div>
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="col-span-2 flex shrink-0 items-center gap-2 lg:order-2">
           {!isOnline ? (
             <span className="hidden items-center gap-1 rounded-full border border-border bg-muted/40 px-2 py-1 text-xs text-muted-foreground sm:inline-flex">
               <CloudOff className="size-3.5" />
@@ -94,7 +95,7 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
             onClick={() => void saveArticle()}
           >
             {isSaving ? <Loader2 className="animate-spin" /> : <Save />}
-            保存
+            {isSaving ? "保存中" : "保存"}
           </Button>
           {article ? (
             <Button
@@ -107,30 +108,10 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
               删除
             </Button>
           ) : null}
-          <div className="hidden items-center gap-2 border-l border-border/70 pl-2 lg:flex">
-            {admin.avatarUrl ? (
-              <img
-                alt={admin.login}
-                className="size-8 rounded-full ring-1 ring-border"
-                src={admin.avatarUrl}
-              />
-            ) : (
-              <span className="flex size-8 items-center justify-center rounded-full bg-muted text-xs font-semibold">
-                {admin.login.slice(0, 1).toUpperCase()}
-              </span>
-            )}
-            <Button
-              aria-label="退出登录"
-              size="icon"
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                void logoutAdmin().finally(onLogout);
-              }}
-            >
-              <LogOut />
-            </Button>
-          </div>
+        </div>
+        <div className="col-start-2 row-start-1 flex items-center gap-1 lg:order-3">
+          <AdminThemeToggle />
+          <AdminAccount admin={admin} onLogout={onLogout} showIdentity={false} />
         </div>
       </header>
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-border/70 bg-muted/25 px-3 py-2 md:hidden">
@@ -182,7 +163,11 @@ function ArticleWritingSession({ admin, articleId, onLogout }: ArticleWritingPag
         {isDeleted ? (
           <div className="grid h-full place-content-center gap-4 p-6 text-center" role="status">
             <p>文章已删除</p>
-            <Button type="button" variant="outline" onClick={() => void navigate({ to: "/" })}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void navigate({ to: "/articles" })}
+            >
               返回文章管理
             </Button>
           </div>

@@ -97,7 +97,7 @@ function ArticleWritingSurface({
   if (editorMode === "split") {
     return (
       <div className="grid h-full min-h-0 overflow-y-auto xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:overflow-hidden">
-        <div className="min-h-[760px] border-b border-border/70 p-3 sm:p-4 xl:min-h-0 xl:overflow-hidden xl:border-r xl:border-b-0">
+        <div className="min-h-0 border-b border-border/70 p-3 sm:p-4 xl:min-h-0 xl:overflow-hidden xl:border-r xl:border-b-0">
           <ArticleEditorFields
             taxonomyOptions={taxonomyOptions}
             values={values}
@@ -123,7 +123,7 @@ function ArticleEditorLoadingPane() {
       aria-busy="true"
       aria-label="正在读取文章"
     >
-      <div className="w-full max-w-3xl rounded-3xl border border-border/70 bg-card/80 p-5 shadow-(--shadow-glass)">
+      <div className="w-full max-w-3xl rounded-xl border border-border/70 bg-card/80 p-5">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div className="grid gap-2">
             <div className="h-4 w-32 rounded-full bg-muted/70 motion-safe:animate-pulse motion-reduce:animate-none" />
@@ -496,7 +496,9 @@ function PublishSettingsPanel({
 function ArticlePreviewPane({ content }: { content: string }) {
   return (
     <div className="h-full overflow-y-auto bg-background/55 p-5 sm:p-8">
-      <MarkdownPreview content={content || "暂无内容"} />
+      <div className="mx-auto max-w-[70ch]">
+        <MarkdownPreview content={content || "暂无内容"} />
+      </div>
     </div>
   );
 }

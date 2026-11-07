@@ -3,9 +3,9 @@ import { Loader2, PenLine } from "lucide-react";
 function ArticleWritingPageFallback() {
   return (
     <main className="grid h-dvh grid-rows-[auto_1fr] bg-background text-foreground">
-      <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border/70 bg-(--glass-surface-strong) px-4 shadow-sm backdrop-blur-xl">
+      <header className="flex min-h-16 items-center justify-between gap-4 border-b border-border/70 bg-(--glass-surface-strong) px-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid size-10 place-items-center rounded-2xl bg-foreground text-background shadow-(--shadow-glass)">
+          <span className="grid size-10 place-items-center rounded-lg bg-foreground text-background">
             <PenLine className="size-4" />
           </span>
           <div className="grid gap-1">
@@ -22,11 +22,11 @@ function ArticleWritingPageFallback() {
       <section className="grid min-h-0 gap-4 p-4 xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
         <div className="grid min-h-0 grid-rows-[auto_1fr] gap-4">
           <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_10rem_10rem]">
-            <div className="h-16 rounded-2xl border border-border/70 bg-card/75 shadow-sm motion-safe:animate-pulse motion-reduce:animate-none" />
-            <div className="h-16 rounded-2xl border border-border/70 bg-card/75 shadow-sm motion-safe:animate-pulse motion-reduce:animate-none" />
-            <div className="h-16 rounded-2xl border border-border/70 bg-card/75 shadow-sm motion-safe:animate-pulse motion-reduce:animate-none" />
+            <div className="h-16 rounded-lg border border-border/70 bg-card/75 shadow-sm motion-safe:animate-pulse motion-reduce:animate-none" />
+            <div className="h-16 rounded-lg border border-border/70 bg-card/75 shadow-sm motion-safe:animate-pulse motion-reduce:animate-none" />
+            <div className="h-16 rounded-lg border border-border/70 bg-card/75 shadow-sm motion-safe:animate-pulse motion-reduce:animate-none" />
           </div>
-          <div className="rounded-3xl border border-border/70 bg-card/80 p-4 shadow-(--shadow-glass)">
+          <div className="rounded-xl border border-border/70 bg-card/80 p-4">
             <div className="mb-4 h-4 w-32 rounded-full bg-muted/70 motion-safe:animate-pulse motion-reduce:animate-none" />
             <div className="grid gap-3">
               <div className="h-4 w-3/4 rounded-full bg-muted/55 motion-safe:animate-pulse motion-reduce:animate-none" />
@@ -36,7 +36,7 @@ function ArticleWritingPageFallback() {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-3xl border border-border/70 bg-card/65 p-8 shadow-(--shadow-glass)">
+        <div className="relative overflow-hidden rounded-xl border border-border/70 bg-card/65 p-8">
           <div className="grid gap-4">
             <div className="h-8 w-40 rounded-full bg-muted/70 motion-safe:animate-pulse motion-reduce:animate-none" />
             <div className="h-4 w-64 rounded-full bg-muted/55 motion-safe:animate-pulse motion-reduce:animate-none" />

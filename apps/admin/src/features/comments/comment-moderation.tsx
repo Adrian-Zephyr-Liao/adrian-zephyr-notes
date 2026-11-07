@@ -114,7 +114,6 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
       <ManagementHeader
         description="在处理前先看文章、用户和回复上下文。"
         meta={pagination ? <Badge variant="outline">{pagination.totalItems} 条</Badge> : null}
-        title="评论治理"
         action={
           <Button
             type="button"
@@ -174,6 +173,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
             />
           </div>
           <Select
+            aria-label="评论状态"
             value={query.status ?? "ALL"}
             onChange={(event) =>
               setQuery((current) => ({
@@ -219,7 +219,7 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
                         <Badge variant="secondary">{comment.replyCount} 条回复</Badge>
                       ) : null}
                     </div>
-                    <p className="text-sm/6 whitespace-pre-wrap">{comment.body}</p>
+                    <p className="text-base/7 whitespace-pre-wrap">{comment.body}</p>
                     {comment.parent ? (
                       <div className="rounded-lg bg-muted/35 p-3">
                         <p className="text-xs text-muted-foreground">
@@ -238,11 +238,11 @@ function CommentModeration({ focusedCommentId = null }: CommentModerationProps) 
                       {comment.author.avatarUrl ? (
                         <img
                           alt={comment.author.login}
-                          className="size-9 rounded-full ring-1 ring-border"
+                          className="size-8 rounded-full ring-1 ring-border"
                           src={comment.author.avatarUrl}
                         />
                       ) : (
-                        <span className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+                        <span className="flex size-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
                           {comment.author.login.slice(0, 1).toUpperCase()}
                         </span>
                       )}

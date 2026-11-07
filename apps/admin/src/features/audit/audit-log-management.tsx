@@ -44,7 +44,7 @@ function AuditLogManagement() {
     action: "ALL",
   });
   const [searchText, setSearchText] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,8 +72,11 @@ function AuditLogManagement() {
     <ManagementSurface>
       <ManagementHeader
         description="记录管理员对内容、治理和站点配置的写操作。"
-        meta={<Badge variant="outline">{pagination.totalItems} 条</Badge>}
-        title="审计日志"
+        meta={
+          <Badge variant="outline">
+            {isLoading || errorMessage ? "—" : pagination.totalItems} 条
+          </Badge>
+        }
         action={
           <Button
             type="button"
@@ -98,6 +101,7 @@ function AuditLogManagement() {
           <div className="relative">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
+              aria-label="搜索审计日志"
               className="pl-8"
               placeholder="搜索摘要、资源类型或资源 ID"
               value={searchText}
@@ -110,6 +114,7 @@ function AuditLogManagement() {
             />
           </div>
           <Select
+            aria-label="操作类型"
             value={query.action ?? "ALL"}
             onChange={(event) =>
               setQuery((current) => ({
@@ -131,18 +136,24 @@ function AuditLogManagement() {
             <span className="md:sr-only">搜索</span>
           </Button>
         </ManagementToolbar>
-        <ManagementList>
-          {isLoading ? <ManagementLoading label="正在加载日志..." /> : null}
-          {logs.map((log) => (
-            <AuditLogItem key={log.id} log={log} />
-          ))}
-          {!isLoading && logs.length === 0 ? <ManagementEmpty label="暂无审计日志。" /> : null}
-        </ManagementList>
-        <ManagementPagination
-          page={pagination.page}
-          totalPages={pagination.totalPages}
-          onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
-        />
+        {isLoading ? (
+          <ManagementLoading label="正在加载日志..." />
+        ) : errorMessage ? null : logs.length === 0 ? (
+          <ManagementEmpty label="暂无审计日志。" />
+        ) : (
+          <ManagementList>
+            {logs.map((log) => (
+              <AuditLogItem key={log.id} log={log} />
+            ))}
+          </ManagementList>
+        )}
+        {!isLoading && !errorMessage ? (
+          <ManagementPagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={(page) => setQuery((current) => ({ ...current, page }))}
+          />
+        ) : null}
       </ManagementBody>
     </ManagementSurface>
   );
@@ -180,18 +191,26 @@ function AuditMetadataPanel({ log }: { log: AdminOperationLogResponse }) {
   }
 
   return (
-    <div className="mt-3 rounded-lg bg-muted/25 p-3">
-      <dl className="grid gap-2 sm:grid-cols-2">
-        {entries.map((entry) => (
-          <div key={entry.key} className="min-w-0">
-            <dt className="text-[0.7rem] font-medium tracking-normal text-muted-foreground">
-              {entry.label}
-            </dt>
-            <dd className="mt-0.5 text-xs break-all text-foreground">{entry.value}</dd>
-          </div>
-        ))}
-      </dl>
-    </div>
+    <details className="mt-3 text-sm">
+      <summary className="cursor-pointer text-muted-foreground">查看详情</summary>
+      <div
+        className="mt-2 max-h-80 overflow-y-auto rounded-lg bg-muted/25 p-3"
+        role="region"
+        aria-label="日志详情"
+        tabIndex={0}
+      >
+        <dl className="grid gap-2 sm:grid-cols-2">
+          {entries.map((entry) => (
+            <div key={entry.key} className="min-w-0">
+              <dt className="text-[0.7rem] font-medium tracking-normal text-muted-foreground">
+                {entry.label}
+              </dt>
+              <dd className="mt-0.5 text-xs break-all text-foreground">{entry.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </details>
   );
 }
 

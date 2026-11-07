@@ -79,8 +79,9 @@ function AssistantWorkspace({
   }
 
   return (
-    <ManagementSurface className="flex h-[calc(100dvh-14rem)] min-h-[30rem] flex-col lg:h-[calc(100dvh-8.5rem)]">
+    <ManagementSurface className="flex min-h-0 flex-1 flex-col rounded-none border-0 bg-transparent">
       <ManagementHeader
+        className="mx-auto w-full max-w-3xl shrink-0 px-0 pt-0 pb-3 sm:px-0"
         action={
           <div className="flex gap-2">
             {conversationId || conversation.history ? (
@@ -115,7 +116,7 @@ function AssistantWorkspace({
         }
         title={conversationId || conversation.history ? "当前会话" : "开始查询"}
       />
-      <ManagementBody className="flex min-h-0 flex-1 flex-col gap-3 space-y-0">
+      <ManagementBody className="flex min-h-0 flex-1 flex-col gap-3 space-y-0 px-0 pb-0 sm:px-0 sm:pb-0">
         {capabilitiesLoading ? <ManagementLoading label="正在读取可用能力" /> : null}
         {failed ? (
           <p className="text-sm text-destructive" role="alert">
@@ -129,6 +130,7 @@ function AssistantWorkspace({
         ) : null}
         <div className="relative flex min-h-0 flex-1 flex-col">
           <div
+            role="region"
             aria-label="会话阅读区"
             className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-sm pr-1 outline-none focus-visible:ring-2 focus-visible:ring-ring/45"
             onScroll={() => {
@@ -152,7 +154,7 @@ function AssistantWorkspace({
               !historyUnavailable &&
               !conversation.history?.turns.length &&
               !conversation.pending ? (
-                <div className="px-1 pt-10 pb-6 sm:pt-16">
+                <div className="px-1 py-6 sm:pt-10">
                   <h3 className="text-xl font-semibold tracking-tight">从一个具体问题开始</h3>
                   <p className="mt-3 max-w-md text-sm/relaxed text-muted-foreground">
                     例如查询审计记录，或说明要查找的评论条件。只提供完成当前问题所需的信息。

@@ -78,6 +78,14 @@ afterEach(() => {
 });
 
 describe("article writing async safety", () => {
+  it("returns directly to the article list", async () => {
+    render(<ArticleWritingPage admin={admin} articleId="a" onLogout={() => {}} />);
+    await title("Article a");
+    fireEvent.click(screen.getByRole("button", { name: "返回文章管理" }));
+    expect(router.navigate).toHaveBeenCalledWith({ to: "/articles" });
+    expect(api.updateAdminArticle).not.toHaveBeenCalled();
+  });
+
   it("keeps edits made during a save and records the newly committed base", async () => {
     const save = deferred<AdminArticleDetailResponse>();
     api.updateAdminArticle.mockReturnValue(save.promise);

@@ -91,7 +91,6 @@ function GuestbookModeration() {
       <ManagementHeader
         description="处理留言可见性、置顶和软删除。"
         meta={pagination ? <Badge variant="outline">{pagination.totalItems} 条</Badge> : null}
-        title="留言板治理"
         action={
           <Button
             type="button"
@@ -128,6 +127,7 @@ function GuestbookModeration() {
             />
           </div>
           <Select
+            aria-label="留言状态"
             value={query.status ?? "ALL"}
             onChange={(event) =>
               setQuery((current) => ({
@@ -163,7 +163,7 @@ function GuestbookModeration() {
                       <StatusBadge status={message.status} />
                       <Badge variant="outline">{message.likeCount} 赞</Badge>
                     </div>
-                    <p className="text-sm/6 whitespace-pre-wrap">{message.body}</p>
+                    <p className="text-base/7 whitespace-pre-wrap">{message.body}</p>
                     <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                       <span>{formatDateTime(message.createdAt)}</span>
                       <span>
@@ -262,11 +262,11 @@ function GuestbookAuthor({ message }: { message: AdminGuestbookMessageListItemRe
         {message.author.avatarUrl ? (
           <img
             alt={message.author.login}
-            className="size-9 rounded-full ring-1 ring-border"
+            className="size-8 rounded-full ring-1 ring-border"
             src={message.author.avatarUrl}
           />
         ) : (
-          <span className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+          <span className="flex size-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
             {message.author.login.slice(0, 1).toUpperCase()}
           </span>
         )}
@@ -289,7 +289,7 @@ function GuestbookAuthor({ message }: { message: AdminGuestbookMessageListItemRe
 
   return (
     <div className="flex items-center gap-2 lg:flex-row-reverse">
-      <span className="flex size-9 items-center justify-center rounded-full bg-muted text-sm font-semibold">
+      <span className="flex size-8 items-center justify-center rounded-full bg-muted text-sm font-semibold">
         {message.author.nickname.slice(0, 1).toUpperCase()}
       </span>
       <div className="min-w-0 lg:text-right">

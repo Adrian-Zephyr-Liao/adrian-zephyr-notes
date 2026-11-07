@@ -32,8 +32,8 @@ function SiteSettingsEditor({
   return (
     <ManagementSurface>
       <ManagementHeader
-        description="管理读者侧展示、导航与社交链接。"
-        title="首页 / 导航"
+        description="编辑首页文案、导航与社交链接。保存配置后应用到读者侧。"
+        title="展示设置"
         action={
           <Button disabled={saving} type="button" onClick={onSave}>
             {saving ? <Loader2 className="animate-spin" /> : <Save />}
@@ -41,9 +41,9 @@ function SiteSettingsEditor({
           </Button>
         }
       />
-      <ManagementBody className="grid gap-5">
-        <section className="grid gap-3">
-          <h3 className="text-sm font-semibold">首页</h3>
+      <ManagementBody className="grid gap-8">
+        <section className="grid gap-4 border-t border-border pt-6">
+          <h3 className="text-base font-semibold">首页</h3>
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="眉标">
               <Input
@@ -236,9 +236,9 @@ function EditableLinkListFrame({
   title: string;
 }) {
   return (
-    <section className="grid gap-3">
+    <section className="grid gap-4 border-t border-border pt-6">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-sm font-semibold">{title}</h3>
+        <h3 className="text-base font-semibold">{title}</h3>
         <Button size="sm" type="button" variant="outline" onClick={onAdd}>
           <Plus />
           {addLabel}
@@ -261,7 +261,7 @@ function EditableLinkItemFrame({
   const { confirm, confirmationDialog } = useConfirmationDialog();
 
   return (
-    <div className="rounded-lg bg-background/24 p-3">
+    <div className="border-t border-border py-5">
       <div className="grid gap-3 md:grid-cols-3">{children}</div>
       <div className="mt-2 flex justify-end">
         <Button

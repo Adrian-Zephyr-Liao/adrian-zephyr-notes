@@ -333,3 +333,95 @@ CLI authentication and actual GitHub OAuth success remain unverified/expired;
 fixture results do not substitute for them. No unattended recovery or scheduled
 iteration was installed. Code investigation is closed for this window; do not
 manufacture more changes while publication awaits an external access condition.
+
+## Admin redesign: authorized follow-up (2026-11-07)
+
+The user explicitly requested publication of the accepted code followed by an
+admin management redesign. This supersedes the earlier frontstage-only design
+scope for the admin UI; business semantics, permissions and persistence remain
+outside the visual redesign.
+
+Fresh read-only SSH still requires Tailscale identity verification. Native Chrome
+cannot continue that flow while the Mac is locked. The approved three-service
+`bec1825` package passed all four SHA256 checks again; no upload, deployment or
+service restart was attempted. Do not bypass this access boundary or claim a
+production release.
+
+All four existing independent role chats were actually retasked: PM
+`01a1b373-b2f2-7b23-8991-b68230c880e3` (ADM-PM-001); design
+`01a1b374-0957-7631-8ff0-296028a9f07c` (ADM-UX-001); development
+`01a1b374-370d-78b1-8637-4b6b8f24a8d6` (ADM-DEV-001); QA
+`01a1b374-0a54-7791-b73e-3c5e0649b1e3` (ADM-QA-001). The Leader owns this
+record and publication. No role may expand the team.
+
+Work continues in the retained primary checkout on
+`codex/admin-workspace-redesign-20261107`, from clean `37fafdf`, whose tree
+matched integrated main `31efb67`. `vp install` completed before work. The first
+step is read-only page/workflow audit, followed by a frozen unified design and
+single-owner implementation in admin source. Design owns the isolated baseline
+preview on 4340; QA owns final preview on 4341. All API responses in visual
+fixtures are intercepted; no real publication, moderation, upload or model call
+is allowed. Preserve MOD-001 race, duplicate-write and focus behavior, and all
+Assistant execution/recovery/approval semantics. Use existing Tailwind/local UI
+primitives and theme tokens; no CSS Modules, dependencies or schema changes.
+
+Evidence and recovery receipt:
+`/Users/liaowenrun/.codex/visualizations/2026/11/07/01a1b1a3-9a22-7af0-8847-123cea344932/iteration-03`.
+
+ADM-PM-001 scope was accepted after Leader reviewed the source evidence: all
+12 route types plus login, grouped into navigation/hierarchy, writing, and
+moderation/configuration/Assistant state presentation. Two concrete path defects
+are in scope: mobile logout is hidden and the writing back action targets the
+dashboard despite its article-management label. QA independently reproduced
+unnamed moderation status controls and an unnamed file input in a real browser;
+light-theme error contrast is being verified.
+
+ADM-DEV-002 batch A is assigned solely to the development chat, in the existing
+branch/checkout. Allowed edits are admin presentation source and necessary
+adjacent regression tests. Frozen direction: use website paper/deep-ink semantic
+tokens and existing fonts, restrained local controls, single main page title,
+reachable mobile account/theme actions, lightweight list statistics and one
+results surface. Article thumbnails use the existing `coverImageUrl` contract
+and CDN association, with missing/broken-image fallback; no static cover mapping
+or content mutation. Batch B covers independent writing and remaining pages.
+Design and QA retain independent read-only review; no concurrent source edits.
+
+The full ADM-UX-001 specification was frozen after actual baseline desktop/mobile
+page traversal, with both themes and controlled API interception. It is saved as
+`iteration-03/ADM-UX-001-design.md`. The baseline is an immutable copied dist on
+4340, owned by design; it must not silently change during candidate builds.
+
+QA documented six reproducible P2 issues in
+`iteration-03/qa/ADM-QA-001-priority.txt`: mobile logout, writing back target,
+unnamed moderation/audit filters, unnamed file input, light destructive-button
+contrast (not error copy), and failed article reads displayed as zero/empty.
+Twenty-eight scoped MOD race/focus baseline scenarios passed; these are baseline
+results, not candidate acceptance.
+
+To parallelize implementation, development explicitly transferred dashboard and
+site-config file ownership to the Leader (ADM-ROOT-002); development retains all
+other admin files and shared UI/contracts ownership. No overlapping edits.
+Leader implemented the dashboard's plain metric strip/content/attention/activity
+layout, preserving its original five API calls and metric definitions. Failed
+reads display unavailable values and no false empty conclusion. Existing API
+aggregation plus the meaningful failure regression passed (two tests). Site
+configuration now groups display settings and announcements without unmounting
+edited forms. Explicit refresh confirms discarding unsaved changes, is disabled
+during writes, and prevents new edits during a pending read. Removed the duplicate
+announcement refresh action. Narrow format/lint passed after canonical Tailwind
+class corrections. Final independent browser and integrated checks remain pending.
+
+The developer froze its source after admin typecheck/lint and 21 files / 180
+tests passed (`adm-dev-005-freeze.json`). Leader reviewed integration boundaries:
+all application changes are admin presentation or adjacent regression tests;
+no business hooks, API transport, contracts, dependencies or migrations changed.
+Shell/account/theme/navigation responsibilities now live in `components/admin`;
+unused sidebar primitives and repeated presentation containers were removed.
+Assistant uses actual remaining flex height rather than a guessed viewport offset.
+
+Integrated candidate checks passed: `vp check` (618 formatted files, 555 lint/type
+files, no issues), `vp test` (101 files / 578 tests), admin production build
+(1107 transformed modules), and diff whitespace check. Root corrected four
+Tailwind typography shorthand findings before the clean check. Logs are the
+`iteration-03/integrated-*.log` files. Candidate browser, design and PM acceptance
+are pending; these checks alone do not authorize an acceptance claim.

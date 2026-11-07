@@ -5,12 +5,7 @@ import { cn } from "../../lib/utils";
 
 function ManagementSurface({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <section
-      className={cn(
-        "overflow-hidden rounded-lg bg-(--glass-surface) shadow-(--shadow-glass) backdrop-blur-2xl",
-        className,
-      )}
-    >
+    <section className={cn("overflow-hidden rounded-lg border border-border bg-card", className)}>
       {children}
     </section>
   );
@@ -21,17 +16,24 @@ function ManagementHeader({
   description,
   meta,
   title,
+  className,
 }: {
   action?: ReactNode;
   description: string;
   meta?: ReactNode;
-  title: string;
+  title?: string;
+  className?: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
+    <div
+      className={cn(
+        "flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between sm:px-5",
+        className,
+      )}
+    >
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
-          <h2 className="text-base font-semibold tracking-normal">{title}</h2>
+          {title ? <h2 className="text-base font-semibold tracking-normal">{title}</h2> : null}
           {meta}
         </div>
         <p className="mt-1 text-sm text-muted-foreground">{description}</p>
@@ -46,22 +48,11 @@ function ManagementBody({ children, className }: { children: ReactNode; classNam
 }
 
 function ManagementToolbar({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div className={cn("grid gap-2 rounded-lg bg-background/24 p-2.5", className)}>{children}</div>
-  );
+  return <div className={cn("grid gap-3 border-b border-border pb-4", className)}>{children}</div>;
 }
 
 function ManagementList({ children, className }: { children: ReactNode; className?: string }) {
-  return (
-    <div
-      className={cn(
-        "divide-y divide-border/45 overflow-hidden rounded-lg bg-background/18",
-        className,
-      )}
-    >
-      {children}
-    </div>
-  );
+  return <div className={cn("divide-y divide-border overflow-hidden", className)}>{children}</div>;
 }
 
 function ManagementLoading({ label }: { label: string }) {

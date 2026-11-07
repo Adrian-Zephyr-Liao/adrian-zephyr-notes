@@ -18,6 +18,7 @@ function ArticleImageUploadButton({
         ref={inputRef}
         className="sr-only"
         type="file"
+        aria-label="选择文章图片文件"
         accept={ARTICLE_IMAGE_ACCEPT}
         tabIndex={-1}
         onChange={(event) => {

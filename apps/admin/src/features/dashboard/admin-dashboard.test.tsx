@@ -89,6 +89,17 @@ describe("AdminDashboard", () => {
       });
     });
   });
+  it("keeps unavailable reads distinct from zero metrics and empty content", async () => {
+    adminApiMocks.listAdminArticles.mockReset().mockRejectedValue(new Error("unavailable"));
+    render(<AdminDashboard />);
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    const metrics = screen.getByLabelText("运营指标");
+    expect(within(metrics).getAllByText("—")).toHaveLength(4);
+    expect(within(metrics).queryByText("0")).toBeNull();
+    expect(screen.queryByText("还没有文章，先创建第一篇内容。")).toBeNull();
+    expect(screen.queryByText("暂无后台操作记录。")).toBeNull();
+    expect(screen.getByRole("button", { name: "刷新" }).hasAttribute("disabled")).toBe(false);
+  });
 });
 
 function createArticle() {
