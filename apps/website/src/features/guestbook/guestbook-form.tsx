@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import type { FormEvent, ReactNode } from "react";
 import type { AuthUserResponse } from "@adrian-zephyr-notes/contracts";
 import { ArrowUpRight, Github, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,7 +10,8 @@ function GuestbookForm({
   guestNickname,
   isSubmitting,
   isReadReady,
-  loginUrl,
+  onLogin,
+  draftNotice,
   onBodyChange,
   onGuestNicknameChange,
   onLogout,
@@ -24,7 +25,8 @@ function GuestbookForm({
   guestNickname: string;
   isSubmitting: boolean;
   isReadReady: boolean;
-  loginUrl: string;
+  onLogin: () => void;
+  draftNotice: ReactNode;
   onBodyChange: (body: string) => void;
   onGuestNicknameChange: (nickname: string) => void;
   onLogout: () => void;
@@ -70,14 +72,13 @@ function GuestbookForm({
             <LogOut className="size-4" />
           </Button>
         ) : (
-          <Button asChild variant="outline" size="sm">
-            <a href={loginUrl}>
-              <Github className="size-4" />
-              登录
-            </a>
+          <Button type="button" onClick={onLogin} variant="outline" size="sm">
+            <Github className="size-4" />
+            登录
           </Button>
         )}
       </div>
+      {draftNotice}
       <form className="grid gap-5" onSubmit={handleSubmit}>
         {!user ? (
           <label className="grid gap-[0.65rem] text-[0.8rem] text-muted-foreground">

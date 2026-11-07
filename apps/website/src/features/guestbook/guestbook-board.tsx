@@ -1,5 +1,6 @@
 "use client";
 
+import { DiscussionDraftNotice } from "../discussion-draft";
 import { GuestbookForm } from "./guestbook-form";
 import { GuestbookHero } from "./guestbook-hero";
 import { GuestbookMessageList } from "./guestbook-message-list";
@@ -34,7 +35,8 @@ function GuestbookBoard() {
             guestNickname={guestbook.guestNickname}
             isSubmitting={guestbook.isSubmitting}
             isReadReady={guestbook.loadState === "ready"}
-            loginUrl={guestbook.loginUrl}
+            onLogin={guestbook.draft.login}
+            draftNotice={<DiscussionDraftNotice draft={guestbook.draft} />}
             onBodyChange={guestbook.setBody}
             onGuestNicknameChange={guestbook.setGuestNickname}
             onLogout={guestbook.logout}

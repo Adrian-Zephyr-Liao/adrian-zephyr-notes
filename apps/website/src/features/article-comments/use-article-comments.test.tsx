@@ -28,6 +28,7 @@ const api = vi.hoisted(() => ({
 vi.mock("./article-comment-api", () => api);
 
 beforeEach(() => {
+  window.sessionStorage.clear();
   vi.resetAllMocks();
   api.loadArticleComments.mockResolvedValue(page());
   api.loadCurrentUser.mockResolvedValue(null);
@@ -161,6 +162,7 @@ describe("article comment loading", () => {
   });
 
   it("keeps the selected reply fixed while its submission is pending", async () => {
+    api.loadArticleComments.mockResolvedValueOnce(page([comment("original")]));
     api.loadCurrentUser.mockResolvedValue(user);
     const { result } = renderHook(() => useArticleComments("first"));
     await waitFor(() => expect(result.current.initialLoadState).toBe("ready"));
@@ -194,7 +196,7 @@ describe("article comment loading", () => {
     api.createArticleComment.mockRejectedValueOnce(new Error("response lost"));
     await act(async () => result.current.submitComment());
     expect(result.current.body).toBe("please keep this draft");
-    expect(result.current.errorMessage).toBe("发布结果尚未确认，请刷新页面核对评论后再试。");
+    expect(result.current.errorMessage).toBe("发布结果尚未确认，请先核对已有评论后再试。");
     expect(api.createArticleComment).toHaveBeenCalledTimes(1);
     expect(result.current.comments).toEqual([]);
   });
