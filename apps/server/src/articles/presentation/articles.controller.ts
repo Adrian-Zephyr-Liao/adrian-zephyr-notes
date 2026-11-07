@@ -8,6 +8,7 @@ import type {
   ArticleTagListResponse,
 } from "@adrian-zephyr-notes/contracts";
 import { ArticleNotFoundError } from "../application/article-not-found.error";
+import { InvalidArticleSlugError } from "../domain/value-objects/article-slug";
 import { GetPublishedArticleBySlugUseCase } from "../application/get-published-article-by-slug.use-case";
 import {
   GetPublishedArticleCategoryUseCase,
@@ -98,7 +99,7 @@ class ArticlesController {
       const article = await this.getPublishedArticleBySlug.execute(slug);
       return toArticleDetailResponse(article);
     } catch (error) {
-      if (error instanceof ArticleNotFoundError) {
+      if (error instanceof ArticleNotFoundError || error instanceof InvalidArticleSlugError) {
         throw new NotFoundException({
           error: {
             code: "ARTICLE_NOT_FOUND",
