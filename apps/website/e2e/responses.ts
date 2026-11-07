@@ -21,6 +21,10 @@ export const tag = {
   publishedArticleCount: 4,
 } satisfies ArticleTagDetailResponse;
 
+// Deliberately repeat headers and section context to catch duplicate table landmarks.
+const tableFixture =
+  "| 阶段 | 验证方法 | 结果 |\n| --- | --- | --- |\n| 设计与工程 | 在桌面和手机上验证阅读与键盘操作 | `authorization_pending` |";
+
 export const articles: ArticleDetailResponse[] = [
   "写下一个想法，让灵感成为可以分享的作品",
   "在设计与工程之间找到恰好的平衡",
@@ -42,8 +46,16 @@ export const articles: ArticleDetailResponse[] = [
   publishedAt: "2026-11-06T08:00:00.000Z",
   updatedAt: "2026-11-06T08:00:00.000Z",
   aiSummary: null,
-  markdown:
-    "## 从问题开始\n\n记录具体问题与设计过程。\n\n## 验证方案\n\n在桌面和手机上验证阅读体验。\n\n## 留下思考\n\n持续改进，保持代码清楚。\n\n| 阶段 | 验证方法 | 结果 |\n| --- | --- | --- |\n| 设计与工程 | 在桌面和手机上验证阅读与键盘操作 | `authorization_pending` |",
+  markdown: [
+    "## 从问题开始\n\n记录具体问题与设计过程。",
+    "## 验证方案\n\n在桌面和手机上验证阅读体验。",
+    "## 留下思考\n\n持续改进，保持代码清楚。",
+    tableFixture,
+    tableFixture,
+    "### 复核结果",
+    tableFixture,
+    tableFixture,
+  ].join("\n\n"),
 }));
 
 export const firstArticlePage = {

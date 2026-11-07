@@ -10,7 +10,10 @@ import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
 import { Children, cloneElement, isValidElement, type ComponentProps, type ReactNode } from "react";
-import type { PluggableList } from "unified";
+import type { PluggableList, Plugin } from "unified";
+import type remarkParse from "remark-parse";
+import { toString } from "mdast-util-to-string";
+import { visit } from "unist-util-visit";
 
 import { CodeCopyButton } from "./code-copy-button";
 import { MarkdownImage } from "./markdown-image";
@@ -22,6 +25,34 @@ type MarkdownRendererProps = {
   variant?: "document" | "stream";
 };
 type MarkdownPreviewProps = MarkdownRendererProps & Pick<Options, "disallowedElements">;
+
+// Reuse the installed parser’s tree type without adding a direct mdast dependency.
+type MarkdownRoot =
+  typeof remarkParse extends Plugin<infer _Options, infer _Input, infer Tree> ? Tree : never;
+
+function remarkTableNames() {
+  return (tree: MarkdownRoot) => {
+    let heading = "";
+    let tableNumber = 0;
+    visit(tree, (node) => {
+      if (node.type === "heading") heading = toString(node, { includeHtml: false });
+      if (node.type !== "table") return;
+      const row = node.children.find((row) =>
+        row.children.some((cell) => toString(cell, { includeHtml: false }).trim()),
+      );
+      const headers = row?.children
+        .map((cell) => toString(cell, { includeHtml: false }).trim())
+        .filter(Boolean)
+        .slice(0, 3)
+        .join("、");
+      const context = [heading, headers].filter(Boolean).join(" · ").replace(/\s+/g, " ").trim();
+      const characters = Array.from(context);
+      const summary = characters.length > 64 ? `${characters.slice(0, 63).join("")}…` : context;
+      const name = `表格 ${++tableNumber}${summary ? `：${summary}` : ""}，可横向滚动`;
+      node.data = { ...node.data, hProperties: { ...node.data?.hProperties, ariaLabel: name } };
+    });
+  };
+}
 
 const documentRehypePlugins: PluggableList = [
   rehypeSlug,
@@ -103,9 +134,9 @@ const markdownComponents = {
       </div>
     );
   },
-  table({ className, node: _node, ...props }) {
+  table({ className, node: _node, "aria-label": label, ...props }) {
     return (
-      <div className="markdown-table-wrap" role="region" aria-label="表格，可横向滚动" tabIndex={0}>
+      <div className="markdown-table-wrap" role="region" aria-label={label} tabIndex={0}>
         <table className={className} {...props} />
       </div>
     );
@@ -177,7 +208,7 @@ async function MarkdownRenderer({ content, className }: MarkdownRendererProps) {
   return (
     <article className={cx("markdown-body", className)}>
       <MarkdownAsync
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkTableNames]}
         rehypePlugins={documentRehypePlugins}
         components={markdownComponents}
         skipHtml
@@ -205,7 +236,7 @@ function MarkdownPreview({
       <article className={previewClassName}>
         <Markdown
           disallowedElements={disallowedElements}
-          remarkPlugins={[remarkGfm]}
+          remarkPlugins={[remarkGfm, remarkTableNames]}
           rehypePlugins={streamRehypePlugins}
           components={markdownComponents}
           skipHtml
@@ -220,7 +251,7 @@ function MarkdownPreview({
     <article className={previewClassName}>
       <MarkdownHooks
         disallowedElements={disallowedElements}
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkTableNames]}
         rehypePlugins={documentRehypePlugins}
         components={markdownComponents}
         skipHtml
