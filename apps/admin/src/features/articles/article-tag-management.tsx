@@ -1,6 +1,6 @@
 import type { AdminArticleTagResponse } from "@adrian-zephyr-notes/contracts";
 import { Combine, Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
@@ -33,6 +33,11 @@ function ArticleTagManagement() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [mergeSource, setMergeSource] = useState<AdminArticleTagResponse | null>(null);
   const [targetTagId, setTargetTagId] = useState("");
+  const [formOpen, setFormOpen] = useState(false);
+  const [readFailed, setReadFailed] = useState(false);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const newButton = useRef<HTMLButtonElement>(null);
+  const returnTarget = useRef<HTMLElement | null>(null);
   const [searchText, setSearchText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -42,6 +47,7 @@ function ArticleTagManagement() {
 
   const loadTags = useCallback(async (page = 1, q?: string) => {
     setIsLoading(true);
+    setReadFailed(false);
     setMessage(null);
     try {
       const response = await listAdminArticleTags({ page, pageSize: PAGE_SIZE, q });
@@ -52,6 +58,7 @@ function ArticleTagManagement() {
         totalPages: response.pagination.totalPages,
       });
     } catch {
+      setReadFailed(true);
       setMessage("标签列表加载失败，请检查服务端状态。");
     } finally {
       setIsLoading(false);
@@ -61,6 +68,24 @@ function ArticleTagManagement() {
   useEffect(() => {
     void loadTags();
   }, [loadTags]);
+
+  function openForm() {
+    returnTarget.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setFormOpen(true);
+    requestAnimationFrame(() => nameInput.current?.focus());
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditingId(null);
+    setDraft(emptyDraft);
+    requestAnimationFrame(() => {
+      const target = returnTarget.current;
+      if (target?.isConnected) target.focus();
+      else newButton.current?.focus();
+    });
+  }
 
   async function save() {
     if (!draft.name.trim() || !draft.slug.trim()) {
@@ -74,6 +99,7 @@ function ArticleTagManagement() {
       else await createAdminArticleTag(draft);
       setDraft(emptyDraft);
       setEditingId(null);
+      closeForm();
       await loadTags(1, searchText.trim() || undefined);
     } catch (error) {
       setMessage(errorMessage(error));
@@ -132,9 +158,25 @@ function ArticleTagManagement() {
   return (
     <ManagementSurface>
       <ManagementHeader
+        action={
+          <Button
+            ref={newButton}
+            onClick={() => {
+              setEditingId(null);
+              setDraft(emptyDraft);
+              openForm();
+            }}
+          >
+            <Plus />
+            新建标签
+          </Button>
+        }
         description="维护可复用标签，并合并重复条目。"
-        meta={<span className="text-xs text-muted-foreground">{pagination.totalItems} 个</span>}
-        title="文章标签"
+        meta={
+          <span className="text-xs text-muted-foreground">
+            {isLoading || readFailed ? "—" : pagination.totalItems} 个
+          </span>
+        }
       />
       <ManagementBody className="grid gap-4">
         {message ? (
@@ -145,39 +187,47 @@ function ArticleTagManagement() {
             {message}
           </p>
         ) : null}
-        <div className="grid gap-3 rounded-lg bg-background/24 p-3 lg:grid-cols-[1fr_1fr_auto]">
-          <Input
-            aria-label="标签名称"
-            maxLength={80}
-            placeholder="标签名称"
-            value={draft.name}
-            onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-          />
-          <Input
-            aria-label="标签 slug"
-            maxLength={80}
-            placeholder="tag-slug"
-            value={draft.slug}
-            onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))}
-          />
-          <div className="flex gap-2">
-            {editingId ? (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setEditingId(null);
-                  setDraft(emptyDraft);
-                }}
-              >
+        {formOpen ? (
+          <div
+            className="grid gap-4 border-y border-border py-4"
+            role="group"
+            aria-label={editingId ? "编辑标签" : "新建标签"}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-sm font-medium">
+                <span>标签名称</span>
+                <Input
+                  ref={nameInput}
+                  maxLength={80}
+                  value={draft.name}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, name: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-medium">
+                <span>标签 slug</span>
+                <Input
+                  maxLength={80}
+                  placeholder="tag-slug"
+                  value={draft.slug}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, slug: event.target.value }))
+                  }
+                />
+              </label>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button disabled={isSaving} variant="outline" onClick={closeForm}>
                 取消
               </Button>
-            ) : null}
-            <Button disabled={isSaving} onClick={() => void save()}>
-              {isSaving ? <Loader2 className="animate-spin" /> : <Plus />}
-              {editingId ? "保存" : "新增"}
-            </Button>
+              <Button disabled={isSaving} onClick={() => void save()}>
+                {isSaving ? <Loader2 className="animate-spin" /> : null}
+                保存标签
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : null}
         {mergeSource ? (
           <div className="grid gap-3 rounded-lg bg-primary/8 p-3 lg:grid-cols-[1fr_1fr_auto] lg:items-end">
             <div>
@@ -220,6 +270,7 @@ function ArticleTagManagement() {
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
+              aria-label="搜索标签"
               className="pl-8"
               placeholder="搜索名称或 slug"
               value={searchText}
@@ -238,7 +289,7 @@ function ArticleTagManagement() {
             <RefreshCw className={isLoading ? "animate-spin" : undefined} />
           </Button>
         </ManagementToolbar>
-        {isLoading ? (
+        {readFailed ? null : isLoading ? (
           <ManagementLoading label="正在加载标签..." />
         ) : tags.length === 0 ? (
           <ManagementEmpty label="暂无文章标签。" />
@@ -260,6 +311,7 @@ function ArticleTagManagement() {
                     size="icon"
                     variant="ghost"
                     onClick={() => {
+                      openForm();
                       setEditingId(tag.id);
                       setDraft({ name: tag.name, slug: tag.slug });
                     }}
@@ -291,11 +343,13 @@ function ArticleTagManagement() {
             ))}
           </ManagementList>
         )}
-        <ArticleTaxonomyPagination
-          page={pagination.page}
-          totalPages={pagination.totalPages}
-          onPageChange={(page) => void loadTags(page, searchText.trim() || undefined)}
-        />
+        {!isLoading && !readFailed ? (
+          <ArticleTaxonomyPagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={(page) => void loadTags(page, searchText.trim() || undefined)}
+          />
+        ) : null}
       </ManagementBody>
       {confirmationDialog}
     </ManagementSurface>

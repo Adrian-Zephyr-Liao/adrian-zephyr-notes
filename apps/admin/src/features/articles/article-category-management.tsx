@@ -1,6 +1,6 @@
 import type { AdminArticleCategoryResponse } from "@adrian-zephyr-notes/contracts";
 import { Loader2, Pencil, Plus, RefreshCw, Search, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "../../components/ui/button";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import { Input } from "../../components/ui/input";
@@ -30,6 +30,11 @@ function ArticleCategoryManagement() {
   const [categories, setCategories] = useState<AdminArticleCategoryResponse[]>([]);
   const [draft, setDraft] = useState(emptyDraft);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+  const [readFailed, setReadFailed] = useState(false);
+  const nameInput = useRef<HTMLInputElement>(null);
+  const newButton = useRef<HTMLButtonElement>(null);
+  const returnTarget = useRef<HTMLElement | null>(null);
   const [searchText, setSearchText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -39,6 +44,7 @@ function ArticleCategoryManagement() {
 
   const loadCategories = useCallback(async (page = 1, q?: string) => {
     setIsLoading(true);
+    setReadFailed(false);
     setMessage(null);
     try {
       const response = await listAdminArticleCategories({ page, pageSize: PAGE_SIZE, q });
@@ -49,6 +55,7 @@ function ArticleCategoryManagement() {
         totalPages: response.pagination.totalPages,
       });
     } catch {
+      setReadFailed(true);
       setMessage("分类列表加载失败，请检查服务端状态。");
     } finally {
       setIsLoading(false);
@@ -58,6 +65,24 @@ function ArticleCategoryManagement() {
   useEffect(() => {
     void loadCategories();
   }, [loadCategories]);
+
+  function openForm() {
+    returnTarget.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setFormOpen(true);
+    requestAnimationFrame(() => nameInput.current?.focus());
+  }
+
+  function closeForm() {
+    setFormOpen(false);
+    setEditingId(null);
+    setDraft(emptyDraft);
+    requestAnimationFrame(() => {
+      const target = returnTarget.current;
+      if (target?.isConnected) target.focus();
+      else newButton.current?.focus();
+    });
+  }
 
   async function saveCategory() {
     if (!draft.name.trim() || !draft.slug.trim()) {
@@ -75,6 +100,7 @@ function ArticleCategoryManagement() {
       }
       setDraft(emptyDraft);
       setEditingId(null);
+      closeForm();
       await loadCategories(1, searchText.trim() || undefined);
     } catch (error) {
       setMessage(toCategoryErrorMessage(error));
@@ -105,6 +131,7 @@ function ArticleCategoryManagement() {
   }
 
   function editCategory(category: AdminArticleCategoryResponse) {
+    openForm();
     setEditingId(category.id);
     setDraft({
       description: category.description ?? "",
@@ -116,9 +143,25 @@ function ArticleCategoryManagement() {
   return (
     <ManagementSurface>
       <ManagementHeader
+        action={
+          <Button
+            ref={newButton}
+            onClick={() => {
+              setEditingId(null);
+              setDraft(emptyDraft);
+              openForm();
+            }}
+          >
+            <Plus />
+            新建分类
+          </Button>
+        }
         description="用稳定的分类结构组织文章主题。"
-        meta={<span className="text-xs text-muted-foreground">{pagination.totalItems} 个</span>}
-        title="文章分类"
+        meta={
+          <span className="text-xs text-muted-foreground">
+            {isLoading || readFailed ? "—" : pagination.totalItems} 个
+          </span>
+        }
       />
       <ManagementBody className="grid gap-4">
         {message ? (
@@ -129,55 +172,63 @@ function ArticleCategoryManagement() {
             {message}
           </p>
         ) : null}
-        <div className="grid gap-3 rounded-lg bg-background/24 p-3 lg:grid-cols-[1fr_1fr_1.5fr_auto]">
-          <Input
-            aria-label="分类名称"
-            maxLength={80}
-            placeholder="分类名称"
-            value={draft.name}
-            onChange={(event) => setDraft((current) => ({ ...current, name: event.target.value }))}
-          />
-          <Input
-            aria-label="分类 slug"
-            maxLength={80}
-            placeholder="category-slug"
-            value={draft.slug}
-            onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))}
-          />
-          <Textarea
-            aria-label="分类描述"
-            className="min-h-10 resize-none"
-            maxLength={500}
-            placeholder="分类说明（可选）"
-            rows={1}
-            value={draft.description}
-            onChange={(event) =>
-              setDraft((current) => ({ ...current, description: event.target.value }))
-            }
-          />
-          <div className="flex gap-2">
-            {editingId ? (
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setEditingId(null);
-                  setDraft(emptyDraft);
-                }}
-              >
+        {formOpen ? (
+          <div
+            className="grid gap-4 border-y border-border py-4"
+            role="group"
+            aria-label={editingId ? "编辑分类" : "新建分类"}
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <label className="grid gap-2 text-sm font-medium">
+                <span>分类名称</span>
+                <Input
+                  ref={nameInput}
+                  maxLength={80}
+                  value={draft.name}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, name: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="grid gap-2 text-sm font-medium">
+                <span>分类 slug</span>
+                <Input
+                  maxLength={80}
+                  placeholder="category-slug"
+                  value={draft.slug}
+                  onChange={(event) =>
+                    setDraft((current) => ({ ...current, slug: event.target.value }))
+                  }
+                />
+              </label>
+            </div>
+            <label className="grid gap-2 text-sm font-medium">
+              <span>分类描述（可选）</span>
+              <Textarea
+                maxLength={500}
+                rows={3}
+                value={draft.description}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, description: event.target.value }))
+                }
+              />
+            </label>
+            <div className="flex justify-end gap-2">
+              <Button disabled={isSaving} variant="outline" onClick={closeForm}>
                 取消
               </Button>
-            ) : null}
-            <Button disabled={isSaving} type="button" onClick={() => void saveCategory()}>
-              {isSaving ? <Loader2 className="animate-spin" /> : <Plus />}
-              {editingId ? "保存" : "新增"}
-            </Button>
+              <Button disabled={isSaving} onClick={() => void saveCategory()}>
+                {isSaving ? <Loader2 className="animate-spin" /> : null}
+                保存分类
+              </Button>
+            </div>
           </div>
-        </div>
+        ) : null}
         <ManagementToolbar className="grid-cols-[minmax(0,1fr)_auto]">
           <div className="relative min-w-0 flex-1">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 size-4 text-muted-foreground" />
             <Input
+              aria-label="搜索分类"
               className="pl-8"
               placeholder="搜索名称、slug 或描述"
               value={searchText}
@@ -197,17 +248,21 @@ function ArticleCategoryManagement() {
             <RefreshCw className={isLoading ? "animate-spin" : undefined} />
           </Button>
         </ManagementToolbar>
-        <CategoryRows
-          categories={categories}
-          isLoading={isLoading}
-          onDelete={removeCategory}
-          onEdit={editCategory}
-        />
-        <ArticleTaxonomyPagination
-          page={pagination.page}
-          totalPages={pagination.totalPages}
-          onPageChange={(page) => void loadCategories(page, searchText.trim() || undefined)}
-        />
+        {readFailed ? null : (
+          <CategoryRows
+            categories={categories}
+            isLoading={isLoading}
+            onDelete={removeCategory}
+            onEdit={editCategory}
+          />
+        )}
+        {!isLoading && !readFailed ? (
+          <ArticleTaxonomyPagination
+            page={pagination.page}
+            totalPages={pagination.totalPages}
+            onPageChange={(page) => void loadCategories(page, searchText.trim() || undefined)}
+          />
+        ) : null}
       </ManagementBody>
       {confirmationDialog}
     </ManagementSurface>

@@ -101,6 +101,55 @@ describe("article filter request ordering", () => {
   });
 });
 
+it("labels the server-filtered total as matching articles", async () => {
+  const initial = response("初始文章");
+  initial.pagination.totalItems = 12;
+  api.listAdminArticles.mockResolvedValueOnce(initial);
+  render(<ArticleManagement />);
+  await screen.findByText("初始文章");
+  expect(screen.getByText("匹配文章").nextElementSibling?.textContent).toBe("12");
+  const filtered = response("符合搜索的文章");
+  filtered.pagination.totalItems = 3;
+  api.listAdminArticles.mockResolvedValueOnce(filtered);
+  search("搜索条件");
+  await screen.findByText("符合搜索的文章");
+  expect(screen.getByText("匹配文章").nextElementSibling?.textContent).toBe("3");
+  expect(screen.queryByText("全部文章")).toBeNull();
+  expect(api.listAdminArticles).toHaveBeenLastCalledWith(
+    expect.objectContaining({ q: "搜索条件" }),
+  );
+});
+
+it("uses the associated cover and replaces a failed image with a clear placeholder", async () => {
+  const payload = response("带封面文章");
+  payload.data[0].coverImageUrl = "https://img.zephyrai.site/fixture/cover.jpg";
+  api.listAdminArticles.mockResolvedValueOnce(payload);
+  const view = render(<ArticleManagement />);
+  await screen.findByText("带封面文章");
+  const image = view.container.querySelector("img");
+  expect(image?.getAttribute("src")).toBe(payload.data[0].coverImageUrl);
+  fireEvent.error(image!);
+  expect(screen.getByRole("img", { name: "封面不可用" })).not.toBeNull();
+});
+
+it("reports failed reads without empty results or zero statistics and retries", async () => {
+  api.listAdminArticles.mockRejectedValueOnce(new Error("offline"));
+  const view = render(<ArticleManagement />);
+  await screen.findByRole("alert");
+  expect(screen.queryByText("没有符合条件的文章")).toBeNull();
+  expect([...view.container.querySelectorAll("dd")].map((node) => node.textContent)).toEqual([
+    "—",
+    "—",
+    "—",
+    "—",
+  ]);
+  expect(screen.queryByRole("button", { name: "下一页" })).toBeNull();
+  api.listAdminArticles.mockResolvedValueOnce(response("恢复的文章"));
+  fireEvent.click(screen.getByRole("button", { name: "重试加载文章" }));
+  await screen.findByText("恢复的文章");
+  expect(screen.queryByRole("alert")).toBeNull();
+});
+
 function search(value: string) {
   const input = screen.getByRole("textbox", { name: "搜索文章" });
   fireEvent.change(input, { target: { value } });

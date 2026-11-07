@@ -5,6 +5,8 @@ import type {
   UpdateAdminSiteSettingsRequest,
 } from "@adrian-zephyr-notes/contracts";
 import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
+import { Button } from "../../components/ui/button";
 import { useConfirmationDialog } from "../../components/ui/confirmation-dialog";
 import {
   getAdminSiteConfig,
@@ -19,13 +21,14 @@ import {
 } from "./site-settings-editor";
 
 function SiteConfigManagement() {
+  const [activeSection, setActiveSection] = useState<"settings" | "announcements">("settings");
   const [config, setConfig] = useState<AdminSiteConfigResponse | null>(null);
   const [draftSettings, setDraftSettings] = useState<UpdateAdminSiteSettingsRequest | null>(null);
   const [editingAnnouncementId, setEditingAnnouncementId] = useState<string | null>(null);
   const [announcementDraft, setAnnouncementDraft] = useState<UpdateAdminSiteAnnouncementRequest>(
     {},
   );
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [savingAnnouncementId, setSavingAnnouncementId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -48,6 +51,26 @@ function SiteConfigManagement() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  async function reloadConfig() {
+    if (isLoading || isSavingSettings || savingAnnouncementId) return;
+    const hasSettingsChanges =
+      config &&
+      draftSettings &&
+      JSON.stringify(draftSettings) !== JSON.stringify(toSettingsDraft(config));
+    if (hasSettingsChanges || editingAnnouncementId) {
+      const confirmed = await confirm({
+        title: "重新读取站点配置",
+        description: "重新读取会替换当前未保存的设置和公告修改。可以取消并继续编辑。",
+        confirmLabel: "放弃修改并读取",
+        variant: "destructive",
+      });
+      if (!confirmed) return;
+    }
+    setEditingAnnouncementId(null);
+    setAnnouncementDraft({});
+    await loadConfig();
   }
 
   function startEditAnnouncement(announcement: AdminSiteAnnouncementResponse) {
@@ -133,33 +156,81 @@ function SiteConfigManagement() {
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
-      {errorMessage ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive xl:col-span-2">
-          {errorMessage}
+    <div className="grid min-w-0 gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-4">
+        <div role="group" aria-label="配置分区" className="flex flex-wrap gap-2">
+          <Button
+            aria-pressed={activeSection === "settings"}
+            aria-controls="site-settings"
+            variant={activeSection === "settings" ? "secondary" : "ghost"}
+            onClick={() => setActiveSection("settings")}
+          >
+            展示设置
+          </Button>
+          <Button
+            aria-pressed={activeSection === "announcements"}
+            aria-controls="site-announcements"
+            variant={activeSection === "announcements" ? "secondary" : "ghost"}
+            onClick={() => setActiveSection("announcements")}
+          >
+            公告
+          </Button>
         </div>
+        <Button
+          disabled={isLoading || isSavingSettings || Boolean(savingAnnouncementId)}
+          variant="outline"
+          onClick={() => void reloadConfig()}
+        >
+          <RefreshCw
+            className={isLoading ? "animate-spin motion-reduce:animate-none" : undefined}
+          />
+          {isLoading ? "正在读取" : "重新读取配置"}
+        </Button>
+      </div>
+      {errorMessage ? (
+        <p
+          role="alert"
+          className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        >
+          {errorMessage}
+        </p>
       ) : null}
-      <SiteAnnouncementsPanel
-        announcements={config?.announcements ?? []}
-        draft={announcementDraft}
-        editingAnnouncementId={editingAnnouncementId}
-        isLoading={isLoading}
-        savingAnnouncementId={savingAnnouncementId}
-        onCancelEdit={() => setEditingAnnouncementId(null)}
-        onChangeDraft={setAnnouncementDraft}
-        onRefresh={() => void loadConfig()}
-        onSave={(announcement) => void saveAnnouncement(announcement)}
-        onStartEdit={startEditAnnouncement}
-        onToggle={(announcement) => void toggleAnnouncement(announcement)}
-      />
-      {draftSettings ? (
-        <SiteSettingsEditor
-          settings={draftSettings}
-          saving={isSavingSettings}
-          onChange={setDraftSettings}
-          onSave={() => void saveSettings()}
-        />
+      {!config && isLoading ? (
+        <p role="status" className="py-10 text-sm text-muted-foreground">
+          正在读取站点配置…
+        </p>
       ) : null}
+      <fieldset
+        id="site-settings"
+        disabled={isLoading}
+        hidden={activeSection !== "settings"}
+        className="min-w-0"
+      >
+        {draftSettings ? (
+          <SiteSettingsEditor
+            settings={draftSettings}
+            saving={isSavingSettings}
+            onChange={setDraftSettings}
+            onSave={() => void saveSettings()}
+          />
+        ) : null}
+      </fieldset>
+      <div id="site-announcements" hidden={activeSection !== "announcements"}>
+        {config ? (
+          <SiteAnnouncementsPanel
+            announcements={config.announcements}
+            draft={announcementDraft}
+            editingAnnouncementId={editingAnnouncementId}
+            isLoading={isLoading}
+            savingAnnouncementId={savingAnnouncementId}
+            onCancelEdit={() => setEditingAnnouncementId(null)}
+            onChangeDraft={setAnnouncementDraft}
+            onSave={(announcement) => void saveAnnouncement(announcement)}
+            onStartEdit={startEditAnnouncement}
+            onToggle={(announcement) => void toggleAnnouncement(announcement)}
+          />
+        ) : null}
+      </div>
       {confirmationDialog}
     </div>
   );

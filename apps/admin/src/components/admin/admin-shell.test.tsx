@@ -4,7 +4,7 @@ import type {
   AdminUserResponse,
   AssistantCapabilitiesResponse,
 } from "@adrian-zephyr-notes/contracts";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminShell } from "./admin-shell";
@@ -12,7 +12,7 @@ import { AdminShell } from "./admin-shell";
 const api = vi.hoisted(() => ({
   getAssistantCapabilities: vi.fn<() => Promise<AssistantCapabilitiesResponse>>(),
 }));
-vi.mock("../assistant/assistant-api", () => api);
+vi.mock("../../features/assistant/assistant-api", () => api);
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, to }: { children: ReactNode; to: string }) => <a href={to}>{children}</a>,
 }));
@@ -56,3 +56,16 @@ function shell(id: string) {
     </AdminShell>
   );
 }
+
+it("opens the mobile navigation and returns focus to its trigger on Escape", async () => {
+  api.getAssistantCapabilities.mockResolvedValue({ enabled: false, tools: [] });
+  render(shell("admin-1"));
+  const trigger = screen.getByRole("button", { name: "打开管理导航" });
+  trigger.focus();
+  fireEvent.click(trigger);
+  const dialog = await screen.findByRole("dialog", { name: "内容工作台" });
+  expect(within(dialog).getByRole("link", { name: "评论" })).not.toBeNull();
+  fireEvent.keyDown(dialog, { key: "Escape" });
+  await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+  await waitFor(() => expect(document.activeElement).toBe(trigger));
+});

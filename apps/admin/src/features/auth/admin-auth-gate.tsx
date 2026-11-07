@@ -2,6 +2,7 @@ import type { AdminUserResponse } from "@adrian-zephyr-notes/contracts";
 import { Github, Loader2, ShieldCheck } from "lucide-react";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
+import { AdminThemeToggle } from "../../components/admin/admin-theme-toggle";
 import { Button } from "../../components/ui/button";
 import { Card, CardContent } from "../../components/ui/card";
 import { getAdminLoginUrl, getCurrentAdmin } from "../../lib/admin-api";
@@ -35,15 +36,18 @@ function AdminAuthGate({ children, returnTo = "/" }: AdminAuthGateProps) {
 
 function AdminLoginPage({ returnTo }: { returnTo: string }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-(--gradient-soft) p-6">
-      <Card className="w-full max-w-md border-white/55 bg-(--glass-surface-strong) shadow-(--shadow-glass-strong) backdrop-blur-xl dark:border-white/10">
+    <main className="relative grid min-h-dvh place-items-center bg-background p-6">
+      <div className="absolute top-4 right-4">
+        <AdminThemeToggle />
+      </div>
+      <Card className="w-full max-w-md border-border bg-card">
         <CardContent className="p-6">
           <div className="mb-6 flex items-center gap-3">
-            <span className="flex size-11 items-center justify-center rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-(--shadow-glass) ring-1 ring-white/30">
+            <span className="flex size-11 items-center justify-center rounded-lg bg-primary text-sm font-black text-primary-foreground">
               AZ
             </span>
             <div>
-              <h1 className="text-xl font-semibold">AZ Notes Studio</h1>
+              <h1 className="font-display text-2xl font-semibold">AZ Notes Studio</h1>
               <p className="text-sm text-muted-foreground">使用 GitHub 白名单进入内容工作台。</p>
             </div>
           </div>
@@ -61,10 +65,13 @@ function AdminLoginPage({ returnTo }: { returnTo: string }) {
 
 function AdminFullPageStatus({ title }: { title: string }) {
   return (
-    <main className="grid min-h-screen place-items-center bg-(--gradient-soft) p-6">
-      <Card className="w-full max-w-sm border-white/55 bg-(--glass-surface-strong) shadow-(--shadow-glass-strong) backdrop-blur-xl dark:border-white/10">
+    <main className="relative grid min-h-dvh place-items-center bg-background p-6">
+      <div className="absolute top-4 right-4">
+        <AdminThemeToggle />
+      </div>
+      <Card className="w-full max-w-sm border-border bg-card">
         <CardContent className="flex items-center gap-3 p-4">
-          <span className="grid size-10 place-items-center rounded-2xl bg-primary/10 text-primary ring-1 ring-primary/15">
+          <span className="grid size-10 place-items-center rounded-lg bg-primary/10 text-primary ring-1 ring-primary/15">
             <ShieldCheck className="size-4" />
           </span>
           <div className="min-w-0">

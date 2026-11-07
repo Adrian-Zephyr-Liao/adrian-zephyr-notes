@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AdminShell } from "../features/admin-shell/admin-shell";
+import { AdminShell } from "../components/admin/admin-shell";
 import { AdminAuthGate } from "../features/auth/admin-auth-gate";
 import { AuditLogManagement } from "../features/audit/audit-log-management";
 

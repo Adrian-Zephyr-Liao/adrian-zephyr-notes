@@ -18,6 +18,15 @@ describe("AuditLogManagement", () => {
   });
   afterEach(cleanup);
 
+  it("does not report a failed read as an empty audit history", async () => {
+    adminApiMocks.listAdminOperationLogs.mockRejectedValueOnce(new Error("offline"));
+    render(<AuditLogManagement />);
+    expect(await screen.findByRole("alert")).not.toBeNull();
+    expect(screen.queryByText("暂无审计日志。")).toBeNull();
+    expect(screen.queryByText("0 条")).toBeNull();
+    expect(screen.queryByRole("button", { name: "下一页" })).toBeNull();
+  });
+
   it("presents ordinary moderation and article audit records", async () => {
     render(<AuditLogManagement />);
     expect(await screen.findByText("评论已设为已隐藏")).not.toBeNull();

@@ -96,21 +96,24 @@ function ArticleWritingSurface({
 
   if (editorMode === "split") {
     return (
-      <div className="grid h-full min-h-0 overflow-y-auto xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:overflow-hidden">
-        <div className="min-h-[760px] border-b border-border/70 p-3 sm:p-4 xl:min-h-0 xl:overflow-hidden xl:border-r xl:border-b-0">
+      <div className="flex h-full min-h-0 flex-col overflow-y-auto xl:grid xl:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] xl:overflow-hidden">
+        <div className="shrink-0 border-b border-border/70 p-3 sm:p-4 xl:min-h-0 xl:overflow-y-auto xl:border-r xl:border-b-0">
           <ArticleEditorFields
             taxonomyOptions={taxonomyOptions}
             values={values}
             onChange={onChange}
           />
         </div>
-        <ArticlePreviewPane content={values.markdown} />
+        <ArticlePreviewPane
+          className="h-auto shrink-0 overflow-visible xl:h-full xl:overflow-y-auto"
+          content={values.markdown}
+        />
       </div>
     );
   }
 
   return (
-    <div className="h-full min-h-0 overflow-hidden p-3 sm:p-4">
+    <div className="h-full min-h-0 overflow-y-auto p-3 sm:p-4">
       <ArticleEditorFields taxonomyOptions={taxonomyOptions} values={values} onChange={onChange} />
     </div>
   );
@@ -120,10 +123,11 @@ function ArticleEditorLoadingPane() {
   return (
     <div
       className="grid h-full min-h-[520px] place-items-center bg-background/25 p-4"
+      role="status"
       aria-busy="true"
       aria-label="正在读取文章"
     >
-      <div className="w-full max-w-3xl rounded-3xl border border-border/70 bg-card/80 p-5 shadow-(--shadow-glass)">
+      <div className="w-full max-w-3xl rounded-xl border border-border/70 bg-card/80 p-5">
         <div className="mb-5 flex items-center justify-between gap-4">
           <div className="grid gap-2">
             <div className="h-4 w-32 rounded-full bg-muted/70 motion-safe:animate-pulse motion-reduce:animate-none" />
@@ -154,7 +158,7 @@ function ArticleEditorFields({
   values: ArticleEditorValues;
 }) {
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex min-h-0 flex-col gap-3 xl:min-h-full">
       <div className="grid shrink-0 gap-3 lg:grid-cols-[minmax(0,1fr)_160px_160px]">
         <Field label="标题">
           <Input
@@ -292,7 +296,7 @@ function MarkdownEditorField({
   }
 
   return (
-    <div className="flex min-h-[420px] min-w-0 flex-1 flex-col gap-1.5 xl:min-h-0">
+    <div className="flex min-w-0 flex-col gap-1.5 xl:min-h-72 xl:flex-1">
       <div className="flex min-h-8 items-center justify-between gap-3">
         <label className="text-xs font-medium text-muted-foreground" htmlFor="article-markdown">
           Markdown 内容
@@ -307,7 +311,7 @@ function MarkdownEditorField({
         id="article-markdown"
         aria-describedby="article-image-upload-status"
         className={cn(
-          "min-h-[420px] flex-1 resize-none overflow-auto font-mono leading-7 xl:min-h-0",
+          "h-[45dvh] min-h-64 flex-none resize-none overflow-auto font-mono leading-7 xl:h-auto xl:min-h-48 xl:flex-1",
           isDraggingImage && "border-primary bg-primary/5 ring-3 ring-primary/20",
         )}
         spellCheck={false}
@@ -493,10 +497,12 @@ function PublishSettingsPanel({
   );
 }
 
-function ArticlePreviewPane({ content }: { content: string }) {
+function ArticlePreviewPane({ content, className }: { content: string; className?: string }) {
   return (
-    <div className="h-full overflow-y-auto bg-background/55 p-5 sm:p-8">
-      <MarkdownPreview content={content || "暂无内容"} />
+    <div className={cn("h-full overflow-y-auto bg-background/55 p-5 sm:p-8", className)}>
+      <div className="mx-auto max-w-[70ch]">
+        <MarkdownPreview content={content || "暂无内容"} />
+      </div>
     </div>
   );
 }

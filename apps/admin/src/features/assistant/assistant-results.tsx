@@ -198,7 +198,7 @@ function AssistantActionCard({
         </>
       ) : null}
       {action.receipt ? (
-        <p className="text-sm text-emerald-700 dark:text-emerald-300" role="status">
+        <p className="text-sm text-primary" role="status">
           已于 {formatAssistantDate(action.receipt.appliedAt)} 设为
           {commentStatusLabel(action.receipt.status)}，审计记录已保存。
         </p>
