@@ -497,3 +497,49 @@ read-only production SSH check timed out; the native identity flow is still
 unavailable with the Mac locked. No upload, restart, policy change or access
 bypass occurred. Keep existing packages as evidence; select only a subsequently
 accepted release for the next publication attempt.
+
+## Admin redesign acceptance and production recovery
+
+Application `0e7ffc5fec3714d382349227a5db7e845da4d2ef` is accepted. Leader
+reviewed the source boundary, actual 1366x600 screenshot and version-bound
+independent reports. QA-004 passed 12 scenarios / 72 measured geometry states;
+UX-004 independently passed 16 distinct states plus stability confirmation.
+The textarea has at least 220px outer / 202px content height, seven visible
+28px lines, with actual editing, outer/inner bottom scrolling and retained
+mode/cloud-draft content. The prior zero-content-height defect is closed.
+Other accepted evidence remains scoped: MOD 94/94; the corrected page identity,
+contrast, statistics, configuration save/refresh and PM matrices in rounds
+002/003. Later tests did not pretend to rerun unchanged behavior.
+
+Final app gates: clean `vp check`, 101 files / 579 tests, admin production build;
+CI `42331118421` succeeded, including server/website builds, HTTP and browser
+checks. Before the final local pass, native checking temporarily could not
+resolve Vitest in server specs even though package/type files existed.
+`vp env doctor` passed; `vp install` completed without dependency/lock changes,
+then all gates passed. The initial failure is retained as
+`iteration-03/runtime-resolution-failure.log`; its precise transient cause was
+not established, and no assertion/configuration was weakened.
+
+The next release bundle must be built from this accepted code or a proven
+documentation-only descendant, with exact revision, checksums and image IDs
+recorded in `iteration-03/release-pending.json`. The rejected 9462736 package
+and older candidates MUST NOT be selected. Source acceptance is not production
+acceptance: no upload or restart has occurred. Latest normal SSH reaches an
+explicit Tailscale identity-verification gate; the native login flow cannot
+continue while the Mac is locked. Earlier TCP timeouts did not lead to any
+network, credential or permission changes.
+
+When normal authorized access resumes, first read actual production version,
+protected Caddy/host configuration, active routes/containers, memory/storage and
+Assistant RUNNING/CANCELLING counts. Retain serving images and use the existing
+prebuilt publisher for all pending server/website/admin code. The server still
+requires its bounded single-instance restart; never start a parallel API. No
+migration was introduced. Verify actual versions, public routes, health and
+affected paths after publication; deployment output alone is not acceptance.
+
+The four role chats remain reusable. A next-round candidate is being investigated
+read-only: `AdminAccount` inherits `logoutAdmin().finally(onLogout)`, which may
+clear only frontend identity after a failed logout. PM must reproduce with
+isolated 503/abort and canonical identity/reload evidence before any fix is
+selected; this is not yet a confirmed defect or an accepted implementation.
+No unattended background recovery/iteration was scheduled.
