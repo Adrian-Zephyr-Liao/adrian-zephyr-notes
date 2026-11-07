@@ -161,13 +161,23 @@ it.each(["network", "4xx"])(
     );
     await act(async () => view.result.current.submitMessage());
     view.unmount();
+    const restoredRead = deferred();
+    api.loadGuestbookMessages.mockReturnValueOnce(restoredRead.promise);
     const back = renderHook(() => useGuestbookBoard());
     await waitFor(() => expect(back.result.current.body).toBe("keep me"));
+    expect(back.result.current.loadState).toBe("loading");
+    expect(back.result.current.guestNickname).toBe("Visitor");
+    // Restoring sessionStorage is independent of the discussion read. Wait for
+    // publication readiness before testing that a confirmed POST clears it.
+    await act(async () => restoredRead.resolve(page()));
+    await waitFor(() => expect(back.result.current.loadState).toBe("ready"));
     api.createGuestbookMessage.mockResolvedValueOnce({
       kind: "created",
       message: { id: "created" },
     });
     await act(async () => back.result.current.submitMessage());
+    expect(api.createGuestbookMessage).toHaveBeenCalledTimes(2);
+    expect(back.result.current.body).toBe("");
     back.unmount();
     const cleared = renderHook(() => useGuestbookBoard());
     await waitFor(() => expect(cleared.result.current.loadState).toBe("ready"));
@@ -216,6 +226,114 @@ it("keeps a 401 draft on the page when storage access itself is blocked", async 
   expect(view.result.current.body).toBe("not saved");
   expect(view.result.current.draft.storageError).toContain("先复制");
 });
+it("clears a confirmed published revision with an empty record when only removal fails", async () => {
+  const view = renderHook(() => useGuestbookBoard());
+  await waitFor(() => expect(view.result.current.loadState).toBe("ready"));
+  act(() => {
+    view.result.current.setBody("confirmed published");
+    view.result.current.setGuestNickname("Visitor");
+  });
+  vi.spyOn(Object.getPrototypeOf(window.sessionStorage), "removeItem").mockImplementation(() => {
+    throw new Error("cannot remove");
+  });
+  api.createGuestbookMessage.mockResolvedValueOnce({ kind: "created", message: { id: "created" } });
+  await act(async () => view.result.current.submitMessage());
+  expect(view.result.current.body).toBe("");
+  view.unmount();
+  const back = renderHook(() => useGuestbookBoard());
+  await waitFor(() => expect(back.result.current.loadState).toBe("ready"));
+  expect(back.result.current.body).toBe("");
+  expect(back.result.current.draft.status).toBe(null);
+  expect(api.createGuestbookMessage).toHaveBeenCalledTimes(1);
+});
+it("uses a conservative restoration notice when both cleanup operations fail", async () => {
+  const view = renderHook(() => useGuestbookBoard());
+  await waitFor(() => expect(view.result.current.loadState).toBe("ready"));
+  act(() => {
+    view.result.current.setBody("possibly published saved content");
+    view.result.current.setGuestNickname("Visitor");
+  });
+  const remove = vi
+    .spyOn(Object.getPrototypeOf(window.sessionStorage), "removeItem")
+    .mockImplementation(() => {
+      throw new Error("cannot remove");
+    });
+  const write = vi
+    .spyOn(Object.getPrototypeOf(window.sessionStorage), "setItem")
+    .mockImplementation(() => {
+      throw new Error("cannot write");
+    });
+  api.createGuestbookMessage.mockResolvedValueOnce({ kind: "created", message: { id: "created" } });
+  await act(async () => view.result.current.submitMessage());
+  expect(view.result.current.draft.storageError).toContain("清理失败");
+  view.unmount();
+  remove.mockRestore();
+  write.mockRestore();
+  const back = renderHook(() => useGuestbookBoard());
+  await waitFor(() => expect(back.result.current.body).toBe("possibly published saved content"));
+  expect(back.result.current.draft.status).toBe("已恢复保存的内容，请先核对是否已发布。");
+  expect(back.result.current.draft.status).not.toContain("未发布");
+  expect(api.createGuestbookMessage).toHaveBeenCalledTimes(1);
+});
+it("does not replace a later draft with a cleanup fallback for an old successful POST", async () => {
+  const view = renderHook(() => useGuestbookBoard());
+  await waitFor(() => expect(view.result.current.loadState).toBe("ready"));
+  act(() => {
+    view.result.current.setBody("submitted");
+    view.result.current.setGuestNickname("Visitor");
+  });
+  const write = deferred();
+  api.createGuestbookMessage.mockReturnValueOnce(write.promise);
+  let pending!: Promise<void>;
+  act(() => {
+    pending = view.result.current.submitMessage();
+  });
+  act(() => view.result.current.setBody("later draft"));
+  const remove = vi
+    .spyOn(Object.getPrototypeOf(window.sessionStorage), "removeItem")
+    .mockImplementation(() => {
+      throw new Error("cannot remove");
+    });
+  await act(async () => {
+    write.resolve({ kind: "created", message: { id: "created" } });
+    await pending;
+  });
+  expect(remove).not.toHaveBeenCalled();
+  expect(view.result.current.body).toBe("later draft");
+  view.unmount();
+  const back = renderHook(() => useGuestbookBoard());
+  await waitFor(() => expect(back.result.current.body).toBe("later draft"));
+});
+
+it("allows ordinary login without unsent content even when old storage cannot be read or cleared", async () => {
+  api.loadCurrentUser.mockResolvedValue(null);
+  const remove = vi.fn(() => {
+    throw new Error("denied");
+  });
+  const write = vi.fn(() => {
+    throw new Error("denied");
+  });
+  vi.spyOn(window, "sessionStorage", "get").mockReturnValue({
+    getItem: vi.fn(() => {
+      throw new Error("unknown old draft");
+    }),
+    removeItem: remove,
+    setItem: write,
+    clear: vi.fn(),
+    key: vi.fn(),
+    length: 0,
+  });
+  const view = renderHook(() => useGuestbookBoard());
+  await waitFor(() => expect(view.result.current.loadState).toBe("ready"));
+  expect(view.result.current.body).toBe("");
+  expect(view.result.current.guestNickname).toBe("");
+  expect(view.result.current.draft.replyId).toBe(null);
+  act(() => view.result.current.draft.login());
+  expect(storage.navigateToLogin).toHaveBeenCalledTimes(1);
+  expect(remove).not.toHaveBeenCalled();
+  expect(write).not.toHaveBeenCalled();
+});
+
 it("requires a fresh successful copy and an explicit continue before bypassing failed storage", async () => {
   api.loadCurrentUser.mockResolvedValue(null);
   render(<GuestbookBoard />);

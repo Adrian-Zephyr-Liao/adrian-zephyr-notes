@@ -44,7 +44,7 @@ function useDiscussionDraft(scope: string, loginUrl: string) {
     setSnapshot(restored);
     setCopied(null);
     setCopying(false);
-    setStatus(restored.value.body ? "已恢复本标签页未发布的草稿。" : null);
+    setStatus(restored.value.body ? "已恢复保存的内容，请先核对是否已发布。" : null);
     setAuthFailed(new URLSearchParams(window.location.search).get("auth") === "failed");
   }, [capture]);
 
@@ -68,7 +68,13 @@ function useDiscussionDraft(scope: string, loginUrl: string) {
     persist(next);
   }
   function login() {
-    if (persist()) navigateToLogin(loginUrl);
+    const saved = capture();
+    // No unsent content can be lost, and unreadable old storage must stay untouched.
+    if (!saved.value.body && !saved.value.nickname && !saved.value.replyId) {
+      navigateToLogin(loginUrl);
+      return;
+    }
+    if (persist(saved)) navigateToLogin(loginUrl);
   }
   async function copy() {
     const saved = capture();
@@ -99,8 +105,17 @@ function useDiscussionDraft(scope: string, loginUrl: string) {
     let failed = false;
     try {
       // Compare the exact submitted revision, including edits made after navigating away.
-      if (window.sessionStorage.getItem(submitted.key) === encodeDraft(submitted.value))
-        window.sessionStorage.removeItem(submitted.key);
+      const submittedValue = encodeDraft(submitted.value);
+      if (window.sessionStorage.getItem(submitted.key) === submittedValue) {
+        try {
+          window.sessionStorage.removeItem(submitted.key);
+        } catch {
+          // Some storage policies allow overwriting but deny deletion. Recheck
+          // ownership before replacing this exact submitted revision with an empty record.
+          if (window.sessionStorage.getItem(submitted.key) === submittedValue)
+            window.sessionStorage.setItem(submitted.key, encodeDraft(emptyDraft()));
+        }
+      }
     } catch {
       failed = true;
     }
