@@ -612,3 +612,19 @@ Logs: `iteration-04/check.log`, `test.log`, `admin-build.log`. Independent
 candidate browser/product/design acceptance and production remain pending.
 QA independently reproduced five baseline failures and prepared 16 scenarios;
 all baseline and candidate evidence must remain separate.
+
+LOGOUT candidate `13f01aaa21dd68d4e421ab82130232f7da86ebfd` is PR #8
+(draft). PM-002 passed its four scoped outcome/retry checks; QA's original
+16 scenarios and strengthened cross-breakpoint visible-trigger focus checks
+passed. Design then found, and QA independently reproduced, a new P2: pure
+Close -> Tab -> Retry -> Enter -> held response -> repeated Tab/ShiftTab can
+leave the still-open dialog when the focused Retry becomes native disabled.
+Mouse close/Escape passing cannot substitute for this keyboard path.
+
+LOGOUT-DEV-003 owns only the coordinator and its adjacent regression test.
+Transfer focus to the usable Close control before disabling the focused retry
+button; retain closable pending feedback and all previous semantics. Never
+change the shared primitive or force-focus a control in browser tests to hide
+the failure. Preserve old version-bound failure evidence under
+`iteration-04/logout-ux-002` and `qa/logout-keyboard`. New targeted pure-keyboard
+acceptance is required before the PR can leave draft. Production is unchanged.

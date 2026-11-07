@@ -37,6 +37,7 @@ function useAdminLogout(onLogout: () => void, buttons: RefObject<HTMLButtonEleme
     inFlight.current = true;
     confirmed.current = false;
     if (button) origin.current = button;
+    else closeRef.current?.focus();
     setPending(true);
     let succeeded = false;
     try {

@@ -195,7 +195,13 @@ describe("shared page logout recovery", () => {
       fireEvent.click(entry("desktop"));
       await screen.findByRole("alertdialog");
       view.rerender(<Page onLogout={onLogout} mobile />);
-      fireEvent.click(screen.getByRole("button", { name: "重试退出" }));
+      const retryButton = screen.getByRole("button", { name: "重试退出" });
+      retryButton.focus();
+      expect(document.activeElement).toBe(retryButton);
+      fireEvent.click(retryButton);
+      const close = screen.getByRole("button", { name: "关闭" }) as HTMLButtonElement;
+      expect(close.disabled).toBe(false);
+      expect(document.activeElement).toBe(close);
       const busy = screen.getByRole("button", { name: "退出中…" }) as HTMLButtonElement;
       expect(busy.disabled).toBe(true);
       fireEvent.click(busy);
