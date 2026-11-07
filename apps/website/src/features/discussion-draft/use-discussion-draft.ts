@@ -7,7 +7,7 @@ import {
   readDraft,
   saveDraft,
 } from "./draft-storage";
-import type { DraftSnapshot, DraftValue } from "./draft-storage";
+import type { DraftSnapshot, DraftValue } from "./types";
 
 const SAVE_ERROR = "草稿暂时无法保存，请先复制内容再登录。";
 function useDiscussionDraft(scope: string, loginUrl: string) {

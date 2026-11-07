@@ -1,5 +1,5 @@
-type DraftValue = { body: string; nickname: string; replyId: string | null; revision: string };
-type DraftSnapshot = { key: string; value: DraftValue };
+import type { DraftSnapshot, DraftValue } from "./types";
+
 const emptyDraft = (): DraftValue => ({
   body: "",
   nickname: "",
@@ -45,4 +45,3 @@ function navigateToLogin(url: string) {
   window.location.assign(url);
 }
 export { draftKey, emptyDraft, encodeDraft, navigateToLogin, readDraft, saveDraft };
-export type { DraftValue, DraftSnapshot };
