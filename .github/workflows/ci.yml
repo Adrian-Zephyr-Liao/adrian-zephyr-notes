@@ -51,6 +51,13 @@ jobs:
       - name: Build server
         run: pnpm --filter @adrian-zephyr-notes/server build
 
+      - name: Test server HTTP boundaries
+        run: >-
+          pnpm --filter @adrian-zephyr-notes/server exec vp test run
+          --config vitest.e2e.config.ts
+          test/article-image-upload-http.e2e-spec.ts
+          test/public-article-query-http.e2e-spec.ts
+
       - name: Build website
         run: pnpm --filter @adrian-zephyr-notes/website build
 

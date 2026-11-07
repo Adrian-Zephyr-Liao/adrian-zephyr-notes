@@ -42,6 +42,8 @@ class AdminArticleImagesController {
       limits: {
         fileSize: ARTICLE_IMAGE_MAX_BYTES,
         files: 1,
+        // This endpoint accepts only a file; reject field names before bracket parsing.
+        fields: 0,
       },
     }),
   )

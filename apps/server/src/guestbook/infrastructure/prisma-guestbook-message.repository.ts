@@ -1,6 +1,9 @@
 import { Injectable } from "@nestjs/common";
+import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
 import type {
+  AnonymousGuestbookMessageLimit,
+  CreateAnonymousGuestbookMessageInput,
   CreateGuestbookMessageInput,
   GuestbookMessageRepository,
   GuestbookMessagesListInput,
@@ -18,16 +21,31 @@ class PrismaGuestbookMessageRepository implements GuestbookMessageRepository<
 > {
   constructor(private readonly prisma: PrismaService) {}
 
-  countRecentAnonymousMessages(input: { guestFingerprint: string; since: Date }) {
-    return this.prisma.guestbookMessage.count({
-      where: {
-        authorUserId: null,
-        guestFingerprint: input.guestFingerprint,
-        createdAt: {
-          gte: input.since,
-        },
+  createAnonymousWithinLimit(
+    input: CreateAnonymousGuestbookMessageInput,
+    policy: AnonymousGuestbookMessageLimit,
+  ) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        // The quota check and insert must serialize across API processes for this fingerprint.
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`guestbook:${input.guestFingerprint}`}, 0))`;
+        const recentMessageCount = await tx.guestbookMessage.count({
+          where: {
+            authorUserId: null,
+            guestFingerprint: input.guestFingerprint,
+            createdAt: { gte: policy.since },
+          },
+        });
+        if (recentMessageCount >= policy.limit) return null;
+
+        return tx.guestbookMessage.create({
+          data: { ...input, authorUserId: null },
+          include: guestbookMessageCreateInclude,
+        });
       },
-    });
+      // After waiting for the lock, the count must see the previous transaction's commit.
+      { isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted },
+    );
   }
 
   create(input: CreateGuestbookMessageInput) {

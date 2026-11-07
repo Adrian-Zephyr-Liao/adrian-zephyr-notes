@@ -2,6 +2,10 @@ packages:
   - "apps/*"
   - "packages/*"
 
+overrides:
+  # Nest 11 pins the vulnerable parser; keep the patch scoped to that adapter.
+  "@nestjs/platform-express@11.1.27>multer": "2.3.0"
+
 allowBuilds:
   "@prisma/engines": true
   "@scarf/scarf": set this to true or false

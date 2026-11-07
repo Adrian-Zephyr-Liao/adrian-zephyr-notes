@@ -5,13 +5,13 @@ import type {
   ArticleListResponse,
 } from "@adrian-zephyr-notes/contracts";
 import type { Article } from "../domain/article.entity";
-import type { PaginatedResult } from "../domain/article.repository";
+import type { ArticlePreview, PaginatedResult } from "../domain/article.repository";
 import {
   ARTICLE_SUMMARY_PROMPT_VERSION,
   createArticleSummaryContentHash,
 } from "../application/article-summary-content-hash";
 
-function toArticleListItemResponse(article: Article): ArticleListItemResponse {
+function toArticleListItemResponse(article: ArticlePreview): ArticleListItemResponse {
   const publishedAt = article.publishedAt;
 
   if (!publishedAt) {
@@ -43,7 +43,7 @@ function toArticleDetailResponse(article: Article): ArticleDetailResponse {
   };
 }
 
-function toArticleListResponse(result: PaginatedResult<Article>): ArticleListResponse {
+function toArticleListResponse(result: PaginatedResult<ArticlePreview>): ArticleListResponse {
   return {
     data: result.data.map(toArticleListItemResponse),
     pagination: result.pagination,

@@ -9,14 +9,47 @@ import type { GithubOAuthClient } from "../domain/github-oauth-client";
 import { AuthController } from "./auth.controller";
 
 describe("AuthController", () => {
-  it("rejects GitHub callbacks with mismatched state", async () => {
+  it("keeps a valid session usable when another cookie has malformed encoding", async () => {
+    const controller = createController();
+    const user = {
+      id: "user-1",
+      githubId: "123",
+      login: "reader",
+      name: null,
+      avatarUrl: null,
+      profileUrl: "https://github.com/reader",
+    };
+    controller.getCurrentUser.execute.mockResolvedValue(user);
+
+    await expect(
+      controller.authController.me(
+        createRequestDouble("analytics=%E0%A4%A; azn_session=encoded%2Ftoken; theme=%"),
+      ),
+    ).resolves.toEqual({ user });
+    expect(controller.getCurrentUser.execute).toHaveBeenCalledWith("encoded/token");
+  });
+
+  it("treats a malformed session cookie as absent instead of failing the request", async () => {
+    const controller = createController();
+    controller.getCurrentUser.execute.mockResolvedValue(null);
+
+    await expect(
+      controller.authController.me(createRequestDouble("azn_session=%E0%A4%A")),
+    ).resolves.toEqual({ user: null });
+    expect(controller.getCurrentUser.execute).toHaveBeenCalledWith(undefined);
+  });
+
+  it.each([
+    ["mismatched", "expected", "actual"],
+    ["malformed", "%E0%A4%A", "%E0%A4%A"],
+  ])("rejects GitHub callbacks with a %s state cookie", async (_label, cookieState, state) => {
     const controller = createController();
     const response = createResponseDouble();
     const request = createRequestDouble(
-      "azn_oauth_state=expected; azn_oauth_return_to=%2Fposts%2F5f7448b7",
+      `azn_oauth_state=${cookieState}; azn_oauth_return_to=%2Fposts%2F5f7448b7`,
     );
 
-    await controller.authController.githubCallback("code", "actual", request, response);
+    await controller.authController.githubCallback("code", state, request, response);
 
     expect(controller.completeGithubLogin.execute).not.toHaveBeenCalled();
     expect(response.redirect).toHaveBeenCalledWith(
@@ -28,7 +61,7 @@ describe("AuthController", () => {
     const controller = createController();
     const response = createResponseDouble();
     const request = createRequestDouble(
-      "azn_oauth_state=state; azn_oauth_verifier=verifier; azn_oauth_return_to=%2Fposts%2F5f7448b7",
+      "analytics=%; azn_oauth_state=state; azn_oauth_verifier=verifier; azn_oauth_return_to=%2Fposts%2F5f7448b7",
     );
 
     await controller.authController.githubCallback("code", "state", request, response);
@@ -113,7 +146,7 @@ function createController() {
   };
   const getCurrentUser = {
     execute: vi.fn(),
-  } as unknown as GetCurrentUserUseCase;
+  } as unknown as GetCurrentUserUseCase & { execute: ReturnType<typeof vi.fn> };
   const logoutUseCase = {
     execute: vi.fn(),
   } as unknown as LogoutUseCase;
@@ -138,6 +171,7 @@ function createController() {
       githubOAuthClient,
     ),
     completeGithubLogin,
+    getCurrentUser,
   };
 }
 

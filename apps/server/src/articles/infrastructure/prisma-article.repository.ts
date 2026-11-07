@@ -3,7 +3,31 @@ import { Prisma } from "@prisma/client";
 import { PrismaService } from "../../database/prisma.service";
 import { ArticleAiSummary } from "../domain/article-ai-summary.entity";
 import { Article } from "../domain/article.entity";
-import type { ArticleRepository, ListPublishedArticlesFilters } from "../domain/article.repository";
+import type {
+  ArticlePreview,
+  ArticleRepository,
+  ListPublishedArticlesFilters,
+} from "../domain/article.repository";
+
+const articlePreviewSelect = {
+  id: true,
+  slug: true,
+  title: true,
+  description: true,
+  origin: true,
+  sourceName: true,
+  sourceAuthor: true,
+  sourceUrl: true,
+  category: { select: { name: true, slug: true } },
+  tags: { select: { tag: { select: { name: true, slug: true } } } },
+  coverImageUrl: true,
+  wordCount: true,
+  readingMinutes: true,
+  publishedAt: true,
+  updatedAt: true,
+} satisfies Prisma.ArticleSelect;
+
+type ArticlePreviewRecord = Prisma.ArticleGetPayload<{ select: typeof articlePreviewSelect }>;
 
 const articleInclude = {
   category: true,
@@ -167,7 +191,7 @@ class PrismaArticleRepository implements ArticleRepository {
     const [records, totalItems] = await this.prisma.$transaction([
       this.prisma.article.findMany({
         where,
-        include: articleInclude,
+        select: articlePreviewSelect,
         orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
         skip: (filters.page - 1) * filters.pageSize,
         take: filters.pageSize,
@@ -176,7 +200,7 @@ class PrismaArticleRepository implements ArticleRepository {
     ]);
 
     return {
-      data: records.map(toDomainArticle),
+      data: records.map(toArticlePreview),
       pagination: {
         page: filters.page,
         pageSize: filters.pageSize,
@@ -228,23 +252,21 @@ function buildPublishedWhere(filters: ListPublishedArticlesFilters): Prisma.Arti
   return where;
 }
 
-function toDomainArticle(record: ArticleRecord) {
-  return Article.create({
+function toArticlePreview(record: ArticlePreviewRecord): ArticlePreview {
+  return {
     id: record.id,
     slug: record.slug,
-    title: record.title,
-    description: record.description,
-    markdown: record.markdown,
+    title: record.title.trim(),
+    description: record.description.trim(),
     origin: record.origin,
     source:
       record.origin === "REPOSTED" && record.sourceName && record.sourceUrl
         ? {
-            author: record.sourceAuthor,
-            name: record.sourceName,
-            url: record.sourceUrl,
+            author: record.sourceAuthor?.trim() || null,
+            name: record.sourceName.trim(),
+            url: record.sourceUrl.trim(),
           }
         : null,
-    status: record.status,
     category: record.category
       ? {
           slug: record.category.slug,
@@ -259,8 +281,16 @@ function toDomainArticle(record: ArticleRecord) {
     wordCount: record.wordCount,
     readingMinutes: record.readingMinutes,
     publishedAt: record.publishedAt,
-    createdAt: record.createdAt,
     updatedAt: record.updatedAt,
+  };
+}
+
+function toDomainArticle(record: ArticleRecord) {
+  return Article.create({
+    ...toArticlePreview(record),
+    markdown: record.markdown,
+    status: record.status,
+    createdAt: record.createdAt,
     aiSummary: record.aiSummary ? toDomainArticleAiSummary(record.aiSummary) : null,
   });
 }

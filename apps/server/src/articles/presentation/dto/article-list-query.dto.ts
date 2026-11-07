@@ -6,6 +6,7 @@ class ArticleListQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(10_000)
   page?: number;
 
   @IsOptional()
@@ -33,6 +34,7 @@ class ArticleTagListQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(10_000)
   page?: number;
 
   @IsOptional()

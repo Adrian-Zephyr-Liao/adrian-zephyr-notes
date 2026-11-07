@@ -34,6 +34,23 @@ type PublishedArticleTag = {
 
 type ListPublishedTagsFilters = { now: Date; page: number; pageSize: number };
 
+type ArticlePreview = Pick<
+  Article,
+  | "id"
+  | "slug"
+  | "title"
+  | "description"
+  | "origin"
+  | "source"
+  | "category"
+  | "tags"
+  | "coverImageUrl"
+  | "wordCount"
+  | "readingMinutes"
+  | "publishedAt"
+  | "updatedAt"
+>;
+
 type ArticleRepository = {
   findPublishedCategoryBySlug(slug: string, now: Date): Promise<PublishedArticleCategory | null>;
   findPublishedBySlug(slug: string, now: Date): Promise<Article | null>;
@@ -42,13 +59,14 @@ type ArticleRepository = {
   listPublishedTags(
     filters: ListPublishedTagsFilters,
   ): Promise<PaginatedResult<PublishedArticleTag>>;
-  listPublished(filters: ListPublishedArticlesFilters): Promise<PaginatedResult<Article>>;
+  listPublished(filters: ListPublishedArticlesFilters): Promise<PaginatedResult<ArticlePreview>>;
 };
 
 const ARTICLE_REPOSITORY = Symbol("ARTICLE_REPOSITORY");
 
 export { ARTICLE_REPOSITORY };
 export type {
+  ArticlePreview,
   ArticleRepository,
   ListPublishedArticlesFilters,
   ListPublishedTagsFilters,
