@@ -278,7 +278,10 @@ Candidate `1f799718` integrated as `5be5101`. Leader reviewed the single GFM AST
 pass, meaningful bounded context, document-local ordinal, three render modes and
 unchanged scrolling markup/styles. PM-008 verified repeat-render/view stability;
 UX-006 passed four complete axe scans and 16 focus/scroll checks on desktop/375px
-and both themes. QA-008 is finishing its independent report.
+and both themes. QA-008 independently passed its desktop/mobile matrix, nine
+targeted existing tests and 11 additional server/document/stream cases. No scoped
+blocker remains. PR #6 passed CI `42325911351` and merged as
+`61523ae9dcf55602ae803dec78ba5b1ddca6f44f`.
 
 Final integrated source checks: `vp check` clean; 100 files / 568 tests passed;
 server, website and admin production builds passed; compiled HTTP six cases
@@ -290,10 +293,43 @@ The earlier isolated 500-to-404 HTTP proof and a real Next browser check against
 a controlled 404 backend verify both boundaries separately. They do not constitute
 a deployed end-to-end check.
 
-## Recovery
+## Final checkpoint and recovery
 
-Read this record and current Git status before proceeding. Retrieve the four
-chats above. Round 1 is code-accepted and awaits SSH recovery/publication; round
-2 is in final code acceptance. Do not claim either round production-accepted
-without restored access, the exact tested prebuilt revision and live verification.
-Continue independent work while an external release constraint remains.
+Both rounds are code-accepted and merged. Production publication is blocked,
+not complete. Final read-only public probes returned 200 for the website, admin
+and site configuration; the known invalid-slug endpoint still returned 500,
+consistent with the fix not having been deployed. No business writes were used.
+
+The approved application release is `bec1825383b565c213329c1fa2fc14b5f9125d28`.
+Its complete tree matches merge `61523ae` before this documentation checkpoint.
+The three `linux/amd64` images (`server website admin`), source bundle and verified
+SHA256 manifest are ready at:
+
+`/Users/liaowenrun/.codex/visualizations/2026/11/07/01a1b1a3-9a22-7af0-8847-123cea344932/iteration-02/prebuilt-final`
+
+The compressed image archive is approximately 230 MiB. `release-pending.json`
+beside it records the exact revision and the absence of any upload/deployment.
+The older `279e639` candidate is superseded and must not be published.
+
+Resume in the canonical checkout:
+`/Users/liaowenrun/Desktop/Code/github.com/Adrian-Zephyr-Liao/adrian-zephyr-notes`.
+Read Git status, this record, the four role chats and the evidence receipts.
+Three completed managed worktrees were archived with recoverable snapshots.
+The TABLE worktree is protected as this chat's primary checkout; retain it and
+synchronize its source with integrated main rather than bypassing that protection.
+All owned previews/fixtures (4324/4325/4334/4335) were stopped after acceptance.
+
+Next actionable task: restore the existing SSH identity-verification flow, then
+capture a fresh production baseline and use the existing prebuilt publisher.
+The API requires the documented bounded single-instance maintenance restart;
+verify active Assistant work and compatibility first. Frontends use healthy
+candidates and a Caddy switch. No database migration is introduced by these rounds.
+Retain the currently serving images and protected host configuration; verify
+actual revisions, routes, health, resource state and affected paths after release.
+Use the documented rollback on a release regression. Do not turn a successful
+upload or deploy command into a production-acceptance claim.
+
+CLI authentication and actual GitHub OAuth success remain unverified/expired;
+fixture results do not substitute for them. No unattended recovery or scheduled
+iteration was installed. Code investigation is closed for this window; do not
+manufacture more changes while publication awaits an external access condition.
