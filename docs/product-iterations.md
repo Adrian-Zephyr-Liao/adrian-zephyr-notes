@@ -628,3 +628,30 @@ change the shared primitive or force-focus a control in browser tests to hide
 the failure. Preserve old version-bound failure evidence under
 `iteration-04/logout-ux-002` and `qa/logout-keyboard`. New targeted pure-keyboard
 acceptance is required before the PR can leave draft. Production is unchanged.
+
+LOGOUT application `97109921dbe56ad7413203387b14f855f6282c3a` passed the
+focused fix: transfer focus to Close before the current Retry is disabled.
+The regression test first establishes actual Retry focus, so it would fail
+without that transfer; it does not rely on click implicitly focusing a button.
+Full `vp check`, 102 files / 588 tests and admin build passed again; CI
+`42333630051` succeeded. The shared primitive and business flow were untouched.
+
+QA-003 retained both original failing keyboard assertions, now 2/2 passing,
+plus eight nearby cases and 128 real Tab/ShiftTab checks. UX-003 independently
+passed 72 focus records across four isolated sessions, including pending close,
+breakpoint changes, page/draft retention, repeat failure and confirmed success.
+Leader reviewed source, version binding and actual light/mobile and dark dialog
+screenshots. All design/test blockers are closed. The earlier 16-case outcome
+matrix and PM's four independent success/unknown/retry cases remain valid; no
+claim of rerunning unchanged checks is made. Reports live in
+`iteration-04/qa/LOGOUT-QA-003-report.md` and
+`iteration-04/logout-ux-003/LOGOUT-UX-003-report.md`.
+
+The final bundle will include the accepted redesign, logout recovery and all
+previous pending code. Record its exact documentation-only descendant release
+revision, image identities, checksums, merge and CI in the round-4 release receipt.
+Existing release/rollback documentation remains the publication procedure.
+Production is still unchanged: normal SSH requires Tailscale identity check,
+and the latest native attempt still reports the Mac locked. A concise asynchronous
+unlock request was sent while independent work continued; no answer or access
+change is assumed. Do not bypass the lock/check or claim a production release.
