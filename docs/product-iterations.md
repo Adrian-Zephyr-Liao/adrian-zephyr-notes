@@ -425,3 +425,53 @@ files, no issues), `vp test` (101 files / 578 tests), admin production build
 Tailwind typography shorthand findings before the clean check. Logs are the
 `iteration-03/integrated-*.log` files. Candidate browser, design and PM acceptance
 are pending; these checks alone do not authorize an acceptance claim.
+
+Candidate `8152e2f52d443927c5e7d299f8071edc5cb10a05` was committed/pushed and
+opened as draft PR #7. CI run `42329317737` succeeded, including full existing
+website/server checks. QA owns immutable candidate 4341 with the revision header;
+design owns immutable baseline 4340. No product release has occurred.
+
+Independent acceptance found concrete rework despite green source gates:
+
+- PM reproduced the list total changing 12 to 4/3/1 with filters. Rename only
+  the metric to matching articles; retain the original API/pagination semantics.
+- QA and design independently found light-theme small-text/badge contrast below
+  4.5:1 on card/muted surfaces. Correct actual combinations, not assertions.
+- Design ADM-UX-F1 (P2) reproduced mobile split preview overlapping the textarea
+  and edit mode clipping its bottom at 390x844. Fix natural mobile layout and
+  deliberate scrolling without changing drafts/modes/Markdown behavior.
+- Design ADM-UX-F2 (P3) confirmed a 2375px mobile configuration form with save
+  only at its top. Leader added a normal-flow bottom save action sharing exactly
+  the existing callback/busy state; narrow format/lint passed, browser recheck pending.
+
+ADM-DEV-006/007 are assigned to the existing developer for contrast, metric label
+and writing layout. Root retains site-config ownership. Do not overwrite 4341
+while current acceptance finishes. QA's complete MOD regression passed 94/94,
+including delayed dialog-close animation and narrow-screen focus; no hooks changed.
+PM's independent narrow logout, writing return/recovered draft, configuration
+section preservation and cancelled refresh checks passed. Final acceptance is
+not yet complete. Leader inspected the actual candidate article, Assistant,
+dashboard and configuration screenshots, and reviewed source boundaries.
+
+Leader also found incorrect URLs in part of the QA scan harness (`/site/config`,
+`/oauth/authorize`, `conversationId`). These are validation mistakes, not product
+regressions. QA must preserve the failed evidence, correct the harness to actual
+`/site`, `/oauth/device` and `conversation` routes, assert intended business
+content, and fill the resulting coverage gap before reporting final acceptance.
+
+006/007 rework is frozen: mobile split now flows vertically and edit mode has
+an explicit scroll container; textarea height follows the available viewport
+without the previous 420px overflow constraint. Light muted text and badge
+combinations were corrected using existing semantic/scale colors; dark values
+were retained. The list total is labeled matching articles. Root added bottom
+configuration save with the same handler and shared busy state.
+
+Integrated rework checks passed: `vp check` clean, 101 files / 579 tests, admin
+production build. Logs are `iteration-03/final-*.log`. No image/source upload or
+production restart occurred. QA's old-candidate report is
+`iteration-03/qa/ADM-QA-002-report.md`: complete MOD 94/94 passed; all 52 actual
+page identities and 14 behavior scenarios passed; only mobile writing layout
+and light contrast blocked acceptance. Incorrect harness URLs/selectors were
+retained as failed validation evidence and excluded after corrected rechecks.
+A new immutable candidate is required to accept the fixes; old green evidence
+is not a substitute for that targeted browser recheck.

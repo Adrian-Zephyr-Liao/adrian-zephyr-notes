@@ -91,7 +91,7 @@ function ArticleManagement() {
       <div className="flex flex-col gap-5 border-b border-border pb-6 sm:flex-row sm:items-center sm:justify-between">
         <dl aria-label="文章统计" className="flex flex-wrap gap-x-7 gap-y-3">
           {[
-            { label: "全部文章", value: pageStats.totalArticles },
+            { label: "匹配文章", value: pageStats.totalArticles },
             { label: "本页已发布", value: pageStats.publishedOnPage },
             { label: "本页原创", value: pageStats.originalOnPage },
             { label: "本页转载", value: pageStats.repostedOnPage },

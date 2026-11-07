@@ -37,7 +37,7 @@ function SiteSettingsEditor({
         action={
           <Button disabled={saving} type="button" onClick={onSave}>
             {saving ? <Loader2 className="animate-spin" /> : <Save />}
-            保存配置
+            {saving ? "保存中" : "保存配置"}
           </Button>
         }
       />
@@ -130,6 +130,13 @@ function SiteSettingsEditor({
           title="社交链接"
           onChange={(socialLinks) => onChange({ ...settings, socialLinks })}
         />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-5">
+          <p className="text-sm text-muted-foreground">将首页、导航与社交链接的修改一起保存。</p>
+          <Button disabled={saving} type="button" onClick={onSave}>
+            {saving ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <Save />}
+            {saving ? "保存中" : "保存配置"}
+          </Button>
+        </div>
       </ManagementBody>
     </ManagementSurface>
   );
