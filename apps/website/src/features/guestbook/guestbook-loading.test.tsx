@@ -25,6 +25,7 @@ const listFetch = vi.fn<typeof fetch>();
 let currentUser: AuthUserResponse | null = null;
 
 beforeEach(() => {
+  window.sessionStorage.clear();
   listFetch.mockReset();
   currentUser = null;
   vi.stubGlobal(
@@ -112,7 +113,7 @@ describe("guestbook loading and recovery", () => {
         );
 
       await act(async () => result.current.submitMessage());
-      expect(result.current.errorMessage).toBe("发布结果尚未确认，请刷新页面核对留言后再试。");
+      expect(result.current.errorMessage).toBe("发布结果尚未确认，请先核对已有留言后再试。");
       expect(result.current.body).toBe("My draft");
       expect(result.current.messages.map(({ id }) => id)).toEqual(["first"]);
     },

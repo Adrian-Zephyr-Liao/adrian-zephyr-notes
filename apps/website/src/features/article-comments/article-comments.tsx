@@ -1,5 +1,6 @@
 "use client";
 
+import { DiscussionDraftNotice } from "../discussion-draft";
 import { ArticleCommentForm } from "./article-comment-form";
 import { ArticleCommentHeader } from "./article-comment-header";
 import { ArticleCommentList } from "./article-comment-list";
@@ -11,7 +12,7 @@ function ArticleComments({ slug }: { slug: string }) {
   return (
     <section className="mt-12 border-y border-border py-4" aria-label="文章评论">
       <ArticleCommentHeader
-        loginUrl={comments.loginUrl}
+        onLogin={comments.draft.login}
         onLogout={comments.logout}
         totalItems={comments.pagination?.totalItems ?? null}
         user={comments.user}
@@ -33,8 +34,10 @@ function ArticleComments({ slug }: { slug: string }) {
         onToggleReplies={comments.toggleReplyExpansion}
       />
 
+      <DiscussionDraftNotice draft={comments.draft} />
       <ArticleCommentForm
         body={comments.body}
+        unresolvedReply={comments.unresolvedReply}
         errorMessage={comments.errorMessage}
         isSubmitting={comments.isSubmitting}
         isReadReady={comments.initialLoadState === "ready"}

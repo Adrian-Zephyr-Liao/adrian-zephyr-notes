@@ -5,12 +5,12 @@ import { Button } from "@/components/ui/button";
 import { AuthorAvatar } from "./article-comment-avatar";
 
 function ArticleCommentHeader({
-  loginUrl,
+  onLogin,
   onLogout,
   totalItems,
   user,
 }: {
-  loginUrl: string;
+  onLogin: () => void;
   onLogout: () => void;
   totalItems: number | null;
   user: AuthUserResponse | null;
@@ -39,11 +39,9 @@ function ArticleCommentHeader({
           </Button>
         </div>
       ) : (
-        <Button asChild variant="outline" size="sm">
-          <a href={loginUrl}>
-            <Github className="size-4" />
-            GitHub 登录
-          </a>
+        <Button type="button" onClick={onLogin} variant="outline" size="sm">
+          <Github className="size-4" />
+          GitHub 登录
         </Button>
       )}
     </div>

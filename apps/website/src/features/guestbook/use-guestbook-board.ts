@@ -6,6 +6,7 @@ import type {
   GuestbookMessageResponse,
   GuestbookMessagesResponse,
 } from "@adrian-zephyr-notes/contracts";
+import { useDiscussionDraft } from "../discussion-draft";
 import { isApiRequestError } from "@/lib/api-client";
 
 import {
@@ -27,8 +28,6 @@ function useGuestbookBoard() {
     null,
   );
   const [user, setUser] = useState<AuthUserResponse | null>(null);
-  const [guestNickname, setGuestNickname] = useState("");
-  const [body, setBody] = useState("");
   const [website, setWebsite] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [loadState, setLoadState] = useState<"loading" | "ready" | "error">("loading");
@@ -45,6 +44,10 @@ function useGuestbookBoard() {
     () => `/api/auth/github/start?returnTo=${encodeURIComponent("/comments")}`,
     [],
   );
+
+  const draft = useDiscussionDraft("guestbook", loginUrl);
+  const body = draft.body;
+  const guestNickname = draft.nickname;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -94,6 +97,7 @@ function useGuestbookBoard() {
       website,
     };
     const version = lifecycleVersion.current;
+    const submittedDraft = draft.capture();
 
     submissionPending.current = true;
     setIsSubmitting(true);
@@ -101,6 +105,7 @@ function useGuestbookBoard() {
 
     try {
       const result = await createGuestbookMessage(payload);
+      if (result.kind === "created") draft.clearSubmitted(submittedDraft);
       if (lifecycleVersion.current !== version) return;
 
       if (result.kind === "rate-limited") {
@@ -121,13 +126,16 @@ function useGuestbookBoard() {
             }
           : current,
       );
-      setBody("");
     } catch (error) {
       if (lifecycleVersion.current !== version) return;
+      if (isApiRequestError(error) && error.status === 401) {
+        draft.login();
+        return;
+      }
       setErrorMessage(
         isApiRequestError(error) && error.status >= 400 && error.status < 500
           ? "留言未发布，请检查内容或稍后重试。"
-          : "发布结果尚未确认，请刷新页面核对留言后再试。",
+          : "发布结果尚未确认，请先核对已有留言后再试。",
       );
     } finally {
       if (lifecycleVersion.current === version) {
@@ -151,7 +159,7 @@ function useGuestbookBoard() {
 
   async function toggleLike(target: GuestbookMessageResponse) {
     if (!user) {
-      window.location.href = loginUrl;
+      draft.login();
       return;
     }
 
@@ -181,7 +189,8 @@ function useGuestbookBoard() {
       if (lifecycleVersion.current !== version) return;
 
       if (result.kind === "auth-required") {
-        window.location.href = loginUrl;
+        setMessages((current) => applyGuestbookMessageLikeState(current, previousLikeState));
+        draft.login();
         return;
       }
 
@@ -232,6 +241,7 @@ function useGuestbookBoard() {
 
   return {
     body,
+    draft,
     canLoadMore: pagination ? pagination.page < pagination.totalPages : false,
     errorMessage,
     guestNickname,
@@ -244,8 +254,8 @@ function useGuestbookBoard() {
     loginUrl,
     messages,
     pagination,
-    setBody,
-    setGuestNickname,
+    setBody: (value: string) => draft.update({ body: value }),
+    setGuestNickname: (value: string) => draft.update({ nickname: value }),
     setWebsite,
     submitMessage,
     loadMore,
