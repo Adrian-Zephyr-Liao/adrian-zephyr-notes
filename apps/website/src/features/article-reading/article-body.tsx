@@ -5,6 +5,7 @@ import { ArticleComments } from "@/features/article-comments";
 import { ArticleAiSummaryCard } from "./article-ai-summary-card";
 import { ArticleFooter } from "./article-footer";
 import { ArticleToc } from "./article-toc";
+import { ArticleReadAloud } from "./read-aloud";
 
 function ArticleBody({
   post,
@@ -16,6 +17,7 @@ function ArticleBody({
   return (
     <div className="min-w-0">
       <ArticleToc headings={headings} mobile />
+      <ArticleReadAloud key={post.slug} title={post.title} contentId="article-content" />
       {post.origin === "REPOSTED" && post.source ? (
         <aside className="mb-10 grid gap-2 border-l-2 border-primary pl-5 text-[0.9rem] leading-[1.8] text-muted-foreground">
           <p>
@@ -34,7 +36,7 @@ function ArticleBody({
         </aside>
       ) : null}
       {post.aiSummary ? <ArticleAiSummaryCard summary={post.aiSummary} /> : null}
-      <div className="article-markdown">
+      <div className="article-markdown" id="article-content">
         <MarkdownRenderer content={post.markdown} />
       </div>
       <ArticleFooter post={post} />
